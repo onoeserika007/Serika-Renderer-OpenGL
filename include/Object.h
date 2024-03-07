@@ -4,7 +4,8 @@
 #include <memory>
 
 class Object {
-	std::shared_ptr<Geometry> geometry_;
+	std::shared_ptr<Geometry> pgeometry_;
+	std::shared_ptr<Shader> pshader_;
 	std::unordered_map<std::string, unsigned> buffer_map_;
 	unsigned VAO;
 	void BindObjectBuffer() {
@@ -13,5 +14,5 @@ class Object {
 		}
 	}
 public:
-	Object(std::shared_ptr<Geometry> geometry): geometry_(geometry), VAO(0) {}
+	Object(std::shared_ptr<Geometry> pgeometry): pgeometry_(pgeometry), VAO(0) {}
 };

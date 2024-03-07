@@ -208,6 +208,9 @@ public:
         cube = std::make_shared<Geometry>();
         cube->setAttribute("position", cubePosAttribute, 0);
         cube->setAttribute("uv", cubeUvAttribute, 1);
+        //cube->setAttribute("position", cubePosArray, 3, 0);
+        //cube->setAttribute("uv", cubeUvArray, 2, 1);
+
 
         // Shader
         pShader = std::make_shared<Shader>("./assets/shader/vertexShader.vert", "./assets/shader/fragmentShader.frag");
