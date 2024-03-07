@@ -18,7 +18,7 @@ class Geometry {
 	//std::unordered_map<std::string, std::vector<float>> data_map_old_;
 	std::unordered_map<std::string, unsigned> buffer_map_;
 	std::vector<unsigned> indices_;
-	unsigned VAO = 0;
+	//unsigned VAO = 0;
 	unsigned EBO = 0;
 	//std::vector<float> pos_data_;
 	//std::vector<float> color_data_;
@@ -29,7 +29,7 @@ class Geometry {
 
 public:
 	Geometry():size_(0), geometry_type_(Mesh) {
-		glGenVertexArrays(1, &VAO);
+		//glGenVertexArrays(1, &VAO);
 	}
 	//Geometry(const std::vector<float>& vertex_data): geometry_type_(Mesh) {
 	//	// Vertex Array Object
@@ -42,7 +42,7 @@ public:
 		return buffer_map_[attr];
 	}
 
-	std::vector<std::string> getAttributeNames() {
+	std::vector<std::string> getAttributeNameList() {
 		std::vector <std::string> ret;
 		for (auto [k, v] : buffer_map_) {
 			ret.push_back(k);
@@ -50,13 +50,17 @@ public:
 		return ret;
 	}
 
-	void setAttribute(const std::string& attr, BufferAttribute<float> data, unsigned layout_position) {
+	BufferAttribute<float> getBufferData(const std::string& attr) {
+		return data_map_[attr];
+	}
+
+	void setAttribute(const std::string& attr, BufferAttribute<float> data, unsigned layout_position, bool isVertex = false) {
 		//if(attr != "position" && size_ && size_ != data.size())
-		if (attr == "position") {
+		if (isVertex) {
 			size_ = data.size();
 		}
 
-		glBindVertexArray(VAO);
+		//glBindVertexArray(VAO);
 		layout_map_[attr] = layout_position;
 		auto& data_ = data_map_[attr];
 		data_ = data;
@@ -114,28 +118,44 @@ public:
 	void setIndex(const std::vector<unsigned>& indices) {
 		geometry_type_ = Mesh_Indexed;
 		indices_.assign(indices.begin(), indices.end());
-		glBindVertexArray(VAO);
+		//glBindVertexArray(VAO);
 		glGenBuffers(1, &EBO);
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
 		glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices_.size() * sizeof(unsigned), indices_.data(), GL_STATIC_DRAW);
-		glBindVertexArray(NULL);
+		//glBindVertexArray(NULL);
 	}
 
-	void draw() {
-		glBindVertexArray(VAO);
-		if (geometry_type_ == Mesh) {
-			// primitive | 顶点数组起始索引 | 绘制indices数量
-			glDrawArrays(GL_TRIANGLES, 0, size_);
-			//for (auto num : data_map_["position"]) {
-			//	std::cout << num << ", ";
-			//}
-			//std::cout <<" -------------------------------------------------- " << std::endl;
-		}
-		else {
-			// primitive | nums | 索引类型 | 最后一个参数里我们可以指定EBO中的偏移量（或者传递一个索引数组，但是这是当你不在使用EBO的时候），但是我们会在这里填写0。
-			glDrawElements(GL_TRIANGLES, indices_.size(), GL_UNSIGNED_INT, 0);
-		}
-		glBindVertexArray(NULL);
+	//void draw() {
+	//	//glBindVertexArray(VAO);
+	//	if (geometry_type_ == Mesh) {
+	//		// primitive | 顶点数组起始索引 | 绘制indices数量
+	//		glDrawArrays(GL_TRIANGLES, 0, size_);
+	//		//for (auto num : data_map_["position"]) {
+	//		//	std::cout << num << ", ";
+	//		//}
+	//		//std::cout <<" -------------------------------------------------- " << std::endl;
+	//	}
+	//	else {
+	//		// primitive | nums | 索引类型 | 最后一个参数里我们可以指定EBO中的偏移量（或者传递一个索引数组，但是这是当你不在使用EBO的时候），但是我们会在这里填写0。
+	//		glDrawElements(GL_TRIANGLES, indices_.size(), GL_UNSIGNED_INT, 0);
+	//	}
+	//	glBindVertexArray(NULL);
+	//}
+
+	bool isMesh() {
+		return geometry_type_ == Mesh;
+	}
+
+	bool isMeshIndexed() {
+		return geometry_type_ == Mesh_Indexed;
+	}
+
+	GLuint getVeticesNum() {
+		return size_;
+	}
+
+	GLuint getIndicesNum() {
+		return indices_.size();
 	}
 
 	void drawWithOutTexture() {

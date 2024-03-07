@@ -17,6 +17,7 @@
 #include <functional>
 #include "Geometry.h"
 #include "BufferAttribute.h"
+#include "Object.h"
 using namespace std;
 
 class App
@@ -34,7 +35,7 @@ class App
     std::shared_ptr<Shader> pShader;
     Texture wallTexture;
     Texture faceTexture;
-    std::shared_ptr<Geometry> cube;
+    std::shared_ptr<Object> cube;
     static std::shared_ptr<PerspectiveCamera> camera;
     GLFWwindow* window = nullptr;
     float lastFrameTime = 0.0;
@@ -205,15 +206,17 @@ public:
         BufferAttribute<float> cubePosAttribute(cubePosArray, 3), cubeUvAttribute(cubeUvArray, 2);
 
 
-        cube = std::make_shared<Geometry>();
-        cube->setAttribute("position", cubePosAttribute, 0);
-        cube->setAttribute("uv", cubeUvAttribute, 1);
+        auto cubeGeometry = std::make_shared<Geometry>();
+        cubeGeometry->setAttribute("aPos", cubePosAttribute, 0, true);
+        cubeGeometry->setAttribute("aTexCoord", cubeUvAttribute, 1);
         //cube->setAttribute("position", cubePosArray, 3, 0);
         //cube->setAttribute("uv", cubeUvArray, 2, 1);
 
 
         // Shader
         pShader = std::make_shared<Shader>("./assets/shader/vertexShader.vert", "./assets/shader/fragmentShader.frag");
+
+        cube = std::make_shared<Object>(cubeGeometry, pShader);
 
         // Texture
         wallTexture = Texture::loadTexture("./assets/texture/wall.jpg");

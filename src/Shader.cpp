@@ -82,5 +82,5 @@ void Shader::setMat4(const std::string& name, glm::mat4 value) const {
     glUniformMatrix4fv(mat4loc, 1, GL_FALSE, glm::value_ptr(value));
 }
 GLint Shader::getAttributeLocation(const std::string& name) const {
-    return glGetAttribLocation(ID, "attributeName");
+    return glGetAttribLocation(ID, name.data());
 }

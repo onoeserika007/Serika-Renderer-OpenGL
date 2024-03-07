@@ -7,16 +7,16 @@ class BufferAttribute {
 	std::shared_ptr<std::vector<T>> data_;
 	size_t item_size_;
 public:
-	const T* data() {
+	const T* data() const {
 		return data_->data();
 	}
-	size_t size() {
+	size_t size() const {
 		return data_->size();
 	}
-	size_t byte_size() {
+	size_t byte_size() const {
 		return sizeof(T) * data_->size();
 	}
-	size_t item_size() {
+	size_t item_size() const {
 		return item_size_;
 	}
 
