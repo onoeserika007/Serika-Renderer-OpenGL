@@ -5,14 +5,18 @@
 
 int Texture::texture_count_ = 0;
 // 报错是因为没有声明/定义类静态成员texture_map_
-std::unordered_map<std::string, Texture> Texture::texture_map_;
+std::unordered_map<std::string, std::shared_ptr<Texture>> Texture::texture_map_;
 
-Texture Texture::loadTexture(const std::string& picture) {
+// texture中的name是临时的
+std::shared_ptr<Texture> Texture::loadTexture(const std::string& name, const std::string& picture) {
 	if (texture_map_.count(picture)) {
-		return texture_map_[picture];
+		auto ret = texture_map_[picture];
+		ret->name_ = name;
+		return ret;
 	}
 	else {
-		auto& ret = texture_map_[picture] = Texture(picture);
+		auto ret = texture_map_[picture] = std::make_shared<Texture>(PassKey(), picture);
+		ret->name_ = name;
 		return ret;
 	}
 }
@@ -22,8 +26,8 @@ Texture::Texture(const std::string& picture) :texture_(0){
 	// 如果文件中包含 Alpha 通道，但 desired_channels 设置为 3，那么 Alpha 通道将被丢弃。可以为 NULL，如果不关心。
 	// glGenTextures函数首先需要输入生成纹理的数量，然后把它们储存在第二个参数的unsigned int数组中
 	glGenTextures(1, &texture_);
-	// 激活纹理单元
-	glActiveTexture(GL_TEXTURE0 + texture_count_);
+	// 激活纹理单元 纹理单元是状态无关的 是全局的
+	glActiveTexture(GL_TEXTURE0);
 	// 绑定纹理，让之后的任何纹理指令都对当前纹理生效
 	glBindTexture(GL_TEXTURE_2D, texture_);
 	// 为当前绑定的纹理对象设置环绕、过滤方式
@@ -64,5 +68,19 @@ Texture::Texture(const std::string& picture) :texture_(0){
 }
 
 void Texture::use() {
+	glActiveTexture(GL_TEXTURE0 + textureLoc);
 	glBindTexture(GL_TEXTURE_2D, texture_);
+}
+
+// 我们还要通过使用glUniform1i设置每个采样器的方式告诉OpenGL每个着色器采样器属于哪个纹理单元。我们只需要设置一次即可，所以这个会放在渲染循环的前面：
+void Texture::setUnit(std::shared_ptr<Shader> pshader, unsigned loc) {
+	// 着色采样器的位置
+	textureLoc = loc;
+	glActiveTexture(GL_TEXTURE0 + loc);
+	glBindTexture(GL_TEXTURE_2D, texture_);
+	pshader->setInt(name_, loc);
+}
+
+void Texture::setName(std::string& name) {
+	name_ = name;
 }

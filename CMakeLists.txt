@@ -20,7 +20,7 @@ set(CMAKE_CXX_STANDARD 17)
 # set(CMAKE_BUILD_TYPE "Release")
 
 # 将源代码添加到此项目的可执行文件。
-add_executable (learnOpenGL-aTriangle "src/learnOpenGL-aTriangle.cpp" "src/glad.c" "include/primitives.h"  "src/Shader.cpp" "include/Shader.h" "include/Utils/utils.h" "src/Utils/utils.cpp" "include/stb_image.h" "src/stb_image.cpp" "include/Texture.h" "src/Texture.cpp" "include/Geometry.h" "include/Camera.h"  "include/Object.h" "include/BufferAttribute.h")
+add_executable (learnOpenGL-aTriangle "src/learnOpenGL-aTriangle.cpp" "src/glad.c" "include/primitives.h"  "src/Shader.cpp" "include/Shader.h" "include/Utils/utils.h" "src/Utils/utils.cpp" "include/stb_image.h" "src/stb_image.cpp" "include/Texture.h" "src/Texture.cpp" "include/Geometry.h" "include/Camera.h"  "include/Object.h" "include/BufferAttribute.h" "include/Material.h" "include/Light.h")
 
 if (CMAKE_VERSION VERSION_GREATER 3.12)
   set_property(TARGET learnOpenGL-aTriangle PROPERTY CXX_STANDARD 20)

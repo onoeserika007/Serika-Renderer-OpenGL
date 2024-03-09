@@ -22,20 +22,15 @@ using namespace std;
 
 class App
 {
-    //unsigned int VBO = 0;
-    //unsigned int VAO = 0;
-    //unsigned int EBO = 0;
-    
-    unsigned int shaderProgram = 0;
     float mixValue = 0.5;
     static bool firstMouse;
 
     int windowWidth = 0;
     int windowHeight = 0;
-    std::shared_ptr<Shader> pShader;
     Texture wallTexture;
     Texture faceTexture;
-    std::shared_ptr<Object> cube;
+    std::shared_ptr<Object<float>> cube;
+    std::shared_ptr<Object<float>> light;
     static std::shared_ptr<PerspectiveCamera> camera;
     GLFWwindow* window = nullptr;
     float lastFrameTime = 0.0;
@@ -155,45 +150,13 @@ public:
         //glGenVertexArrays(1, &VAO);
         //glBindVertexArray(VAO);
 
-        //// VBO存放在GPU内存中，即显存
-        //// 生成缓冲数量 
-        //glGenBuffers(1, &VBO);
-        //// OpenGL允许我们同时绑定多个缓冲，只要它们是不同的缓冲类型
-        //glBindBuffer(GL_ARRAY_BUFFER, VBO);
-        //// 把之前定义的顶点数据复制到缓冲的内存中
-        //// 我们希望显卡如何管理给定的数据
-        //// GL_STATIC_DRAW ：数据不会或几乎不会改变。
-        //// GL_DYNAMIC_DRAW：数据会被改变很多。
-        //// GL_STREAM_DRAW ：数据每次绘制时都会改变。
-        //// 比如说一个缓冲中的数据将频繁被改变，那么使用的类型就是GL_DYNAMIC_DRAW或GL_STREAM_DRAW，这样就能确保显卡把数据放在能够高速写入的内存部分。
-        ////glBufferData(GL_ARRAY_BUFFER, sizeof(TestTriangle::vertices), TestTriangle::vertices, GL_STATIC_DRAW);
-        ////glBufferData(GL_ARRAY_BUFFER, sizeof(TestTriangle::verticesWithIndex), TestTriangle::verticesWithIndex, GL_STATIC_DRAW);
-        ////glBufferData(GL_ARRAY_BUFFER, sizeof(TestTriangle::verticesWithIndexAndColor), TestTriangle::verticesWithIndexAndColor, GL_STATIC_DRAW);
-        ////glBufferData(GL_ARRAY_BUFFER, sizeof(TestTriangle::verticesWithTex), TestTriangle::verticesWithTex, GL_STATIC_DRAW);
-        //glBufferData(GL_ARRAY_BUFFER, sizeof(TestTriangle::cubeVertices), TestTriangle::cubeVertices, GL_STATIC_DRAW);
-
         //// EBO
         ////glGenBuffers(1, &EBO);
         ////glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
         ////glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(TestTriangle::indices), TestTriangle::indices, GL_STATIC_DRAW);
 
-        //// 指定顶点属性的解释方式（如何解释VBO中的数据）
-        //// 1. glVertexAttribPointer
-        //// attri的Location(layout location = 0) | 属性大小 | 数据类型 | 是否Normalize to 0-1 | stride | 从Buffer起始位置开始的偏移
-        ////glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
-        ////glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
-        ////glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
-        ////// 以顶点属性位置值作为参数，启用顶点属性；顶点属性默认是禁用的
-        ////glEnableVertexAttribArray(0);
-        ////glEnableVertexAttribArray(1);
-        ////glEnableVertexAttribArray(2);
 
-        //// for cube
-        //glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
-        //glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
-        //glEnableVertexAttribArray(0);
-        //glEnableVertexAttribArray(1);
-        std::vector<float> cubePosArray, cubeUvArray;
+        std::vector<float> cubePosArray, cubeUvArray, cubeNormalArray;
         for (int i = 0; i < sizeof(TestTriangle::cubeVertices) / sizeof(float); i += 5) {
             int j = 0;
             for (; j < 3; j++) {
@@ -203,31 +166,64 @@ public:
                 cubeUvArray.push_back(TestTriangle::cubeVertices[i + j]);
             }
         }
-        BufferAttribute<float> cubePosAttribute(cubePosArray, 3), cubeUvAttribute(cubeUvArray, 2);
+        for (int i = 0; i < sizeof(TestTriangle::cubeVerticesWithNormals) / sizeof(float); i += 6) {
+            int j = 0;
+            while (j < 3) j++;
+            while (j < 6) {
+                cubeNormalArray.push_back(TestTriangle::cubeVerticesWithNormals[i + j]);
+                j++;
+            }
+        }
+        BufferAttribute<float> cubePosAttribute(cubePosArray, 3), cubeUvAttribute(cubeUvArray, 2), cubeNormalAttribute(cubeNormalArray, 3);
 
 
-        auto cubeGeometry = std::make_shared<Geometry>();
-        cubeGeometry->setAttribute("aPos", cubePosAttribute, 0, true);
-        cubeGeometry->setAttribute("aTexCoord", cubeUvAttribute, 1);
-        //cube->setAttribute("position", cubePosArray, 3, 0);
-        //cube->setAttribute("uv", cubeUvArray, 2, 1);
+        auto cubeGeometry = std::make_shared<Geometry<float>>();
+        cubeGeometry->setAttribute("aPos", cubePosAttribute, true);
+        cubeGeometry->setAttribute("aTexCoord", cubeUvAttribute);
+        cubeGeometry->setAttribute("aNormal", cubeNormalAttribute);
 
 
         // Shader
-        pShader = std::make_shared<Shader>("./assets/shader/vertexShader.vert", "./assets/shader/fragmentShader.frag");
+        //auto pShader = std::make_shared<Shader>("./assets/shader/vertexShader.vert", "./assets/shader/fragmentShader.frag");
+        auto pShader = Shader::loadShader("./assets/shader/vertexShader.vert", "./assets/shader/fragmentShader.frag");
+        // 我们还要通过使用glUniform1i设置每个采样器的方式告诉OpenGL每个着色器采样器属于哪个纹理单元。我们只需要设置一次即可，所以这个会放在渲染循环的前面：
+        //glUniform1i(glGetUniformLocation(pShader->ID, "texture1"), 0); // 手动设置
+        //pShader->setInt("texture2", 1); // 或者使用着色器类设置
+        auto plightedObjectShader = Shader::loadShader("./assets/shader/lightedObject.vert", "./assets/shader/lightedObject.frag");
+        plightedObjectShader->setVec3("objectColor", 1.0f, 0.5f, 0.31f);
+        plightedObjectShader->setVec3("lightColor", 1.0f, 1.0f, 1.0f);
+        plightedObjectShader->setVec3("lightPos", 1.2f, 1.0f, 2.0f);
 
-        cube = std::make_shared<Object>(cubeGeometry, pShader);
+        plightedObjectShader->setVec3("material.ambient", 1.0f, 0.5f, 0.31f);
+        plightedObjectShader->setVec3("material.diffuse", 1.0f, 0.5f, 0.31f);
+        plightedObjectShader->setVec3("material.specular", 0.5f, 0.5f, 0.5f);
+        plightedObjectShader->setFloat("material.shininess", 32.0f);
+
+        plightedObjectShader->setVec3("light.ambient", 0.2f, 0.2f, 0.2f);
+        plightedObjectShader->setVec3("light.diffuse", 0.5f, 0.5f, 0.5f); // 将光照调暗了一些以搭配场景
+        plightedObjectShader->setVec3("light.specular", 1.0f, 1.0f, 1.0f);
+        plightedObjectShader->setVec3("light.position", 1.2f, 1.0f, 2.0f);
+
+
+        cube = std::make_shared<Object<float>>(cubeGeometry, pShader);
+        //cube = std::make_shared<Object<float>>(cubeGeometry, plightedObjectShader);
 
         // Texture
-        wallTexture = Texture::loadTexture("./assets/texture/wall.jpg");
-        faceTexture = Texture::loadTexture("./assets/texture/awesomeface.png");
+        auto wallTexture = Texture::loadTexture("texture1", "./assets/texture/wall.jpg");
+        auto faceTexture = Texture::loadTexture("texture2", "./assets/texture/awesomeface.png");
+
+
+        cube->setShader(plightedObjectShader);
+        wallTexture->setUnit(plightedObjectShader, 0);
+        faceTexture->setUnit(plightedObjectShader, 1);
+
+        auto plightShader = Shader::loadShader("./assets/shader/light.vert", "./assets/shader/light.frag");
+        light = std::make_shared<Object<float>>(cubeGeometry, plightShader);
+        plightShader->setVec3("objectColor", 1.0f, 0.5f, 0.31f);
+        plightShader->setVec3("lightColor", 1.0f, 1.0f, 1.0f);
     }
 
     void beforeLoop() {
-        pShader->use(); // 不要忘记在设置uniform变量之前激活着色器程序！
-        // 我们还要通过使用glUniform1i设置每个采样器的方式告诉OpenGL每个着色器采样器属于哪个纹理单元。我们只需要设置一次即可，所以这个会放在渲染循环的前面：
-        glUniform1i(glGetUniformLocation(pShader->ID, "texture1"), 0); // 手动设置
-        pShader->setInt("texture2", 1); // 或者使用着色器类设置
         glEnable(GL_DEPTH_TEST);
     }
 
@@ -237,16 +233,21 @@ public:
         //float timeValue = glfwGetTime();
         //float greenValue = (sin(timeValue) / 2.0f) + 0.5f;
         //int vertexColorLocation = glGetUniformLocation(shaderProgram, "ourColor"); // -1 for not found
-        setMVP();
-        pShader->setMat4("model", model);
-        //std::cout <<  << std::endl;
-        //printMat4("model", model);
-        pShader->setMat4("view", view);
-        pShader->setMat4("projection", projection);
-        wallTexture.use();
-        faceTexture.use();
+        auto pShader = cube->getpShader();
         pShader->setFloat("mixValue", mixValue);
-        pShader->setMat4("transform", generateTransform());
+        pShader->setVec3("viewPos", camera->position());
+
+        glm::vec3 lightColor;
+        lightColor.x = sin(glfwGetTime() * 2.0f);
+        lightColor.y = sin(glfwGetTime() * 0.7f);
+        lightColor.z = sin(glfwGetTime() * 1.3f);
+
+        glm::vec3 diffuseColor = lightColor * glm::vec3(0.5f); // 降低影响
+        glm::vec3 ambientColor = diffuseColor * glm::vec3(0.2f); // 很低的影响
+
+        pShader->setVec3("light.ambient", ambientColor);
+        pShader->setVec3("light.diffuse", diffuseColor);
+        //pShader->setMat4("transform", generateTransform());
         //glBindVertexArray(VAO);
         for (unsigned int i = 0; i < 10; i++)
         {
@@ -254,11 +255,21 @@ public:
             model = glm::translate(model, TestTriangle::cubePositions[i]);
             float angle = 20.0f * i;
             model = glm::rotate(model, glm::radians(angle), glm::vec3(1.0f, 0.3f, 0.5f));
-            pShader->setMat4("model", model);
+            //pShader->setMat4("model", model);
 
-            cube->draw();
+            cube->setWorldMatrix(model);
+            cube->draw(*camera);
             //glDrawArrays(GL_TRIANGLES, 0, 36
         }
+        // light
+        glm::vec3 lightPos(1.2f, 1.0f, 2.0f);
+        model = glm::mat4(1.0f);
+        model = glm::translate(model, lightPos);
+        model = glm::scale(model, glm::vec3(0.2f));
+        auto lightShader = light->getpShader();
+        lightShader->setVec3("lightColor", lightColor);
+        light->setWorldMatrix(model);
+        light->draw(*camera);
         //cube->draw();
         //glDrawArrays(GL_TRIANGLES, 0, 36); // primitive | 顶点数组其实索引 | 绘制数量
         //glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0); // primitive | nums | 索引类型 | 最后一个参数里我们可以指定EBO中的偏移量（或者传递一个索引数组，但是这是当你不在使用EBO的时候），但是我们会在这里填写0。
@@ -314,28 +325,28 @@ public:
         glfwTerminate();
     }
 
-    glm::mat4 generateTransform() {
-        glm::mat4 trans(1.0f);
-        //trans = glm::rotate(trans, glm::radians(90.0f), glm::vec3(0.0, 0.0, 1.0));
-        trans = glm::rotate(trans, glm::radians((float)glfwGetTime()), glm::vec3(0.0, 0.0, 1.0));
-        trans = glm::scale(trans, glm::vec3(0.5, 0.5, 0.5));
-        return trans;
-    }
+    //glm::mat4 generateTransform() {
+    //    glm::mat4 trans(1.0f);
+    //    //trans = glm::rotate(trans, glm::radians(90.0f), glm::vec3(0.0, 0.0, 1.0));
+    //    trans = glm::rotate(trans, glm::radians((float)glfwGetTime()), glm::vec3(0.0, 0.0, 1.0));
+    //    trans = glm::scale(trans, glm::vec3(0.5, 0.5, 0.5));
+    //    return trans;
+    //}
 
-    void setMVP() {
-        model = glm::rotate(glm::mat4(1.0f), glm::radians(-55.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-        // 因为在view变换中，默认最终相机是在原点看向z负轴的，所以这里是向z轴正方向移动了三个单位
-        //view = glm::translate(view, glm::vec3(0.0f, 0.0f, -10.0f));
-        // view 
-        //float radius = 10.0f;
-        //float camX = sin(glfwGetTime()) * radius;
-        //float camZ = cos(glfwGetTime()) * radius;
-        //view = glm::lookAt(glm::vec3(camX, 0.0, camZ), glm::vec3(0.0, 0.0, 0.0), glm::vec3(0.0, 1.0, 0.0));
-        //view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
-        view = camera->GetViewMatrix();
-        glfwGetWindowSize(window, &windowWidth, &windowHeight);
-        projection = camera->GetProjectionMatrix();
-    }
+    //void setMVP() {
+    //    model = glm::rotate(glm::mat4(1.0f), glm::radians(-55.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+    //    // 因为在view变换中，默认最终相机是在原点看向z负轴的，所以这里是向z轴正方向移动了三个单位
+    //    //view = glm::translate(view, glm::vec3(0.0f, 0.0f, -10.0f));
+    //    // view 
+    //    //float radius = 10.0f;
+    //    //float camX = sin(glfwGetTime()) * radius;
+    //    //float camZ = cos(glfwGetTime()) * radius;
+    //    //view = glm::lookAt(glm::vec3(camX, 0.0, camZ), glm::vec3(0.0, 0.0, 0.0), glm::vec3(0.0, 1.0, 0.0));
+    //    //view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
+    //    view = camera->GetViewMatrix();
+    //    glfwGetWindowSize(window, &windowWidth, &windowHeight);
+    //    projection = camera->GetProjectionMatrix();
+    //}
 
     void printMat4(const string& name, glm::mat4 mat) {
         std::cout << "Matrix manually:" + name + "\n";
