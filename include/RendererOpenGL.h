@@ -5,7 +5,10 @@ class RendererOpenGL : public Renderer {
 	virtual void init() override;
 
 	virtual std::shared_ptr<UniformBlock> createUniformBlock(const std::string& name, int size) override;
+	virtual std::shared_ptr< UniformSampler> createUniformSampler(const std::string& name, TextureTarget target, TextureFormat format) override;
 	virtual std::shared_ptr<Shader> createShader(const std::string& vsPath = "", const std::string& fsPsth = "") override;
+	virtual std::shared_ptr<Texture> createTexture(const TextureInfo& texInfo, const SamplerInfo& smInfo) override;
+	virtual std::shared_ptr<FrameBuffer> createFrameBuffer(bool offScreen) override;
 
 	virtual void setupVertexAttribute(BufferAttribute& vertexAttribute) override;
 	virtual void setupGeometry(Geometry& geometry) override;
@@ -24,6 +27,7 @@ class RendererOpenGL : public Renderer {
 	// pipeline related
 	virtual void beginRenderPass(std::shared_ptr<FrameBuffer>& frameBuffer, const ClearStates& states) override;
 	virtual void endRenderPass() override;
+	virtual void setViewPort(int x, int y, int width, int height) override;
 	virtual void waitIdle() override;
 
 	virtual ~RendererOpenGL();

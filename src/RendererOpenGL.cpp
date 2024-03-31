@@ -9,6 +9,7 @@
 #include "OpenGL/EnumsOpenGL.h"
 #include "Object.h"
 #include "Camera.h"
+#include "FrameBufferOpenGL.h"
 
 void RendererOpenGL::init()
 {
@@ -20,9 +21,24 @@ std::shared_ptr<UniformBlock> RendererOpenGL::createUniformBlock(const std::stri
 	return std::make_shared<UniformBlockOpenGL>(name, size);
 }
 
+std::shared_ptr<UniformSampler> RendererOpenGL::createUniformSampler(const std::string& name, TextureTarget target, TextureFormat format)
+{
+	return std::make_shared<UniformSamplerOpenGL>(name, target, format);
+}
+
 std::shared_ptr<Shader> RendererOpenGL::createShader(const std::string& vsPath, const std::string& fsPsth)
 {
 	return ShaderGLSL::loadShader(vsPath, fsPsth);
+}
+
+std::shared_ptr<Texture> RendererOpenGL::createTexture(const TextureInfo& texInfo, const SamplerInfo& smInfo)
+{
+	return std::make_shared<Texture>(texInfo, smInfo);
+}
+
+std::shared_ptr<FrameBuffer> RendererOpenGL::createFrameBuffer(bool offScreen)
+{
+	return std::make_shared<FrameBufferOpenGL>(offScreen);
 }
 
 void RendererOpenGL::setupVertexAttribute(BufferAttribute& vertexAttribute)
@@ -51,9 +67,10 @@ void RendererOpenGL::setupGeometry(Geometry& geometry)
 
 	// setup indices
 	if (geometry.isMeshIndexed()) {
-		GLuint EBO;
+		GLuint EBO = 0;
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
 		glBufferData(GL_ELEMENT_ARRAY_BUFFER, geometry.getIndicesNum() * sizeof(unsigned), geometry.getIndicesRawData(), GL_STATIC_DRAW);
+		geometry.setEBO(EBO);
 	}
 }
 
@@ -66,7 +83,7 @@ void RendererOpenGL::setupTexture(Texture& texture)
 	GLuint textureId;
 	auto& samplerInfo = texture.getSamplerInfo();
 	auto& textureInfo = texture.getTextureInfo();
-	const auto& openglTextureInfo = OpenGL::cvtTextureFormat(textureInfo.format);
+	const auto& openglTextureInfo = OpenGL::cvtTextureFormat(static_cast<TextureFormat>(textureInfo.format));
 	// desired_channels：希望图像数据被加载到的通道数。可以是 0、1、2 或 3。0 表示使用图像文件中的通道数，1 表示灰度图，2 表示灰度图的 Alpha 通道，3 表示 RGB 图像。
 	// 如果文件中包含 Alpha 通道，但 desired_channels 设置为 3，那么 Alpha 通道将被丢弃。可以为 NULL，如果不关心。
 	// glGenTextures函数首先需要输入生成纹理的数量，然后把它们储存在第二个参数的unsigned int数组中
@@ -182,7 +199,7 @@ void RendererOpenGL::setupObject(Object& object)
 
 		// attrs
 		const auto& attrList = pgeometry->getAttributeNameList();
-		for (auto attr : attrList) {
+		for (const auto& attr : attrList) {
 			auto loc = pshader->getAttributeLocation(attr);
 			if (loc != -1) {
 				//const auto& VBO = pgeometry_->getAttributeBuffer(attr);
@@ -258,14 +275,38 @@ void RendererOpenGL::updateModelUniformBlock(Object& object, Camera& camera, boo
 
 void RendererOpenGL::beginRenderPass(std::shared_ptr<FrameBuffer>& frameBuffer, const ClearStates& states)
 {
+	auto* fbo = dynamic_cast<FrameBufferOpenGL*>(frameBuffer.get());
+	fbo->bind();
+
+	GLbitfield clearBit = 0;
+	if (states.colorFlag) {
+		GL_CHECK(glClearColor(states.clearColor.r, states.clearColor.g, states.clearColor.b, states.clearColor.a));
+		clearBit |= GL_COLOR_BUFFER_BIT;
+	}
+	if (states.depthFlag) {
+		clearBit |= GL_DEPTH_BUFFER_BIT;
+	}
+	GL_CHECK(glClear(clearBit));
 }
 
 void RendererOpenGL::endRenderPass()
 {
+	// reset gl states
+	GL_CHECK(glDisable(GL_BLEND));
+	GL_CHECK(glDisable(GL_DEPTH_TEST));
+	GL_CHECK(glDepthMask(true));
+	GL_CHECK(glDisable(GL_CULL_FACE));
+	GL_CHECK(glPolygonMode(GL_FRONT_AND_BACK, GL_FILL));
+}
+
+void RendererOpenGL::setViewPort(int x, int y, int width, int height)
+{
+	GL_CHECK(glViewport(x, y, width, height));
 }
 
 void RendererOpenGL::waitIdle()
 {
+	GL_CHECK(glFinish());
 }
 
 RendererOpenGL::~RendererOpenGL()

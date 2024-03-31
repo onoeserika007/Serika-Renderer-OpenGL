@@ -110,10 +110,10 @@ struct TextureData {
 struct TextureInfo {
     int width = 0; 
     int height = 0;
-    TextureType type = TEXTURE_NONE;
-    TextureTarget target = TextureTarget_2D;
-    TextureFormat format = TextureFormat_RGBA8;
-    TextureUsage usage = TextureUsage_Sampler;
+    uint32_t type = TEXTURE_NONE;
+    uint32_t target = TextureTarget_2D;
+    uint32_t format = TextureFormat_RGBA8;
+    uint32_t usage = TextureUsage_Sampler;
     bool useMipmaps = false;
     bool multiSample = false;
 };
@@ -140,6 +140,7 @@ public:
     Texture();
     Texture(TextureType type);
     Texture(const TextureInfo& info);
+    Texture(const TextureInfo& texInfo, const SamplerInfo& smInfo);
     void loadTextureData(const std::string& picture);
     void loadTextureData(TextureData data);
     void setName(const std::string& name);

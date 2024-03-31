@@ -16,3 +16,13 @@ std::shared_ptr<Camera> Renderer::getCamera()
 {
 	return camera_;
 }
+
+int Renderer::width()
+{
+	return width_;
+}
+
+int Renderer::height()
+{
+	return height_;
+}

@@ -136,6 +136,12 @@ Texture::Texture(const TextureInfo& info)
 	textureInfo_ = info;
 }
 
+Texture::Texture(const TextureInfo& texInfo, const SamplerInfo& smInfo)
+{
+	textureInfo_ = texInfo;
+	samplerInfo_ = smInfo;
+}
+
 void Texture::loadTextureData(const std::string& picture)
 {
 	auto bufferData = ResourceLoader::loadTexture(picture);
