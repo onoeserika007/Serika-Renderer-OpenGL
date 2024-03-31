@@ -1,10 +1,13 @@
 #ifndef CAMERA_H
 #define CAMERA_H
 
-#include <glad/glad.h>
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
+#include "Base/GLMInc.h"
 #include "Utils//utils.h"
+
+enum class CameraType {
+    ORTHOGRAPHIC,
+    PERSPECTIVE,
+};
 
 // Defines several possible options for camera movement. Used as abstraction to stay away from window-system specific input methods
 enum Camera_Movement {
@@ -58,6 +61,8 @@ public:
         Pitch = pitch;
         updateCameraVectors();
     }
+
+    virtual ~Camera() {}
 
     // returns the view matrix calculated using Euler Angles and the LookAt Matrix
     glm::mat4 GetViewMatrix() const 
@@ -117,8 +122,20 @@ public:
             Zoom = 45.0f;
     }
 
-    glm::vec3 position() {
+    glm::vec3 position() const {
         return Position;
+    }
+
+    glm::vec3 forward() const {
+        return Front;
+    }
+
+    void setPosition(float x, float y, float z) {
+        Position = glm::vec3(x, y, z);
+    }
+
+    void setPosition(glm::vec3 pos) {
+        Position = pos;
     }
 
 private:
@@ -155,9 +172,13 @@ public:
             fov_ = 90.0f;
     }
 
-    virtual glm::mat4 GetProjectionMatrix() const {
+    virtual glm::mat4 GetProjectionMatrix() const override{
         //logDebug("Returing projection matix with fov" + std::to_string(fov_));
         return glm::perspective(glm::radians(fov_), aspect_, near_, far_);
+    }
+
+    void setAspect(float aspect) {
+        aspect_ = aspect;
     }
 
     PerspectiveCamera(float fov = 45.0, float aspect = 1.0, float near = 0.1, float far = 1000.0, 
@@ -165,6 +186,28 @@ public:
         glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f), 
         float yaw = YAW, float pitch = PITCH)
     : fov_(fov), aspect_(aspect), near_(near), far_(far), Camera(position, up, yaw, pitch){}
+};
+
+class OrthographicCamera : public Camera {
+private:
+    float left_;
+    float right_;
+    float bottom_;
+    float top_;
+    float near_;
+    float far_;
+public:
+    OrthographicCamera(float left = 1.0, float right = -1.0,
+        float bottom = -1.0, float top = 1.0,
+        float near = 0.1, float far = 1000.0,
+        glm::vec3 position = glm::vec3(0.0f, 0.0f, 0.0f),
+        glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f),
+        float yaw = YAW, float pitch = PITCH) 
+    : left_(left), right_(right), bottom_(bottom), top_(top) {}
+
+    virtual glm::mat4 GetProjectionMatrix() const override {
+        return glm::ortho(left_, right_, bottom_, top_);
+    }
 };
 
 #endif

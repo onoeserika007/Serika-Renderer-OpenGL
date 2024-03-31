@@ -1,46 +1,82 @@
-#ifndef SHADER_H
-#define SHADER_H
-
-#include <glad/glad.h>; // 包含glad来获取所有的必须OpenGL头文件
-
+#pragma once 
 #include <string>
-#include <fstream>
-#include <sstream>
-#include <iostream>
-#include <vector>
-#include <memory>
 #include <unordered_map>
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/type_ptr.hpp>
+#include <memory>
+#include "Uniform.h"
+#include "Material.h"
 
-
-class Shader
-{
-    struct PassKey {
-        explicit PassKey() {}
-    };
-    static std::unordered_map<std::string, std::shared_ptr<Shader>> shader_map_;
-    // 程序ID
-    unsigned int ID;
-    // 构造器读取并构建着色器
-    Shader(const std::string& vertexPath, const std::string& fragmentPath);
+class Material;
+class Shader {
 public:
-    explicit Shader(PassKey passkey, const std::string& vertexPath, const std::string& fragmentPath): Shader(vertexPath, fragmentPath) {}
-    static std::shared_ptr<Shader> loadShader(const std::string& vertexPath, const std::string& fragmentPath);
-    static std::shared_ptr<Shader> loadDefaultShader();
-    static std::shared_ptr<Shader> loadPhongMaterialShader();
-    // 使用/激活程序
-    void use();
-    // uniform工具函数
-    void setBool(const std::string& name, bool value) const;
-    void setInt(const std::string& name, int value) const;
-    void setFloat(const std::string& name, float value) const;
-    void setMat4(const std::string& name, glm::mat4 value) const;
-    void setVec3(const std::string& name, glm::vec3 value) const;
-    void setVec3(const std::string& name, float x, float y, float z) const;
+    virtual int getId() const = 0;
 
-    GLint getAttributeLocation(const std::string& name) const;
+    virtual void addDefine(const std::string& def) = 0;
+
+    virtual void use() = 0;
+
+    virtual unsigned getSamplerBinding() = 0;
+
+    virtual unsigned getUniformBlockBinding() = 0;
+
+    virtual void setupPipeline(Material& material) = 0;
+
+    //virtual void addDefines(const std::set<std::string>& defs) {
+    //    for (auto& str : defs) {
+    //        addDefine(str);
+    //    }
+    //}
+
+    //virtual void bindResources(ShaderResources& resources) {
+    //    for (auto& kv : resources.blocks) {
+    //        bindUniform(*kv.second);
+    //    }
+
+    //    for (auto& kv : resources.samplers) {
+    //        bindUniform(*kv.second);
+    //    }
+    //}
+
+    virtual bool bindUniform(Uniform& uniform) {
+        int hash = uniform.getHash();
+        int location = -1;
+        if (uniformLocations_.find(hash) == uniformLocations_.end()) {
+            location = uniform.getLocation(*this);
+            uniformLocations_[hash] = location;
+        }
+        else {
+            location = uniformLocations_[hash];
+        }
+
+        if (location < 0) {
+            return false;
+        }
+
+        uniform.bindProgram(*this, location);
+        return true;
+    };
+
+    virtual int getAttributeLocation(const std::string& name) const = 0;;
+
+    virtual std::shared_ptr<Shader> clone() const = 0;
+
+    bool ready() {
+        return pipelineSetup_;
+    }
+
+    void setReady(bool flag) {
+        pipelineSetup_ = flag;
+    }
+
+    ShadingMode shadingMode() {
+        return shadingMode_;
+    }
+
+    void setShadingMode(ShadingMode mode) {
+        shadingMode_ = mode;
+    }
+
+protected:
+    std::unordered_map<int, int> uniformLocations_;
+    bool pipelineSetup_;
+    ShadingMode shadingMode_;
 };
-
-#endif

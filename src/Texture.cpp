@@ -1,86 +1,255 @@
 #include "stb_image.h"
+#include "Utils//utils.h"
+#include "Utils/ImageUtils.h"
 #include "glad/glad.h"
 #include "Texture.h"
+#include "Shader.h"
 #include <iostream>
+#include "Base/GLMInc.h"
+#include "ResourceLoader.h"
+#include "Renderer.h"
 
-int Texture::texture_count_ = 0;
-// 报错是因为没有声明/定义类静态成员texture_map_
-std::unordered_map<std::string, std::shared_ptr<Texture>> Texture::texture_map_;
+const char* SamplerDefinesTextureType[] = {
+	"NONE_MAP",
+	"DIFFUSE_MAP",
+	"SPECULAR_MAP",
+	"AMBIENT_MAP",
+	"EMISSIVE_MAP",
+	"HEIGHT_MAP",
+	"NORMALS_MAP",
+	"SHININESS_MAP",
+	"OPACITY_MAP",
+	"DISPLACEMENT_MAP",
+	"LIGHTMAP_MAP",
+	"REFLECTION_MAP",
+	"BASE_COLOR_MAP",
+	"NORMAL_CAMERA_MAP",
+	"EMISSION_COLOR_MAP",
+	"METALNESS_MAP",
+	"DIFFUSE_ROUGHNESS_MAP",
+	"AMBIENT_OCCLUSION_MAP",
+	"UNKNOWN_MAP",
+	"SHEEN_MAP",
+	"CLEARCOAT_MAP",
+	"TRANSMISSION_MAP",
+	"SHADOW_MAP"
+};
 
-// texture中的name是临时的
-std::shared_ptr<Texture> Texture::loadTexture(const std::string& name, const std::string& picture) {
-	if (texture_map_.count(picture)) {
-		auto ret = texture_map_[picture];
-		ret->name_ = name;
-		return ret;
-	}
-	else {
-		auto ret = texture_map_[picture] = std::make_shared<Texture>(PassKey(), picture);
-		ret->name_ = name;
-		return ret;
-	}
+#define CASE_ENUM_STR(type) case type: return #type
+
+std::shared_ptr<Texture> Texture::createTexture2DDefault(int width, int height, TextureFormat format, TextureUsage usage)
+{
+	TextureInfo info;
+	info.width = width;
+	info.height = height;
+	info.format = format;
+	info.usage = usage;
+	info.target = TextureTarget_2D;
+	return std::make_shared<Texture>(info);
 }
 
-Texture::Texture(const std::string& picture) :texture_(0){
-	// desired_channels：希望图像数据被加载到的通道数。可以是 0、1、2 或 3。0 表示使用图像文件中的通道数，1 表示灰度图，2 表示灰度图的 Alpha 通道，3 表示 RGB 图像。
-	// 如果文件中包含 Alpha 通道，但 desired_channels 设置为 3，那么 Alpha 通道将被丢弃。可以为 NULL，如果不关心。
-	// glGenTextures函数首先需要输入生成纹理的数量，然后把它们储存在第二个参数的unsigned int数组中
-	glGenTextures(1, &texture_);
-	// 激活纹理单元 纹理单元是状态无关的 是全局的
-	glActiveTexture(GL_TEXTURE0);
-	// 绑定纹理，让之后的任何纹理指令都对当前纹理生效
-	glBindTexture(GL_TEXTURE_2D, texture_);
-	// 为当前绑定的纹理对象设置环绕、过滤方式
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-	//std::cout << picture << std::endl;
-	// 你可能注意到纹理上下颠倒了！这是因为OpenGL要求y轴0.0坐标是在图片的底部的，但是图片的y轴0.0坐标通常在顶部。
-	// 很幸运，stb_image.h能够在图像加载时帮助我们翻转y轴，只需要在加载任何图像前加入以下语句即可：
-	stbi_set_flip_vertically_on_load(true);
-	unsigned char* data = stbi_load(picture.c_str(), &width, &height, &nrChannels, 0);
-	if (data) {
-		// 第一个参数指定了纹理目标(Target)。设置为GL_TEXTURE_2D意味着会生成与当前绑定的纹理对象在同一个目标上的纹理（任何绑定到GL_TEXTURE_1D和GL_TEXTURE_3D的纹理不会受到影响）。
-		// 第二个参数为纹理指定多级渐远纹理的级别，如果你希望单独手动设置每个多级渐远纹理的级别的话。这里我们填0，也就是基本级别，也就是不手动设置
-		// 第三个参数告诉OpenGL我们希望把纹理储存为何种格式。我们的图像只有RGB值，因此我们也把纹理储存为RGB值。
-		// 第四个和第五个参数设置最终的纹理的宽度和高度。我们之前加载图像的时候储存了它们，所以我们使用对应的变量。
-		// 下个参数应该总是被设为0（历史遗留的问题）。
-		// 第七第八个参数定义了源图的格式和数据类型。我们使用RGB值加载这个图像，并把它们储存为char(byte)数组，我们将会传入对应值。
-		// 最后一个参数是真正的图像数据。
-		if (nrChannels == 3) {
-			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
-		}
-		else if (nrChannels == 4) {
-			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
-		}
-		// 当调用glTexImage2D时，当前绑定的纹理对象就会被附加上纹理图像。然而，目前只有基本级别(Base-level)的纹理图像被加载了，如果要使用多级渐远纹理，我们必须手动设置所有不同的图像（不断递增第二个参数）。
-		// 或者，直接在生成纹理之后调用glGenerateMipmap。这会为当前绑定的纹理自动生成所有需要的多级渐远纹理。
-		glGenerateMipmap(GL_TEXTURE_2D);
+const char* Texture::materialTexTypeStr(TextureType usage)
+{
+	switch (usage)
+	{
+		CASE_ENUM_STR(TEXTURE_NONE);
+		CASE_ENUM_STR(TEXTURE_DIFFUSE);
+		CASE_ENUM_STR(TEXTURE_SPECULAR);
+		CASE_ENUM_STR(TEXTURE_AMBIENT);
+		CASE_ENUM_STR(TEXTURE_EMISSIVE);
+		CASE_ENUM_STR(TEXTURE_HEIGHT);
+		CASE_ENUM_STR(TEXTURE_NORMALS);
+		CASE_ENUM_STR(TEXTURE_SHININESS);
+		CASE_ENUM_STR(TEXTURE_OPACITY);
+		CASE_ENUM_STR(TEXTURE_DISPLACEMENT);
+		CASE_ENUM_STR(TEXTURE_LIGHTMAP);
+		CASE_ENUM_STR(TEXTURE_REFLECTION);
+		CASE_ENUM_STR(TEXTURE_BASE_COLOR);
+		CASE_ENUM_STR(TEXTURE_NORMAL_CAMERA);
+		CASE_ENUM_STR(TEXTURE_EMISSION_COLOR);
+		CASE_ENUM_STR(TEXTURE_METALNESS);
+		CASE_ENUM_STR(TEXTURE_DIFFUSE_ROUGHNESS);
+		CASE_ENUM_STR(TEXTURE_AMBIENT_OCCLUSION);
+		CASE_ENUM_STR(TEXTURE_UNKNOWN);
+		CASE_ENUM_STR(TEXTURE_SHEEN);
+		CASE_ENUM_STR(TEXTURE_CLEARCOAT);
+		CASE_ENUM_STR(TEXTURE_TRANSMISSION);
+		CASE_ENUM_STR(TEXTURE_SHADOW);
+	default:
+		break;
 	}
-	else {
-		std::cout << "Failed to load texture" << std::endl;
+	return "";
+}
+
+const char* Texture::samplerDefine(TextureType usage)
+{
+	auto len = sizeof(SamplerDefinesTextureType) / sizeof(const char*);
+	if (usage < len) {
+		return SamplerDefinesTextureType[usage];
 	}
-	// 使用库去释放内存，不要自己释放！
-	stbi_image_free(data);
-	texture_count_++;
+	return "";
 }
 
-void Texture::use() {
-	glActiveTexture(GL_TEXTURE0 + textureLoc);
-	glBindTexture(GL_TEXTURE_2D, texture_);
+const char* Texture::samplerName(TextureType usage)
+{
+	switch (usage) {
+		case TEXTURE_NONE:				return "uNoneMap";
+		case TEXTURE_DIFFUSE:			return "uDiffuseMap";
+		case TEXTURE_SPECULAR:			return "uSpecularMap";
+		case TEXTURE_AMBIENT:			return "uAmbientMap";
+		case TEXTURE_EMISSIVE:			return "uEmissiveMap";
+		case TEXTURE_HEIGHT:			return "uHeightMap";
+		case TEXTURE_NORMALS:			return "uNormalsMap";
+		case TEXTURE_SHININESS:			return "uShininessMap";
+		case TEXTURE_OPACITY:			return "uOpacityMap";
+		case TEXTURE_DISPLACEMENT:		return "uDisplacementMap";
+		case TEXTURE_LIGHTMAP:			return "uLightmapMap";
+		case TEXTURE_REFLECTION:		return "uReflectionMap";
+		case TEXTURE_BASE_COLOR:		return "uBaseColorMap";
+		case TEXTURE_NORMAL_CAMERA:		return "uNormalCameraMap";
+		case TEXTURE_EMISSION_COLOR:	return "uEmissionColorMap";
+		case TEXTURE_METALNESS:			return "uMetalnessMap";
+		case TEXTURE_DIFFUSE_ROUGHNESS: return "uDiffuseRoughnessMap";
+		case TEXTURE_AMBIENT_OCCLUSION: return "uAmbientOcclusionMap";
+		case TEXTURE_UNKNOWN:			return "uUnknownMap";
+		case TEXTURE_SHEEN:				return "uSheenMap";
+		case TEXTURE_CLEARCOAT:			return "uClearcoatMap";
+		case TEXTURE_TRANSMISSION:		return "uTransmissionMap";
+		case TEXTURE_SHADOW:			return "uShadowMap";
+		default: return "";
+	}
+
+	return nullptr;
 }
 
-// 我们还要通过使用glUniform1i设置每个采样器的方式告诉OpenGL每个着色器采样器属于哪个纹理单元。我们只需要设置一次即可，所以这个会放在渲染循环的前面：
-void Texture::setUnit(std::shared_ptr<Shader> pshader, unsigned loc) {
-	// 着色采样器的位置
-	textureLoc = loc;
-	glActiveTexture(GL_TEXTURE0 + loc);
-	glBindTexture(GL_TEXTURE_2D, texture_);
-	pshader->setInt(name_, loc);
+Texture::Texture()
+{
 }
 
-void Texture::setName(std::string& name) {
+Texture::Texture(TextureType type)
+{
+	textureInfo_.type = type;
+}
+
+Texture::Texture(const TextureInfo& info)
+{
+	textureInfo_ = info;
+}
+
+void Texture::loadTextureData(const std::string& picture)
+{
+	auto bufferData = ResourceLoader::loadTexture(picture);
+	TextureData texData;
+	texData.dataArray = { bufferData };
+	texData.path = picture;
+	loadTextureData(texData);
+}
+
+void Texture::loadTextureData(TextureData data)
+{
+	prawData = std::make_shared<TextureData>(data);
+	textureInfo_.width = data.dataArray[0]->width();
+	textureInfo_.height = data.dataArray[0]->height();
+}
+
+void Texture::setName(const std::string& name)
+{
 	name_ = name;
+}
+
+void Texture::setTextureInfo(const TextureInfo& info)
+{
+	textureInfo_ = info;
+	pipelineReady_ = false;
+}
+
+const TextureInfo& Texture::getTextureInfo()
+{
+	// TODO: 在此处插入 return 语句
+	return textureInfo_;
+}
+
+void Texture::setSamplerInfo(const SamplerInfo& info)
+{
+	samplerInfo_ = info;
+}
+
+const SamplerInfo& Texture::getSamplerInfo()
+{
+	// TODO: 在此处插入 return 语句
+	return samplerInfo_;
+}
+
+std::string Texture::getName()
+{
+	return name_;
+}
+
+void Texture::setupPipeline(Renderer& renderer)
+{
+	if (pipelineReady_) return;
+	renderer.setupTexture(*this);
+	pipelineReady_ = true;
+}
+
+void Texture::clearPipeline(Renderer& renderer)
+{
+	if (!pipelineReady_) return;
+	renderer.clearTexture(*this);
+	pipelineReady_ = false;
+}
+
+TextureType Texture::getType()
+{
+	return textureInfo_.type;
+}
+
+std::shared_ptr<TextureData> Texture::getpRawData()
+{
+	return prawData;
+}
+
+int Texture::width()
+{
+	return textureInfo_.width;
+}
+
+int Texture::height()
+{
+	return textureInfo_.height;
+}
+
+bool Texture::useMipmaps()
+{
+	return textureInfo_.useMipmaps;
+}
+
+bool Texture::multiSample()
+{
+	return textureInfo_.multiSample;
+}
+
+bool Texture::ready()
+{
+	return pipelineReady_;
+}
+
+unsigned Texture::getId()
+{
+	return textureId_;
+}
+
+void Texture::setId(unsigned id)
+{
+	textureId_ = id;
+}
+
+void Texture::setMipmaps(bool flag)
+{
+	textureInfo_.useMipmaps = flag;
+}
+
+void Texture::setMultiSample(bool flag)
+{
+	textureInfo_.multiSample = flag;
 }
