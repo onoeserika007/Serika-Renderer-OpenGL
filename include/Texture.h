@@ -122,8 +122,8 @@ class Renderer;
 class Shader;
 class UniformSampler;
 class Texture {
-
-	unsigned textureId_;
+protected:
+    unsigned textureId_;
     std::string name_;
     bool pipelineReady_ = false;
 
@@ -137,6 +137,7 @@ public:
     static const char* materialTexTypeStr(TextureType usage);
     static const char* samplerDefine(TextureType usage);
     static const char* samplerName(TextureType usage);
+    virtual ~Texture();
     Texture();
     Texture(TextureType type);
     Texture(const TextureInfo& info);
@@ -156,11 +157,14 @@ public:
     bool useMipmaps();
     bool multiSample();
     bool ready();
+    void setReady(bool flag);
 
     unsigned getId();
     void setId(unsigned id);
     void setMipmaps(bool flag);
     void setMultiSample(bool flag);
+    virtual void setupPipeline() = 0;
+    virtual void clearPipeline() = 0;
     void setupPipeline(Renderer& renderer);
     void clearPipeline(Renderer& renderer);
 };

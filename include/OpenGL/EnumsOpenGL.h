@@ -2,6 +2,7 @@
 #include "Base/RenderStates.h"
 #include <glad/glad.h>
 #include "Texture.h"
+#include "Utils/Logger.h"
 
 namespace OpenGL {
 

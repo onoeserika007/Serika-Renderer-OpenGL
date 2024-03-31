@@ -1,6 +1,7 @@
 #pragma once
 #include <memory>
 #include "Texture.h"
+#include <unordered_map>
 
 class Renderer;
 
@@ -18,41 +19,39 @@ public:
     virtual bool isValid() = 0;
     virtual void bind() const = 0;
 
-    virtual void setColorAttachment(std::shared_ptr<Texture>& color, int level, Renderer& renderer) {
-        if (colorAttachment_.tex->ready()) {
-            colorAttachment_.tex->clearPipeline(renderer);
-        }
-        color->setupPipeline(renderer);
-        colorAttachment_.tex = color;
-        colorAttachment_.layer = 0;
-        colorAttachment_.level = level;
+    virtual void setColorAttachment(std::shared_ptr<Texture>& color, int level, int pos = 0) {
+        auto& colorAttachment = colorAttachments_[pos];
+        color->setupPipeline();
+        colorAttachment.tex = color;
+        colorAttachment.layer = 0;
+        colorAttachment.level = level;
         colorReady_ = true;
     };
 
-    virtual void setColorAttachment(std::shared_ptr<Texture>& color, CubeMapFace face, int level, Renderer& renderer) {
-        if (colorAttachment_.tex->ready()) {
-            colorAttachment_.tex->clearPipeline(renderer);
-        }
-        color->setupPipeline(renderer);
-        colorAttachment_.tex = color;
-        colorAttachment_.layer = face;
-        colorAttachment_.level = level;
+    virtual void setColorAttachment(std::shared_ptr<Texture>& color, CubeMapFace face, int level, int pos = 0) {
+        auto& colorAttachment = colorAttachments_[pos];
+        color->setupPipeline();
+        colorAttachment.tex = color;
+        colorAttachment.layer = 0;
+        colorAttachment.level = level;
         colorReady_ = true;
     };
 
-    virtual void setDepthAttachment(std::shared_ptr<Texture>& depth, Renderer& renderer) {
-        if (colorAttachment_.tex->ready()) {
-            colorAttachment_.tex->clearPipeline(renderer);
-        }
-        depth->setupPipeline(renderer);
+    virtual void setDepthAttachment(std::shared_ptr<Texture>& depth) {
+        depth->setupPipeline();
         depthAttachment_.tex = depth;
         depthAttachment_.layer = 0;
         depthAttachment_.level = 0;
         depthReady_ = true;
     };
 
-    inline const FrameBufferAttachment& getColorAttachment() const {
-        return colorAttachment_;
+    inline const FrameBufferAttachment& getColorAttachment(int pos)  {
+        // 查询会改变map，所以这个函数不能声明为const
+        return colorAttachments_[pos];
+    }
+
+    const std::unordered_map<int, FrameBufferAttachment>& getColorAttachments() const {
+        return colorAttachments_;
     }
 
     inline const FrameBufferAttachment& getDepthAttachment() const {
@@ -69,7 +68,7 @@ public:
 
     inline bool isMultiSample() const {
         if (colorReady_) {
-            return getColorAttachment().tex->multiSample();
+            
         }
         if (depthReady_) {
             return getDepthAttachment().tex->multiSample();
@@ -92,6 +91,6 @@ protected:
     bool depthReady_ = false;
 
     // TODO MTR
-    FrameBufferAttachment colorAttachment_{};
+    std::unordered_map<int, FrameBufferAttachment> colorAttachments_{}; // layout->colorAttachment
     FrameBufferAttachment depthAttachment_{};
 };

@@ -122,6 +122,10 @@ const char* Texture::samplerName(TextureType usage)
 	return nullptr;
 }
 
+Texture::~Texture()
+{
+}
+
 Texture::Texture()
 {
 }
@@ -207,7 +211,7 @@ void Texture::clearPipeline(Renderer& renderer)
 
 TextureType Texture::getType()
 {
-	return textureInfo_.type;
+	return static_cast<TextureType>(textureInfo_.type);
 }
 
 std::shared_ptr<TextureData> Texture::getpRawData()
@@ -238,6 +242,11 @@ bool Texture::multiSample()
 bool Texture::ready()
 {
 	return pipelineReady_;
+}
+
+void Texture::setReady(bool flag)
+{
+	pipelineReady_ = flag;
 }
 
 unsigned Texture::getId()
