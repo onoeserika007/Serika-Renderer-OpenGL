@@ -2,5 +2,5 @@
 #include <iostream>
 
 struct Config {
-
+	bool shadowMap = false;
 };

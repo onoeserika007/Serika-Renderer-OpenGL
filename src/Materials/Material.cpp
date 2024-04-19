@@ -65,10 +65,6 @@
 	 shaderReady_ = setValue;
  }
 
- void Material::use(Renderer& renderer) {
-	 renderer.useMaterial(*this);
-}
-
  void Material::setUniform(const std::string& name, std::shared_ptr<Uniform> uniform)
  {
 	 uniforms_[name] = uniform;
@@ -98,6 +94,11 @@
 void Material::setTexture(int textureType, std::shared_ptr<Texture> ptex) {
 	 textures_[textureType] = ptex;
  }
+
+void Material::setTexture(std::shared_ptr<Texture> ptex)
+{
+	setTexture(ptex->getTextureInfo().type, ptex);
+}
 
  std::unordered_map<int, std::shared_ptr<Texture>>& Material::getTextures()
  {
@@ -137,6 +138,20 @@ void Material::setTexture(int textureType, std::shared_ptr<Texture> ptex) {
 			 light->setToShader(pshader_, spotIdx++);
 		 }
 		 //light->setToShader(pshader_, 0);
+	 }
+ }
+
+ void Material::use()
+ {
+ }
+
+ void Material::use(ShaderPass pass)
+ {
+	 if (!shaders_.count(pass)) {
+		 LOGE("Rendering pass missing corresponding shader!");
+	 }
+	 else {
+		 shaders_[pass]->use();
 	 }
  }
 

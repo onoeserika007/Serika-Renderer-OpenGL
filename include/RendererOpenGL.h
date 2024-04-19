@@ -1,6 +1,7 @@
 #include "Renderer.h"
 
 class RendererOpenGL : public Renderer {
+public:
 	RendererOpenGL(std::shared_ptr<Camera> camera);
 	virtual void init() override;
 
@@ -29,6 +30,9 @@ class RendererOpenGL : public Renderer {
 	virtual void endRenderPass() override;
 	virtual void setViewPort(int x, int y, int width, int height) override;
 	virtual void waitIdle() override;
+
+	// renderpasses
+	virtual void renderToScreen(UniformSampler& outTex, int screen_width, int screen_height) override;
 
 	virtual ~RendererOpenGL();
 	virtual void clearTexture(Texture& texture) override;

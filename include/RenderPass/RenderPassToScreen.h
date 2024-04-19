@@ -4,9 +4,9 @@
 class Renderer;
 class UniformSampler;
 
-class RenderPassShadow: public RenderPass {
+class RenderPassToScreen : public RenderPass {
 public:
-	RenderPassShadow(Renderer& renderer);
+	RenderPassToScreen(Renderer& renderer);
 
 	//virtual void resetBufferSize() override;
 private:

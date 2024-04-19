@@ -29,6 +29,7 @@ class ShaderGLSL: public Shader
     std::string fsPath_;
     // 构造器读取并构建着色器
     ShaderGLSL(const std::string& vertexPath, const std::string& fragmentPath);
+    ShaderGLSL();
 public:
     explicit ShaderGLSL(PassKey passkey, const std::string& vertexPath, const std::string& fragmentPath) : ShaderGLSL(vertexPath, fragmentPath) {}
     static std::shared_ptr<ShaderGLSL> loadShader(const std::string& vertexPath, const std::string& fragmentPath);
@@ -37,6 +38,7 @@ public:
     static std::shared_ptr<ShaderGLSL> loadLightMapMaterialShader();
     static std::shared_ptr<ShaderGLSL> loadStandardMaterialShader();
     static std::shared_ptr<ShaderGLSL> loadShadowMapShader();
+    static std::shared_ptr<ShaderGLSL> loadFromRawSource(const std::string& VS, const std::string& FS);
 
     // compile
     void addHeader(const std::string& header);

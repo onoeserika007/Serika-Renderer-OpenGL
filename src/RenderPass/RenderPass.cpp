@@ -2,12 +2,14 @@
 #include "Texture.h"
 #include "Renderer.h"
 
-void RenderPass::render(Model& model)
-{
-	
-}
-
 inline void RenderPass::setupColorBuffer(std::shared_ptr<Texture>& colorBuffer, bool multiSample, bool force) {
+	int w = renderer_.width(), h = renderer_.height();
+	if (w != width_ || h != height_) {
+		force = true;
+		width_ = w;
+		height_ = h;
+	}
+
 	if (!colorBuffer || colorBuffer->multiSample() != multiSample || force) {
 		TextureInfo texInfo{};
 		texInfo.width = width_;
@@ -23,11 +25,19 @@ inline void RenderPass::setupColorBuffer(std::shared_ptr<Texture>& colorBuffer, 
 		smInfo.filterMin = Filter_LINEAR;
 
 		colorBuffer = renderer_.createTexture(texInfo, smInfo);
+		// load to pipeline
 		colorBuffer->setupPipeline(renderer_);
 	}
 }
 
 inline void RenderPass::setupDepthBuffer(std::shared_ptr<Texture>& depthBuffer, bool multiSample, bool force) {
+	int w = renderer_.width(), h = renderer_.height();
+	if (w != width_ || h != height_) {
+		force = true;
+		width_ = w;
+		height_ = h;
+	}
+
 	if (!depthBuffer || depthBuffer->multiSample() != multiSample || force) {
 		TextureInfo texInfo{};
 		texInfo.width = width_;

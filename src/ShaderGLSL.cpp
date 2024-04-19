@@ -44,6 +44,16 @@ std::shared_ptr<ShaderGLSL> ShaderGLSL::loadShadowMapShader()
     return loadDefaultShader();
 }
 
+std::shared_ptr<ShaderGLSL> ShaderGLSL::loadFromRawSource(const std::string& VS, const std::string& FS)
+{
+    auto ret = std::make_shared<ShaderGLSL>();
+    ret->vertexCode_ = VS;
+    ret->fragmentCode_ = FS;
+
+    ret->vsPath_ = "";
+    ret->fsPath_ = "";
+}
+
 void ShaderGLSL::addHeader(const std::string& header)
 {
     headers_ += header + "\n";
@@ -128,6 +138,11 @@ ShaderGLSL::ShaderGLSL(const std::string& vertexPath, const std::string& fragmen
     vsPath_ = vertexPath;
     fsPath_ = fragmentPath;
 
+    addHeader(OPENGL_VERSION_HEADER);
+}
+
+ShaderGLSL::ShaderGLSL()
+{
     addHeader(OPENGL_VERSION_HEADER);
 }
 

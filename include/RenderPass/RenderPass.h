@@ -17,12 +17,12 @@ protected:
 	int height_ = 0;
 	std::shared_ptr<Shader> shaderProgram_;
 	Renderer& renderer_;
-	ShaderPass shaderPass_ = Shader_MainRender_Pass;
+	ShaderPass shaderPass_ = Shader_Plain_Pass;
 public:
 	RenderPass(Renderer& renderer) : renderer_(renderer) {}
 	virtual void render(Object& obj) = 0;
-	virtual void resetBufferSize() = 0;
-	void render(Model& model);
+	virtual void setupBuffers() = 0;
+	virtual void init() = 0;
 	void setupColorBuffer(std::shared_ptr<Texture>& colorBuffer, bool multiSample, bool force = false);
 	void setupDepthBuffer(std::shared_ptr<Texture>& depthBuffer, bool multiSample, bool force = false);
 };

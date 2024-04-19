@@ -52,29 +52,8 @@ const char* Texture::materialTexTypeStr(TextureType usage)
 {
 	switch (usage)
 	{
-		CASE_ENUM_STR(TEXTURE_NONE);
-		CASE_ENUM_STR(TEXTURE_DIFFUSE);
-		CASE_ENUM_STR(TEXTURE_SPECULAR);
-		CASE_ENUM_STR(TEXTURE_AMBIENT);
-		CASE_ENUM_STR(TEXTURE_EMISSIVE);
-		CASE_ENUM_STR(TEXTURE_HEIGHT);
-		CASE_ENUM_STR(TEXTURE_NORMALS);
-		CASE_ENUM_STR(TEXTURE_SHININESS);
-		CASE_ENUM_STR(TEXTURE_OPACITY);
-		CASE_ENUM_STR(TEXTURE_DISPLACEMENT);
-		CASE_ENUM_STR(TEXTURE_LIGHTMAP);
-		CASE_ENUM_STR(TEXTURE_REFLECTION);
-		CASE_ENUM_STR(TEXTURE_BASE_COLOR);
-		CASE_ENUM_STR(TEXTURE_NORMAL_CAMERA);
-		CASE_ENUM_STR(TEXTURE_EMISSION_COLOR);
-		CASE_ENUM_STR(TEXTURE_METALNESS);
-		CASE_ENUM_STR(TEXTURE_DIFFUSE_ROUGHNESS);
-		CASE_ENUM_STR(TEXTURE_AMBIENT_OCCLUSION);
-		CASE_ENUM_STR(TEXTURE_UNKNOWN);
-		CASE_ENUM_STR(TEXTURE_SHEEN);
-		CASE_ENUM_STR(TEXTURE_CLEARCOAT);
-		CASE_ENUM_STR(TEXTURE_TRANSMISSION);
-		CASE_ENUM_STR(TEXTURE_SHADOW);
+#define TEXTURETYPE_ENUM(x) case x: return #x;
+#include "Base/TextureTypeEnum.def"
 	default:
 		break;
 	}
@@ -162,10 +141,10 @@ void Texture::loadTextureData(TextureData data)
 	textureInfo_.height = data.dataArray[0]->height();
 }
 
-void Texture::setName(const std::string& name)
-{
-	name_ = name;
-}
+//void Texture::setName(const std::string& name)
+//{
+//	name_ = name;
+//}
 
 void Texture::setTextureInfo(const TextureInfo& info)
 {
@@ -190,10 +169,10 @@ const SamplerInfo& Texture::getSamplerInfo()
 	return samplerInfo_;
 }
 
-std::string Texture::getName()
-{
-	return name_;
-}
+//std::string Texture::getName()
+//{
+//	return name_;
+//}
 
 void Texture::setupPipeline(Renderer& renderer)
 {

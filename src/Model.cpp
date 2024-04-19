@@ -134,23 +134,23 @@ std::shared_ptr<Object> Model::processMesh(aiMesh* mesh, const aiScene* scene)
 		for (int i = 0; i <= aiTextureType_TRANSMISSION; i++) {
 			//const auto& type = types[i];
 			const auto& type = static_cast<aiTextureType>(i);
-			const auto& typeName = TextureType[i];
+			const auto& typeDefine = Texture::samplerDefine(static_cast<TextureType>(i));
 			//const auto& typeName = std::to_string(type);
 			for (unsigned int j = 0; j < material->GetTextureCount(type); j++)
 			{
 				aiString str;
 				material->GetTexture(type, j, &str);
 				//auto texture = Texture::loadTexture(directory + "/" + str.C_Str(), typeName);
-				auto texture = std::make_shared<Texture>(typeName);
-				texture->setName("u" + typeName);
+				auto texture = std::make_shared<Texture>(static_cast<TextureType>(i));
 				texture->loadTextureData(directory + "/" + str.C_Str());
 				//pmaterial->loadMap(directory + "/" + str.C_Str(), typeName);
-				pmaterial->addMap(texture);
-				pmaterial->addDefine(typeName);
+				pmaterial->setTexture(texture);
+				pmaterial->addDefine(typeDefine);
 				textures.push_back(texture);
 			}
 		}
 	}
+
 
 	auto pobject = std::make_shared<Object>(pgeomerty, pmaterial);
 	return pobject;

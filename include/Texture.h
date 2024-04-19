@@ -9,30 +9,10 @@
 const int MAX_TEXTURE_NUM = 16;
 
 enum TextureType {
-    TEXTURE_NONE,
-    TEXTURE_DIFFUSE,
-    TEXTURE_SPECULAR,
-    TEXTURE_AMBIENT,
-    TEXTURE_EMISSIVE,
-    TEXTURE_HEIGHT,
-    TEXTURE_NORMALS,
-    TEXTURE_SHININESS,
-    TEXTURE_OPACITY,
-    TEXTURE_DISPLACEMENT,
-    TEXTURE_LIGHTMAP,
-    TEXTURE_REFLECTION,
-    TEXTURE_BASE_COLOR,
-    TEXTURE_NORMAL_CAMERA,
-    TEXTURE_EMISSION_COLOR,
-    TEXTURE_METALNESS,
-    TEXTURE_DIFFUSE_ROUGHNESS,
-    TEXTURE_AMBIENT_OCCLUSION,
-    TEXTURE_UNKNOWN,
-    TEXTURE_SHEEN,
-    TEXTURE_CLEARCOAT,
-    TEXTURE_TRANSMISSION,
-    TEXTURE_SHADOW,
+#define TEXTURETYPE_ENUM(x) x,
+#include "Base/TextureTypeEnum.def"
 };
+
 
 enum CubeMapFace {
     TEXTURE_CUBE_MAP_POSITIVE_X = 0,
@@ -124,7 +104,8 @@ class UniformSampler;
 class Texture {
 protected:
     unsigned textureId_;
-    std::string name_;
+    // name_ is trouble from a texture
+    //std::string name_;
     bool pipelineReady_ = false;
 
     // texture description
@@ -138,18 +119,21 @@ public:
     static const char* samplerDefine(TextureType usage);
     static const char* samplerName(TextureType usage);
     virtual ~Texture();
+
     Texture();
     Texture(TextureType type);
     Texture(const TextureInfo& info);
     Texture(const TextureInfo& texInfo, const SamplerInfo& smInfo);
+
     void loadTextureData(const std::string& picture);
     void loadTextureData(TextureData data);
-    void setName(const std::string& name);
+
+    //void setName(const std::string& name);
     void setTextureInfo(const TextureInfo& info);
     const TextureInfo& getTextureInfo();
     void setSamplerInfo(const SamplerInfo& info);
     const SamplerInfo& getSamplerInfo();
-    std::string getName();
+    //std::string getName();
 	TextureType getType();
     std::shared_ptr<TextureData> getpRawData();
     int width();

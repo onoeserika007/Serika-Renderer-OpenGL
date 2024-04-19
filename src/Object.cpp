@@ -25,7 +25,7 @@
 }
 
  void Object::updateFrame(Renderer& renderer) {
-
+	 // 这里不应该关心渲染的信息吧
 }
 
  void Object::draw(Renderer& renderer) {

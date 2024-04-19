@@ -61,6 +61,9 @@ public:
 	virtual void setViewPort(int x, int y, int width, int height) = 0;
 	virtual void waitIdle() = 0;
 
+	// renderpasses
+	virtual void renderToScreen(UniformSampler& outTex, int screen_width, int screen_height) = 0;
+
 	virtual ~Renderer();
 	virtual void clearTexture(Texture& texture) = 0;
 

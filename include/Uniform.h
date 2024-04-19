@@ -4,6 +4,8 @@
 #include <memory>
 #include <unordered_map>
 #include "Texture.h"
+#include "FrameBuffer.h"
+#include "Utils/Logger.h"
 
 enum UniformBlockType {
     UniformBlock_Scene,
@@ -57,6 +59,20 @@ public:
     //    : Uniform(name), type(type), format(format) {}
     UniformSampler(const std::string& name, TextureTarget target, TextureFormat format)
         : Uniform(name), target_(target), format_(format) {}
+
+    UniformSampler(const TextureInfo& info)
+        : Uniform(Texture::samplerName(static_cast<TextureType>(info.type))),
+        target_(static_cast<TextureTarget>(info.target)), 
+        format_(static_cast<TextureFormat>(info.format)) {}
+
+    UniformSampler(const FrameBufferAttachment& attachment) 
+        : UniformSampler(attachment.tex? attachment.tex->getTextureInfo(): TextureInfo())
+    {
+        if (!attachment.tex) {
+            LOGE("Uniform sampler initialized from attachment with no texure!");
+        }
+    }
+
     virtual void setTexture(const std::shared_ptr<Texture>& tex) = 0;
 
 protected:

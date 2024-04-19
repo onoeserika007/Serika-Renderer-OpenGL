@@ -23,7 +23,8 @@ enum ShadingMode {
 
 enum ShaderPass {
 	Shader_Shadow_Pass,
-	Shader_MainRender_Pass
+	Shader_Plain_Pass,
+	Shader_ToScreen_Pass
 };
 
 class Texture;
@@ -81,6 +82,8 @@ public:
 
 	void setTexture(int textureType, std::shared_ptr<Texture> ptex);
 
+	void setTexture(std::shared_ptr<Texture> ptex);
+
 	std::unordered_map<int, std::shared_ptr<Texture>>& getTextures();
 
 	ShadingMode shadingMode();
@@ -97,9 +100,9 @@ public:
 
 	void setLightArray(const std::vector<std::shared_ptr<Light>>& lightArray);
 
-	void use(Renderer& renderer);
+	void use();
 
-	void use(Renderer& renderer, ShaderPass pass);
+	void use(ShaderPass pass);
 
 	virtual ~Material() {}
 
@@ -132,5 +135,5 @@ public:
 	StandardMaterial(const std::string& name);
 
 	virtual void setupPipeline(Renderer& renderer) override;
-	virtual void use(Renderer& renderer) override;
+	//virtual void use(Renderer& renderer) override;
 };

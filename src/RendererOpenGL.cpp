@@ -5,11 +5,13 @@
 #include "glad/glad.h"
 #include "BufferAttribute.h"
 #include "Geometry.h"
-#include "Texture.h"
+#include "TextureOpenGL.h"
 #include "OpenGL/EnumsOpenGL.h"
 #include "Object.h"
 #include "Camera.h"
 #include "FrameBufferOpenGL.h"
+#include "Utils/Logger.h"
+#include <GLFW/glfw3.h>
 
 void RendererOpenGL::init()
 {
@@ -33,7 +35,13 @@ std::shared_ptr<Shader> RendererOpenGL::createShader(const std::string& vsPath, 
 
 std::shared_ptr<Texture> RendererOpenGL::createTexture(const TextureInfo& texInfo, const SamplerInfo& smInfo)
 {
-	return std::make_shared<Texture>(texInfo, smInfo);
+	if (texInfo.target == TextureTarget::TextureTarget_2D) {
+		return std::make_shared<TextureOpenGL2D>(texInfo, smInfo);
+	}
+	else if(texInfo.target == TextureTarget::TextureTarget_CUBE){
+		return std::make_shared<TextureOpenGLCube>(texInfo, smInfo);
+	}
+	return nullptr;
 }
 
 std::shared_ptr<FrameBuffer> RendererOpenGL::createFrameBuffer(bool offScreen)
@@ -127,7 +135,7 @@ void RendererOpenGL::loadShaders(Material& material)
 		break;
 	case Shading_BlinnPhong: 
 		material.setShader(ShaderPass::Shader_Shadow_Pass, ShaderGLSL::loadShadowMapShader());
-		material.setShader(ShaderPass::Shader_MainRender_Pass, ShaderGLSL::loadStandardMaterialShader());
+		material.setShader(ShaderPass::Shader_Plain_Pass, ShaderGLSL::loadStandardMaterialShader());
 		break;
 	case Shading_PBR:
 		break;
@@ -239,6 +247,8 @@ void RendererOpenGL::drawObject(Object& object, ShaderPass pass)
 {
 	object.updateFrame(*this);
 	updateModelUniformBlock(object, *camera_, false);
+	auto pmaterial = object.getpMaterial();
+	pmaterial->use(pass);
 
 	auto VAO = object.getVAO();
 	auto pgeometry = object.getpGeometry();
@@ -307,6 +317,126 @@ void RendererOpenGL::setViewPort(int x, int y, int width, int height)
 void RendererOpenGL::waitIdle()
 {
 	GL_CHECK(glFinish());
+}
+
+void RendererOpenGL::renderToScreen(UniformSampler& outTex, int screen_width, int screen_height)
+{
+	static const char* VS = R"(
+	layout (location = 0) in vec3 aPos;
+	layout (location = 1) in vec2 aTexCoord;
+
+	out vec2 TexCoord;
+
+	void main()
+	{
+		gl_Position = vec4(aPos, 1.0);
+		TexCoord = vec2(aTexCoord.x, aTexCoord.y);
+	}
+	)";
+
+	static const char* FS = R"(
+	in vec2 TexCoord;
+	out vec4 FragColor;
+
+	uniform sampler2D uTexture;
+
+	void main()
+	{
+		FragColor = texture(uTexture, TexCoord);
+	}
+	)";
+
+	// set up vertex data (and buffer(s)) and configure vertex attributes
+	static float vertices[] = {
+		// positions | texture coords
+		1.f, 1.f, 0.0f, 1.0f, 1.0f,   // top right
+		1.f, -1.f, 0.0f, 1.0f, 0.0f,  // bottom right
+		-1.f, -1.f, 0.0f, 0.0f, 0.0f, // bottom left
+		-1.f, 1.f, 0.0f, 0.0f, 1.0f   // top left
+	};
+	static unsigned int indices[] = {
+		0, 1, 3, // first triangle
+		1, 2, 3  // second triangle
+	};
+
+	static GLuint VAO, VBO, EBO;
+	static unsigned int texture;
+	static std::shared_ptr<ShaderGLSL> program;
+
+	if (!program) {
+		program = ShaderGLSL::loadFromRawSource(VS, FS);
+	}
+
+	if (0 == VAO) {
+		glGenVertexArrays(1, &VAO);
+		glBindVertexArray(VAO);
+
+		if (VBO == 0) {
+			glGenBuffers(1, &VBO);
+			glBindBuffer(GL_ARRAY_BUFFER, VBO);
+			glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+
+			glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), nullptr);
+			glEnableVertexAttribArray(0);
+			glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+			glEnableVertexAttribArray(1);
+		}
+
+		if (EBO == 0) {
+			glGenBuffers(1, &EBO);
+			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+			glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+		}
+
+		glBindVertexArray(GL_NONE);
+	}
+
+	//if (texture == 0) {
+	//	glGenTextures(1, &texture);
+	//	glActiveTexture(GL_TEXTURE0);
+	//	glBindTexture(GL_TEXTURE_2D, texture);
+	//	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	//	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	//	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	//	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	//	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, screen_width, screen_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+
+	//	program->use();
+	//	glUniform1i(glGetUniformLocation(program->getId(), "uTexture"), 0);
+	//}
+	//else {
+	//	glActiveTexture(GL_TEXTURE0);
+	//	glBindTexture(GL_TEXTURE_2D, texture);
+	//	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, screen_width, screen_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+	//	program->use();
+	//	glUniform1i(glGetUniformLocation(program->getId(), "uTexture"), 0);
+	//}
+
+	if (VAO && EBO && VBO && program) {
+		// real frame buffer size
+
+		glDisable(GL_BLEND);
+		glDisable(GL_DEPTH_TEST);
+		glDepthMask(true);
+		glDisable(GL_CULL_FACE);
+		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		glViewport(0, 0, screen_width, screen_height);
+
+		glClearColor(0.f, 0.f, 0.f, 0.0f);
+		glClear(GL_COLOR_BUFFER_BIT);
+
+		
+		program->bindUniform(outTex);
+		glUniform1i(glGetUniformLocation(program->getId(), "uTexture"), 0);
+
+		glBindVertexArray(VAO);
+		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
+	}
+	else {
+		LOGE("Failed render to screen!");
+	}
 }
 
 RendererOpenGL::~RendererOpenGL()
