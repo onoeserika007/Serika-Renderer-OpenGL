@@ -34,6 +34,10 @@ public:
         return name_;
     }
 
+    void setName(const std::string& name) {
+        name_ = name;
+    }
+
 protected:
     std::string name_;
 private:

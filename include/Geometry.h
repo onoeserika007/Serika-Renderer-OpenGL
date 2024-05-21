@@ -19,6 +19,7 @@ class Geometry {
 	std::unordered_map<std::string, BufferAttribute> data_map_;
 	std::vector<unsigned> indices_;
 	unsigned EBO = 0;
+	bool bReady_ = false;
 	Type geometry_type_ = Mesh;
 
 
@@ -38,6 +39,10 @@ public:
 	bool isMesh();
 
 	bool isMeshIndexed();
+
+	bool isPipelineReady();
+
+	void setPipelineReady(bool ready);
 
 	unsigned getVeticesNum();
 

@@ -1,5 +1,5 @@
 ﻿#pragma once
-#include "GLMInc.h"
+#include "Base/GLMInc.h"
 
 namespace TestTriangle {
     /*在 C++ 中，使用 const 关键字修饰的变量默认是被视为内部链接（internal linkage）。

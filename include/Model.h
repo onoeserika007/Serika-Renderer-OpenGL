@@ -21,7 +21,8 @@ public:
 	void setLightArray(std::vector<std::shared_ptr<Light>> lightArray);
 	void setScale(float x, float y, float z);
 
-	void setupPipeline(Renderer& renderer);
+	//void setupPipeline(Renderer& renderer);
+	std::vector<std::shared_ptr<Object>>& getMeshes();
 private:
 	/* model data */
 	std::vector<std::shared_ptr<Object>> meshes;

@@ -15,5 +15,5 @@ StandardMaterial::StandardMaterial(const std::string& name)
 
 void StandardMaterial::setupPipeline(Renderer& renderer)
 {
-	renderer.setupStandardMaterial(*this);
+	renderer.setupMaterial(*this);
 }

@@ -14,7 +14,7 @@ public:
 
     int getId() const override;
 
-    bool isValid() override;
+    bool isValid() const override;
 
     void setColorAttachment(std::shared_ptr<Texture>& color, int level, int pos = 0) override;
 

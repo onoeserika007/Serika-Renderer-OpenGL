@@ -2,7 +2,6 @@
 
 void FrameBuffer::setColorAttachment(std::shared_ptr<Texture>& color, int level, int pos) {
     auto& colorAttachment = colorAttachments_[pos];
-    color->setupPipeline();
     colorAttachment.tex = color;
     colorAttachment.layer = 0;
     colorAttachment.level = level;
@@ -11,7 +10,6 @@ void FrameBuffer::setColorAttachment(std::shared_ptr<Texture>& color, int level,
 
 void FrameBuffer::setColorAttachment(std::shared_ptr<Texture>& color, CubeMapFace face, int level, int pos) {
     auto& colorAttachment = colorAttachments_[pos];
-    color->setupPipeline();
     colorAttachment.tex = color;
     colorAttachment.layer = 0;
     colorAttachment.level = level;
@@ -19,7 +17,6 @@ void FrameBuffer::setColorAttachment(std::shared_ptr<Texture>& color, CubeMapFac
 }
 
 void FrameBuffer::setDepthAttachment(std::shared_ptr<Texture>& depth) {
-    depth->setupPipeline();
     depthAttachment_.tex = depth;
     depthAttachment_.layer = 0;
     depthAttachment_.level = 0;

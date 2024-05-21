@@ -17,7 +17,7 @@ protected:
 	int height_ = 0;
 	std::shared_ptr<Shader> shaderProgram_;
 	Renderer& renderer_;
-	ShaderPass shaderPass_ = Shader_Plain_Pass;
+	ShaderPass shaderPass_ = ShaderPass::Shader_Plain_Pass;
 public:
 	RenderPass(Renderer& renderer) : renderer_(renderer) {}
 	virtual void render(Object& obj) = 0;

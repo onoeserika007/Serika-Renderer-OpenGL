@@ -77,6 +77,6 @@ public:
 
 protected:
     std::unordered_map<int, int> uniformLocations_;
-    bool pipelineSetup_;
+    bool pipelineSetup_ = false;
     ShadingMode shadingMode_;
 };

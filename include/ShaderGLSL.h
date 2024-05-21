@@ -34,6 +34,7 @@ public:
     explicit ShaderGLSL(PassKey passkey, const std::string& vertexPath, const std::string& fragmentPath) : ShaderGLSL(vertexPath, fragmentPath) {}
     static std::shared_ptr<ShaderGLSL> loadShader(const std::string& vertexPath, const std::string& fragmentPath);
     static std::shared_ptr<ShaderGLSL> loadDefaultShader();
+    static std::shared_ptr<ShaderGLSL> loadPlainPassShader();
     static std::shared_ptr<ShaderGLSL> loadPhongMaterialShader();
     static std::shared_ptr<ShaderGLSL> loadLightMapMaterialShader();
     static std::shared_ptr<ShaderGLSL> loadStandardMaterialShader();

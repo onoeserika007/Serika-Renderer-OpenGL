@@ -1,5 +1,5 @@
 ﻿// learnOpenGL-aTriangle.cpp: 定义应用程序的入口点。
-#include "GLMInc.h"
+#include "Base/GLMInc.h"
 #include "glad/glad.h"
 #include <GLFW/glfw3.h>
 #include "primitives.h"
@@ -20,7 +20,11 @@
 #include "Light.h"
 #include "Model.h"
 #include "RendererOpenGL.h"
+#include "ViewerOpenGL.h"
 #include "Utils/OpenGLUtils.h"
+#include "Base/Config.h"
+#include "Scene.h"
+
 using namespace std;
 
 class App
@@ -30,15 +34,14 @@ class App
 
     int windowWidth = 0;
     int windowHeight = 0;
-    Texture wallTexture;
-    Texture faceTexture;
     std::shared_ptr<Object> cube;
     std::shared_ptr<Object> lightMapCube;
     std::shared_ptr<Light> light;
-    std::shared_ptr<Model> nanosuit;
     std::vector<std::shared_ptr<Light>> lightArray;
     static std::shared_ptr<PerspectiveCamera> camera;
-    std::shared_ptr<Renderer> renderer;
+    static std::shared_ptr<Viewer> viewer_;
+    //std::shared_ptr<Renderer> renderer;
+    std::shared_ptr<Scene> scene_;
     GLFWwindow* window = nullptr;
     float lastFrameTime = 0.0;
     float deltaFrameTime = 0.01;
@@ -82,8 +85,8 @@ public:
 
             // render
             // glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-            //glClear(GL_COLOR_BUFFER_BIT); // GL_COLOR_BUFFER_BIT, GL_DEPTH_BUFFER_BIT, GL_STENCIL_BUFFER_BIT
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+            // glClear(GL_COLOR_BUFFER_BIT); // GL_COLOR_BUFFER_BIT, GL_DEPTH_BUFFER_BIT, 
+            // glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
             draw();
 
             glfwSwapBuffers(window); // 交换(Swap)前缓冲和后缓冲
@@ -124,16 +127,27 @@ public:
         std::cout << "Width: " << frameWidth << " Height:" << frameHeight << std::endl;
         glViewport(0, 0, frameWidth, frameHeight);
 
-        // called when resized
-        glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
-
         // camera
         //camera = std::make_shared<Camera>(0, 0, 5);
         camera = std::make_shared<PerspectiveCamera>(50.0f, static_cast<float>(frameWidth) / frameHeight);
 
-        // renderer
-        renderer = std::make_shared<RendererOpenGL>(camera);
-        renderer->init();
+        // render config
+        Config config;
+
+        // viewer
+        viewer_ = std::make_shared<ViewerOpenGL>(*camera, config);
+        viewer_->init(frameWidth, frameHeight, 0);
+        //viewer_ = nullptr;
+        //ViewerOpenGL testViewer{ *camera, config };
+
+        auto local_framebuffer_size_callback = [this](GLFWwindow* window, int width, int height) {
+            glViewport(0, 0, width, height);
+            viewer_->setViewPort(0, 0, width, height);
+            camera->setAspect(static_cast<float>(width) / height);
+            };
+
+        // called when resized
+        glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
@@ -143,7 +157,12 @@ public:
 
     static void framebuffer_size_callback(GLFWwindow* window, int width, int height)
     {
-        glViewport(0, 0, width, height);
+        if (viewer_) {
+            viewer_->setViewPort(0, 0, width, height);
+        }
+        else {
+            glViewport(0, 0, width, height);
+        }
         camera->setAspect(static_cast<float>(width) / height);
     }
 
@@ -207,6 +226,9 @@ public:
 
     void setupResource()
     {
+        scene_ = std::make_shared<Scene>();
+
+
         std::vector<float> cubePosArray, cubeUvArray, cubeNormalArray;
         for (int i = 0; i < sizeof(TestTriangle::cubeVertices) / sizeof(float); i += 5) {
             int j = 0;
@@ -217,6 +239,7 @@ public:
                 cubeUvArray.push_back(TestTriangle::cubeVertices[i + j]);
             }
         }
+
         for (int i = 0; i < sizeof(TestTriangle::cubeVerticesWithNormals) / sizeof(float); i += 6) {
             int j = 0;
             while (j < 3) j++;
@@ -257,13 +280,17 @@ public:
 
         // nanosuit
         std::string nanosuitPath = "./assets/models/nanosuit/nanosuit.obj";
-        nanosuit = std::make_shared<Model>(nanosuitPath);
+        auto nanosuit = std::make_shared<Model>(nanosuitPath);
         nanosuit->setScale(0.1, 0.1, 0.1);
+        GL_CHECK(;);
+
+        scene_->addModel(nanosuit);
+        GL_CHECK(;);
         //auto nanoShader = renderer->createShader("./assets/shader/nanosuit/nanosuit.vert", "./assets/shader/nanosuit/nanosuit.frag");
         // 模型不同mesh之间的shader不应该共享
-        auto nanoShader = renderer->createShader("./assets/shader/Standard.vert", "./assets/shader/Standard.frag");
-        //auto nanoShader = Shader::loadShader("./assets/shader/nanosuit/nanosuit.vert", "./assets/shader/nanosuit/nanosuit.frag");
-        nanosuit->setShader(nanoShader);
+        //auto nanoShader = renderer->createShader("./assets/shader/Standard.vert", "./assets/shader/Standard.frag");
+        ////auto nanoShader = Shader::loadShader("./assets/shader/nanosuit/nanosuit.vert", "./assets/shader/nanosuit/nanosuit.frag");
+        //nanosuit->setShader(nanoShader);
 
         // point light
         //auto plightShader = Shader::loadShader("./assets/shader/light.vert", "./assets/shader/light.frag");
@@ -291,12 +318,13 @@ public:
 
         // camera pos
         camera->setPosition(0, 0, 5);
+        GL_CHECK(;);
     }
 
     void beforeLoop() {
         GL_CHECK(glEnable(GL_DEPTH_TEST));
 
-        nanosuit->setupPipeline(*renderer);
+        //nanosuit->setupPipeline(*renderer);
     }
 
     void draw()
@@ -330,7 +358,8 @@ public:
         //}
 
         //nanosuit->setLightArray(lightArray);
-        nanosuit->draw(*renderer);
+        //nanosuit->draw(*renderer);
+        viewer_->drawScene(scene_);
     }
 
     static void printMaxVertexAttributeNum() {
@@ -343,9 +372,10 @@ public:
         // 先析构Renderer中的UniformBlock 但是有8个引用，资源肯定是泄露了
         // 不是基类虚函数的问题，智能指针可以解决这个问题
         // 是object也和app一个生命周期，app直到进程退出才被销毁
-        renderer = nullptr;
-        nanosuit = nullptr;
+        // renderer = nullptr;
         // 释放资源
+        scene_ = nullptr;
+        viewer_ = nullptr;
         glfwTerminate();
     }
 
@@ -365,6 +395,7 @@ float App::lastX = 400;
 float App::lastY = 300;
 bool App::firstMouse = false;
 std::shared_ptr<PerspectiveCamera> App::camera(nullptr);
+std::shared_ptr<Viewer> App::viewer_(nullptr);
 
 int main(){
     SerikaGL::Logger::setLogLevel(SerikaGL::LogLevel::LOG_DEBUG);

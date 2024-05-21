@@ -3,6 +3,13 @@
 #include "Utils/Logger.h"
 #include "Texture.h"
 #include "Renderer.h"
+#include "RenderPass/RenderPassPlain.h"
+#include "Model.h"
+#include "Scene.h"
+#include "Utils/OpenGLUtils.h"
+
+Viewer::Viewer(Camera& camera, Config& config) : cameraMain_(camera), config_(config) {
+}
 
 void Viewer::init(int width, int height, int outTexId)
 {
@@ -25,8 +32,23 @@ void Viewer::init(int width, int height, int outTexId)
 		LOGE("Viewer::create failed: createRenderer error");
 	}
 
-	// create resources
-	shadowPlaceholder_ = Texture::createTexture2DDefault(1, 1, TextureFormat_FLOAT32, TextureUsage_Sampler);
+	setViewPort(0, 0, width_, height_);
+
+	//// create resources
+	//shadowPlaceholder_ = Texture::createTexture2DDefault(1, 1, TextureFormat_FLOAT32, TextureUsage_Sampler);
+
+	// passes
+	plainPass_ = std::make_shared<RenderPassPlain>(*renderer_);
+	plainPass_->init();
+}
+
+void Viewer::setViewPort(int x, int y, int width, int height)
+{
+	width_ = width;
+	height_ = height;
+	if (renderer_) {
+		renderer_->setViewPort(x, y, width, height);
+	}
 }
 
 void Viewer::cleanup()
@@ -35,14 +57,14 @@ void Viewer::cleanup()
 		renderer_->waitIdle();
 	}
 	// main fbo 
-	fboMain_ = nullptr;
-	texColorMain_ = nullptr;
-	texDepthMain_ = nullptr;
+	//fboMain_ = nullptr;
+	//texColorMain_ = nullptr;
+	//texDepthMain_ = nullptr;
 
 	// shadow map
-	fboShadow_ = nullptr;
-	texDepthShadow_ = nullptr;
-	shadowPlaceholder_ = nullptr;
+	//fboShadow_ = nullptr;
+	//texDepthShadow_ = nullptr;
+	//shadowPlaceholder_ = nullptr;
 }
 
 std::shared_ptr<Camera> Viewer::createCamera(CameraType type)
@@ -56,17 +78,44 @@ std::shared_ptr<Camera> Viewer::createCamera(CameraType type)
 	return nullptr;
 }
 
-std::shared_ptr<Renderer> Viewer::createRenderer()
+
+void Viewer::drawScene(std::shared_ptr<Scene> scene)
 {
-	return nullptr;
+	/*
+	* PlainPass
+	*/
+	ClearStates clearStatesPlainPass;
+	clearStatesPlainPass.clearColor = clearColor;
+	clearStatesPlainPass.colorFlag = true;
+	clearStatesPlainPass.depthFlag = true;
+
+	renderer_->beginRenderPass(plainPass_->getFramebufferMain(), clearStatesPlainPass);
+	for (auto& model : scene->getModels()) {
+		for (auto& mesh : model->getMeshes()) {
+			plainPass_->render(*mesh);
+		}
+	}
+	renderer_->endRenderPass();
+	
+	/*
+	* ToScreenPass
+	*/
+	ClearStates clearStatesToScreenPass;
+	clearStatesToScreenPass.clearColor = clearColor;
+	clearStatesToScreenPass.colorFlag = true;
+	clearStatesToScreenPass.depthFlag = true;
+
+	renderer_->beginRenderPass(nullptr, clearStatesPlainPass);
+	auto outTex = plainPass_->getTexColorSampler();
+	renderer_->renderToScreen(*outTex, width_, height_);
+	renderer_->endRenderPass();
 }
 
-void Viewer::drawObject(Object& obj)
+void Viewer::drawModel(std::shared_ptr<Model> model)
 {
-
-}
-
-Viewer::Viewer(Camera& camera, Config& config) : cameraMain_(camera), config_(config)
-{
+	auto& meshes = model->getMeshes();
+	for (auto& mesh : meshes) {
+		plainPass_->render(*mesh);
+	}
 }
 

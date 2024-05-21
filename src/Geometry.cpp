@@ -45,6 +45,16 @@ Geometry::Geometry() :size_(0), geometry_type_(Mesh) {
 	return geometry_type_ == Mesh_Indexed;
 }
 
+ bool Geometry::isPipelineReady()
+ {
+	 return bReady_;
+ }
+
+ void Geometry::setPipelineReady(bool ready)
+ {
+	 bReady_ = ready;
+ }
+
  GLuint Geometry::getVeticesNum() {
 	return size_;
 }

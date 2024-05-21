@@ -44,6 +44,7 @@ namespace SerikaGL {
         }
 
         switch (level) {
+#define LOG_SOURCE_LINE
 #ifdef LOG_SOURCE_LINE
         case LOG_INFO:    fprintf(stdout, "[INFO] %s:%d: %s\n", file, line, buf_);    break;
         case LOG_DEBUG:   fprintf(stdout, "[DEBUG] %s:%d: %s\n", file, line, buf_);   break;

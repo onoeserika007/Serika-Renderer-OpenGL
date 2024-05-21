@@ -105,10 +105,6 @@ Texture::~Texture()
 {
 }
 
-Texture::Texture()
-{
-}
-
 Texture::Texture(TextureType type)
 {
 	textureInfo_.type = type;
@@ -125,6 +121,13 @@ Texture::Texture(const TextureInfo& texInfo, const SamplerInfo& smInfo)
 	samplerInfo_ = smInfo;
 }
 
+Texture::Texture(const TextureInfo& texInfo, const SamplerInfo& smInfo, const TextureData& texData)
+{
+	textureInfo_ = texInfo;
+	samplerInfo_ = smInfo;
+	textureData_ = texData;
+}
+
 void Texture::loadTextureData(const std::string& picture)
 {
 	auto bufferData = ResourceLoader::loadTexture(picture);
@@ -136,7 +139,7 @@ void Texture::loadTextureData(const std::string& picture)
 
 void Texture::loadTextureData(TextureData data)
 {
-	prawData = std::make_shared<TextureData>(data);
+	textureData_ = data;
 	textureInfo_.width = data.dataArray[0]->width();
 	textureInfo_.height = data.dataArray[0]->height();
 }
@@ -169,33 +172,14 @@ const SamplerInfo& Texture::getSamplerInfo()
 	return samplerInfo_;
 }
 
-//std::string Texture::getName()
-//{
-//	return name_;
-//}
-
-void Texture::setupPipeline(Renderer& renderer)
-{
-	if (pipelineReady_) return;
-	renderer.setupTexture(*this);
-	pipelineReady_ = true;
-}
-
-void Texture::clearPipeline(Renderer& renderer)
-{
-	if (!pipelineReady_) return;
-	renderer.clearTexture(*this);
-	pipelineReady_ = false;
-}
-
 TextureType Texture::getType()
 {
 	return static_cast<TextureType>(textureInfo_.type);
 }
 
-std::shared_ptr<TextureData> Texture::getpRawData()
+const TextureData& Texture::getTextureData() const
 {
-	return prawData;
+	return textureData_;
 }
 
 int Texture::width()

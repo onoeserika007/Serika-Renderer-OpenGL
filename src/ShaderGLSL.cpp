@@ -25,6 +25,11 @@ std::shared_ptr<ShaderGLSL> ShaderGLSL::loadDefaultShader() {
     return loadShader("./assets/shader/default.vert", "./assets/shader/default.frag");
 }
 
+std::shared_ptr<ShaderGLSL> ShaderGLSL::loadPlainPassShader()
+{
+    return loadShader("./assets/shader/Passes/PlainPass/PlainPass.vert", "./assets/shader/Passes/PlainPass/PlainPass.frag");
+}
+
 std::shared_ptr<ShaderGLSL> ShaderGLSL::loadPhongMaterialShader() {
     return loadShader("./assets/shader/PhongMaterial.vert", "./assets/shader/PhongMaterial.frag");
 }
@@ -46,12 +51,13 @@ std::shared_ptr<ShaderGLSL> ShaderGLSL::loadShadowMapShader()
 
 std::shared_ptr<ShaderGLSL> ShaderGLSL::loadFromRawSource(const std::string& VS, const std::string& FS)
 {
-    auto ret = std::make_shared<ShaderGLSL>();
+    auto ret = std::shared_ptr<ShaderGLSL>(new ShaderGLSL());
     ret->vertexCode_ = VS;
     ret->fragmentCode_ = FS;
 
     ret->vsPath_ = "";
     ret->fsPath_ = "";
+    return ret;
 }
 
 void ShaderGLSL::addHeader(const std::string& header)

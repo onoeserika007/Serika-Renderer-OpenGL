@@ -65,6 +65,16 @@
 	 shaderReady_ = setValue;
  }
 
+ bool Material::texturesReady()
+ {
+	 return texturesReady_;;
+ }
+
+ void Material::setTexturesReady(bool ready)
+ {
+	 texturesReady_ = ready;
+ }
+
  void Material::setUniform(const std::string& name, std::shared_ptr<Uniform> uniform)
  {
 	 uniforms_[name] = uniform;
@@ -91,19 +101,24 @@
 	 return uniforms_;
  }
 
-void Material::setTexture(int textureType, std::shared_ptr<Texture> ptex) {
-	 textures_[textureType] = ptex;
+void Material::setTextureData(int textureType, TextureData ptex) {
+	 textureData_[textureType] = ptex;
  }
 
-void Material::setTexture(std::shared_ptr<Texture> ptex)
-{
-	setTexture(ptex->getTextureInfo().type, ptex);
-}
-
- std::unordered_map<int, std::shared_ptr<Texture>>& Material::getTextures()
+ std::unordered_map<int, TextureData>& Material::getTextureData()
  {
 	 // TODO: 在此处插入 return 语句
-	 return textures_;
+	 return textureData_;
+ }
+
+ void Material::addTexture(std::shared_ptr<Texture> pTex)
+ {
+	 texturesRuntime_.push_back(pTex);
+ }
+
+ void Material::clearTextures()
+ {
+	 texturesRuntime_.clear();
  }
 
  ShadingMode Material::shadingMode() {
@@ -112,8 +127,8 @@ void Material::setTexture(std::shared_ptr<Texture> ptex)
 
  void Material::setShadingMode(ShadingMode mode) {
 	 shadingMode_ = mode;
+	 setShaderReady(false);
  }
-
 
  std::string Material::getName() {
 	return shaderStructName_;
@@ -152,6 +167,9 @@ void Material::setTexture(std::shared_ptr<Texture> ptex)
 	 }
 	 else {
 		 shaders_[pass]->use();
+		 for (auto& [_, puniform] : uniforms_) {
+			 shaders_[pass]->bindUniform(*puniform);
+		 }
 	 }
  }
 

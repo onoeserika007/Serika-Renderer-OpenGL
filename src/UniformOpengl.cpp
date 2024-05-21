@@ -4,9 +4,11 @@
 #include "Utils/OpenGLUtils.h"
 
 int UniformSamplerOpenGL::getLocation(Shader& program) {
+	GL_CHECK(;);
 	return glGetUniformLocation(program.getId(), name_.c_str());
 }
 
+// the location is from getLocation func above
 void UniformSamplerOpenGL::bindProgram(Shader& program, int location) {
 	program.use();
 	auto binding = program.getSamplerBinding();

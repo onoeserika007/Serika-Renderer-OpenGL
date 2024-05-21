@@ -21,13 +21,14 @@ enum ShadingMode {
 	Shading_FXAA,
 };
 
-enum ShaderPass {
+enum class ShaderPass: uint8_t {
 	Shader_Shadow_Pass,
 	Shader_Plain_Pass,
 	Shader_ToScreen_Pass
 };
 
 class Texture;
+struct TextureData;
 class Shader;
 class Light;
 class Uniform;
@@ -42,11 +43,19 @@ protected:
 	std::string shaderStructName_;
 	std::shared_ptr<Shader> pshader_;
 	ShadingMode shadingMode_;
+
+	// unifroms包括uniform block和sampler，每次渲染的时候都需要重新绑定到对应的shader
 	std::unordered_map<std::string, std::shared_ptr<Uniform>> uniforms_; // name -> Uniform
-	std::unordered_map<int, std::shared_ptr<Texture>> textures_; // TextureType(int) -> texture
+
+	std::unordered_map<int, TextureData> textureData_; // TextureType(int) -> textureData
+	// just find a place to throw textures in
+	std::vector<std::shared_ptr<Texture>> texturesRuntime_;
+
+	// shaders
 	std::unordered_map<ShaderPass, std::shared_ptr<Shader>> shaders_;
 	std::vector<std::string> defines_;
 	bool shaderReady_ = false; // shader setupPipeline or not
+	bool texturesReady_ = false; // have textures been loaded to piepleine?
 
 	//std::unordered_map<std::string, 
 
@@ -74,17 +83,26 @@ public:
 
 	void setShaderReady(bool setValue);
 
+	bool texturesReady();
+
+	void setTexturesReady(bool ready);
+
 	void setUniform(const std::string& name, std::shared_ptr<Uniform> uniform);
 
 	std::shared_ptr<Uniform> getUniform(const std::string& name);
 
 	std::unordered_map<std::string, std::shared_ptr<Uniform>>& getUniforms();
 
-	void setTexture(int textureType, std::shared_ptr<Texture> ptex);
+	/**
+	 * Textures
+	 */
+	void setTextureData(int textureType, TextureData texData);
 
-	void setTexture(std::shared_ptr<Texture> ptex);
+	std::unordered_map<int, TextureData>& getTextureData();
 
-	std::unordered_map<int, std::shared_ptr<Texture>>& getTextures();
+	void addTexture(std::shared_ptr<Texture> pTex);
+
+	void clearTextures();
 
 	ShadingMode shadingMode();
 

@@ -30,6 +30,12 @@ namespace OpenGL {
             ret.type = GL_FLOAT;
             break;
         }
+        case TextureFormat_RGB8: {
+            ret.internalformat = GL_RGB;
+            ret.format = GL_RGB;
+            ret.type = GL_UNSIGNED_BYTE;
+            break;
+        }
         }
 
         return ret;

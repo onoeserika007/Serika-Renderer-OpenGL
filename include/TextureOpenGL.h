@@ -2,30 +2,29 @@
 
 class TextureOpenGL:public Texture {
 public:
-    TextureOpenGL();
+    //TextureOpenGL();
     TextureOpenGL(const TextureInfo& texInfo, const SamplerInfo& smInfo);
+    TextureOpenGL(const TextureInfo& texInfo, const SamplerInfo& smInfo, const TextureData& texData);
 
-    virtual void setupPipeline() override;
-    virtual void clearPipeline() override;
     virtual ~TextureOpenGL();
 };
 
 class TextureOpenGL2D : public TextureOpenGL {
 public:
-    TextureOpenGL2D();
+    //TextureOpenGL2D();
     TextureOpenGL2D(const TextureInfo& texInfo, const SamplerInfo& smInfo);
+    TextureOpenGL2D(const TextureInfo& texInfo, const SamplerInfo& smInfo, const TextureData& texData);
 
-    virtual void setupPipeline() override;
-    virtual void clearPipeline() override;
+    void setupPipeline();
+
     virtual ~TextureOpenGL2D();
 };
 
 class TextureOpenGLCube : public TextureOpenGL {
 public:
-    TextureOpenGLCube();
+    //TextureOpenGLCube();
     TextureOpenGLCube(const TextureInfo& texInfo, const SamplerInfo& smInfo);
+    TextureOpenGLCube(const TextureInfo& texInfo, const SamplerInfo& smInfo, const TextureData& texData);
 
-    virtual void setupPipeline() override;
-    virtual void clearPipeline() override;
     virtual ~TextureOpenGLCube();
 };

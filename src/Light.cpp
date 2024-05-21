@@ -2,7 +2,7 @@
 #include "Shader.h"
 #include "Material.h"
 #include "Geometry.h"
-#include "GLMInc.h"
+#include "Base/GLMInc.h"
 #include "Camera.h"
 
  Light::Light() : name_in_shader_("light"), type_(PointLight) {}
@@ -113,8 +113,8 @@
     }
 
     if (type_ == SpotLight) {
-        direction_ = renderer.getCamera()->forward();
-        setPosition(renderer.getCamera()->position());
+        direction_ = renderer.getCamera().forward();
+        setPosition(renderer.getCamera().position());
     }
 }
 

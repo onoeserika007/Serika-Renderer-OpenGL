@@ -29,13 +29,8 @@
 }
 
  void Object::draw(Renderer& renderer) {
-	 renderer.drawObject(*this);
+	 //renderer.drawObject(*this);
 }
-
- void Object::setupPipeline(Renderer& renderer)
- {
-	 renderer.setupObject(*this);
- }
 
  std::shared_ptr<Shader> Object::getpShader() {
 	if (pmaterial_) {
@@ -59,9 +54,19 @@
 	 return VAO;
  }
 
+ ShadingMode Object::getShadingMode()
+ {
+	 return shadingMode_;
+ }
+
  void Object::setVAO(unsigned id)
  {
 	 VAO = id;
+ }
+
+ void Object::setShadingMode(ShadingMode shadingMode)
+ {
+	 shadingMode_ = shadingMode;
  }
 
 // set model matrix

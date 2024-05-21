@@ -1,4 +1,5 @@
 #include "RenderPass/RenderPass.h"
+#pragma once
 #include "Renderer.h"
 #include <memory>
 class Renderer;

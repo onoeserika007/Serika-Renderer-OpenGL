@@ -37,11 +37,17 @@ void Model::setScale(float x, float y, float z)
 	}
 }
 
-void Model::setupPipeline(Renderer& renderer)
+//void Model::setupPipeline(Renderer& renderer)
+//{
+//	for (auto& mesh : meshes) {
+//		mesh->setupPipeline(renderer);
+//	}
+//}
+
+std::vector<std::shared_ptr<Object>>& Model::getMeshes()
 {
-	for (auto& mesh : meshes) {
-		mesh->setupPipeline(renderer);
-	}
+	// TODO: 在此处插入 return 语句
+	return meshes;
 }
 
 void Model::setShader(std::shared_ptr<Shader> pshader)
@@ -140,13 +146,17 @@ std::shared_ptr<Object> Model::processMesh(aiMesh* mesh, const aiScene* scene)
 			{
 				aiString str;
 				material->GetTexture(type, j, &str);
-				//auto texture = Texture::loadTexture(directory + "/" + str.C_Str(), typeName);
-				auto texture = std::make_shared<Texture>(static_cast<TextureType>(i));
-				texture->loadTextureData(directory + "/" + str.C_Str());
-				//pmaterial->loadMap(directory + "/" + str.C_Str(), typeName);
-				pmaterial->setTexture(texture);
+
+				const std::string picture = directory + "/" + str.C_Str();
+				auto bufferData = ResourceLoader::loadTexture(picture);
+				TextureData texData;
+				texData.dataArray = { bufferData };
+				texData.path = picture;
+
+				// texture->loadTextureData(directory + "/" + str.C_Str());
+				// pmaterial->loadMap(directory + "/" + str.C_Str(), typeName);
+				pmaterial->setTextureData(static_cast<TextureType>(i), texData);
 				pmaterial->addDefine(typeDefine);
-				textures.push_back(texture);
 			}
 		}
 	}

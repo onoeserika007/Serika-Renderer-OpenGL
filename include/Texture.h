@@ -13,16 +13,6 @@ enum TextureType {
 #include "Base/TextureTypeEnum.def"
 };
 
-
-enum CubeMapFace {
-    TEXTURE_CUBE_MAP_POSITIVE_X = 0,
-    TEXTURE_CUBE_MAP_NEGATIVE_X = 1,
-    TEXTURE_CUBE_MAP_POSITIVE_Y = 2,
-    TEXTURE_CUBE_MAP_NEGATIVE_Y = 3,
-    TEXTURE_CUBE_MAP_POSITIVE_Z = 4,
-    TEXTURE_CUBE_MAP_NEGATIVE_Z = 5,
-};
-
 enum WrapMode {
     Wrap_REPEAT,
     Wrap_MIRRORED_REPEAT,
@@ -72,6 +62,7 @@ enum TextureTarget{
 enum TextureFormat {
     TextureFormat_RGBA8 = 0,      // RGBA8888
     TextureFormat_FLOAT32 = 1,    // Float32
+    TextureFormat_RGB8 = 3
 };
 
 enum TextureUsage {
@@ -111,7 +102,7 @@ protected:
     // texture description
     TextureInfo textureInfo_;
     SamplerInfo samplerInfo_;
-    std::shared_ptr<TextureData> prawData;
+    TextureData textureData_;
 
 public:
     static std::shared_ptr<Texture> createTexture2DDefault(int width, int height, TextureFormat format, TextureUsage usage);
@@ -120,10 +111,11 @@ public:
     static const char* samplerName(TextureType usage);
     virtual ~Texture();
 
-    Texture();
+    //Texture();
     Texture(TextureType type);
     Texture(const TextureInfo& info);
     Texture(const TextureInfo& texInfo, const SamplerInfo& smInfo);
+    Texture(const TextureInfo& texInfo, const SamplerInfo& smInfo, const TextureData& texData);
 
     void loadTextureData(const std::string& picture);
     void loadTextureData(TextureData data);
@@ -135,7 +127,7 @@ public:
     const SamplerInfo& getSamplerInfo();
     //std::string getName();
 	TextureType getType();
-    std::shared_ptr<TextureData> getpRawData();
+    const TextureData& getTextureData() const;
     int width();
     int height();
     bool useMipmaps();
@@ -147,10 +139,6 @@ public:
     void setId(unsigned id);
     void setMipmaps(bool flag);
     void setMultiSample(bool flag);
-    virtual void setupPipeline() = 0;
-    virtual void clearPipeline() = 0;
-    void setupPipeline(Renderer& renderer);
-    void clearPipeline(Renderer& renderer);
 };
 
 

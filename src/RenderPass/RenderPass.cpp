@@ -2,7 +2,7 @@
 #include "Texture.h"
 #include "Renderer.h"
 
-inline void RenderPass::setupColorBuffer(std::shared_ptr<Texture>& colorBuffer, bool multiSample, bool force) {
+void RenderPass::setupColorBuffer(std::shared_ptr<Texture>& colorBuffer, bool multiSample, bool force) {
 	int w = renderer_.width(), h = renderer_.height();
 	if (w != width_ || h != height_) {
 		force = true;
@@ -25,12 +25,14 @@ inline void RenderPass::setupColorBuffer(std::shared_ptr<Texture>& colorBuffer, 
 		smInfo.filterMin = Filter_LINEAR;
 
 		colorBuffer = renderer_.createTexture(texInfo, smInfo);
+
+		// now loading is handled in constructor, manual loading is nolonger needed.
 		// load to pipeline
-		colorBuffer->setupPipeline(renderer_);
+		//colorBuffer->setupPipeline(renderer_);
 	}
 }
 
-inline void RenderPass::setupDepthBuffer(std::shared_ptr<Texture>& depthBuffer, bool multiSample, bool force) {
+void RenderPass::setupDepthBuffer(std::shared_ptr<Texture>& depthBuffer, bool multiSample, bool force) {
 	int w = renderer_.width(), h = renderer_.height();
 	if (w != width_ || h != height_) {
 		force = true;
@@ -53,6 +55,5 @@ inline void RenderPass::setupDepthBuffer(std::shared_ptr<Texture>& depthBuffer, 
 		smInfo.filterMin = Filter_NEAREST;
 
 		depthBuffer = renderer_.createTexture(texInfo, smInfo);
-		depthBuffer->setupPipeline(renderer_);
 	}
 }

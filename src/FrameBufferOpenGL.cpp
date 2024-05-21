@@ -13,8 +13,9 @@ int FrameBufferOpenGL::getId() const {
     return (int)fbo_;
 }
 
-bool FrameBufferOpenGL::isValid() {
+bool FrameBufferOpenGL::isValid() const {
     if (!fbo_) {
+        LOGE("fbo is zero!");
         return false;
     }
 
@@ -24,6 +25,7 @@ bool FrameBufferOpenGL::isValid() {
         LOGE("glCheckFramebufferStatus: %x", status);
         return false;
     }
+    GL_CHECK(glBindFramebuffer(GL_FRAMEBUFFER, 0));
 
     return true;
 }
@@ -40,6 +42,8 @@ void FrameBufferOpenGL::setColorAttachment(std::shared_ptr<Texture>& color, int 
         color->multiSample() ? GL_TEXTURE_2D_MULTISAMPLE : GL_TEXTURE_2D,
         color->getId(),
         level));
+    GL_CHECK(glBindFramebuffer(GL_FRAMEBUFFER, 0));
+    //isValid();
 }
 
 void FrameBufferOpenGL::setColorAttachment(std::shared_ptr<Texture>& color, CubeMapFace face, int level, int pos) {
@@ -54,7 +58,9 @@ void FrameBufferOpenGL::setColorAttachment(std::shared_ptr<Texture>& color, Cube
         OpenGL::cvtCubeFace(face),
         color->getId(),
         level));
-}
+    GL_CHECK(glBindFramebuffer(GL_FRAMEBUFFER, 0));
+    //isValid();
+};
 
 void FrameBufferOpenGL::setDepthAttachment(std::shared_ptr<Texture>& depth) {
     if (depth == depthAttachment_.tex) {
@@ -68,6 +74,8 @@ void FrameBufferOpenGL::setDepthAttachment(std::shared_ptr<Texture>& depth) {
         depth->multiSample() ? GL_TEXTURE_2D_MULTISAMPLE : GL_TEXTURE_2D,
         depth->getId(),
         0));
+    GL_CHECK(glBindFramebuffer(GL_FRAMEBUFFER, 0));
+    //isValid();
 }
 
 void FrameBufferOpenGL::bind() const {
