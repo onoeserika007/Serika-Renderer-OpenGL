@@ -16,6 +16,7 @@
 
 RendererOpenGL::RendererOpenGL(Camera& camera): Renderer(camera)
 {
+	;
 }
 
 void RendererOpenGL::init()
@@ -131,7 +132,7 @@ void RendererOpenGL::loadShaders(Material& material)
 void RendererOpenGL::setupMaterial(Material& material)
 {
 	// textures
-	if (material.texturesReady()) {
+	if (!material.texturesReady()) {
 
 		material.clearTextures();
 		for (auto& [type, textureData] : material.getTextureData()) {
@@ -153,8 +154,7 @@ void RendererOpenGL::setupMaterial(Material& material)
 
 			const auto& samplerName = Texture::samplerName(static_cast<TextureType>(type));
 			auto sampler = std::make_shared<UniformSamplerOpenGL>(samplerName, (TextureTarget)texInfo.target, (TextureFormat)texInfo.format);
-			material.addTexture(texture);
-
+			sampler->setTexture(texture);
 			material.setUniform(sampler->name(), sampler);
 		}
 
@@ -222,7 +222,7 @@ void RendererOpenGL::setupObject(Object& object, ShaderPass shaderPass)
 
 			// set back
 			object.setVAO(VAO);
-			GL_CHECK(glBindVertexArray(NULL));
+			GL_CHECK(glBindVertexArray(0));
 
 			object.setPipelineReady(true);
 		} // geometry
@@ -257,7 +257,7 @@ void RendererOpenGL::drawObject(Object& object, ShaderPass pass)
 		// primitive | nums | 索引类型 | 最后一个参数里我们可以指定EBO中的偏移量（或者传递一个索引数组，但是这是当你不在使用EBO的时候），但是我们会在这里填写0。
 		GL_CHECK(glDrawElements(GL_TRIANGLES, pgeometry->getIndicesNum(), GL_UNSIGNED_INT, 0));
 	}
-	GL_CHECK(glBindVertexArray(NULL));
+	GL_CHECK(glBindVertexArray(0));
 }
 
 void RendererOpenGL::updateModelUniformBlock(Object& object, Camera& camera, bool shadowPass)

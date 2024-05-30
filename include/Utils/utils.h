@@ -1,7 +1,7 @@
 #ifndef UTILS_H
 #define UTILS_H
 
-#include <vector>;
+#include <vector>
 #include <string>
 #include <iostream>
 #include <glad/glad.h>

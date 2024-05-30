@@ -8,8 +8,8 @@
 #define STB_IMAGE_WRITE_IMPLEMENTATION
  // 实现在这里
 
-#include <stb_image.h>
-#include <stb_image_write.h>
+#include <stb/stb_image.h>
+#include <stb/stb_image_write.h>
 #include "Utils/ImageUtils.h"
 #include "Utils/Logger.h"
 

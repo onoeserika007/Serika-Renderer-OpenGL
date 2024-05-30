@@ -2,16 +2,15 @@
 // 或项目特定的包含文件。
 
 #pragma once
-#define GLM_FORCE_ALIGNED_GENTYPES
 #define GLM_FORCE_ALIGNED
 #define GLM_FORCE_INLINE
 #define GLM_FORCE_AVX2
-#include <glm/glm.hpp>
+
+#include <glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtc/type_aligned.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
-#include <stdint.h>
 
 using RGBA = glm::u8vec4;
 

@@ -1,5 +1,6 @@
 #pragma once
 #include "Base/GLMInc.h"
+#include "Material.h"
 #include <memory>
 #include <vector>
 
@@ -18,7 +19,7 @@ class Object {
 	// mesh
 	std::shared_ptr<Geometry> pgeometry_;
 	std::shared_ptr<Material> pmaterial_;
-	ShadingMode shadingMode_ = static_cast<ShadingMode>(0);
+	ShadingMode shadingMode_ = Shading_BaseColor;
 
 
 	// object
