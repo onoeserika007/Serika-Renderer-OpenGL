@@ -2,8 +2,8 @@
 #include <memory>
 #include <string>
 #include "Base/GLMInc.h"
-#include "Geometry/UMesh.h"
-#include "Geometry/UObject.h"
+#include "Geometry/Mesh.h"
+#include "Geometry/Object.h"
 
 
 class RenderPass;
@@ -86,11 +86,9 @@ struct LightDataUniformBlock { // uint好像和预想的数据不太一样
 
 class ULight: public UMesh{
 public:
-    ULight();
-    ULight(std::string name, glm::vec3 ambient, glm::vec3 diff, glm::vec3 spec);
-    ULight(std::shared_ptr<Geometry> pgeometry, std::shared_ptr<Material> pmaterial);
-    ULight(std::string name, std::shared_ptr<Geometry> pgeometry, std::shared_ptr<Material> pmaterial);
-    ULight(std::string name, glm::vec3 ambient, glm::vec3 diff, glm::vec3 spec, std::shared_ptr<Geometry> pgeometry, std::shared_ptr<Material> pmaterial);
+    template<typename ...Args>
+    static std::shared_ptr<ULight> makeLight(Args&&... args);
+
     void setName(const std::string& name);
     void setAsPointLight(glm::vec3 pos, glm::vec3 ambient, glm::vec3 diff, glm::vec3 spec, float constant, float linear, float quadratic);
     void setAsDirectionalLight(glm::vec3 dir, glm::vec3 ambient, glm::vec3 diff, glm::vec3 spec);
@@ -116,6 +114,13 @@ public:
     void markLightVPDirty();
 
 private:
+
+    ULight();
+    ULight(std::string name, glm::vec3 ambient, glm::vec3 diff, glm::vec3 spec);
+    ULight(std::shared_ptr<Geometry> pgeometry, std::shared_ptr<Material> pmaterial);
+    ULight(std::string name, std::shared_ptr<Geometry> pgeometry, std::shared_ptr<Material> pmaterial);
+    ULight(std::string name, glm::vec3 ambient, glm::vec3 diff, glm::vec3 spec, std::shared_ptr<Geometry> pgeometry, std::shared_ptr<Material> pmaterial);
+
     std::string name_in_shader_;
     std::shared_ptr<Camera> camera_;
     std::shared_ptr<Texture> shadowMap_;
@@ -123,3 +128,8 @@ private:
 
     LightDataUniformBlock lightData_;
 };
+
+template<typename ... Args>
+std::shared_ptr<ULight> ULight::makeLight(Args&&... args) {
+    return std::shared_ptr<ULight>(new ULight(std::forward<Args>(args)...));
+}

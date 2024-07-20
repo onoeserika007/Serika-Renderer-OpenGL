@@ -1,23 +1,19 @@
-#include "Geometry/UMesh.h"
+#include "Geometry/Mesh.h"
 #include <iostream>
 
-UMesh::UMesh(): UObject() {
+#include "Renderer.h"
+
+UMesh::UMesh() {
     pgeometry_ = nullptr;
     pgeometry_ = nullptr;
     VAO = 0;
     shadingMode_ = Shading_BaseColor;
+    bDrawable = true;
 }
 
 UMesh::UMesh(std::shared_ptr<Geometry> pgeometry, std::shared_ptr<Material> pmaterial): UMesh() {
     pgeometry_ = std::move(pgeometry);
     pmaterial_ = std::move(pmaterial);
-
-    if (!pgeometry_) {
-        std::cout << "Object: init - Objrct has no geometry or has a pure point!" << std::endl;
-    }
-    else {
-        init();
-    }
 }
 
 std::shared_ptr<Geometry> UMesh::getpGeometry() {

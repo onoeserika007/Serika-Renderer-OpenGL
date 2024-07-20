@@ -1,8 +1,8 @@
 #include "RenderPass/RenderPassPlain.h"
 
-#include <Model.h>
+#include <../../include/Geometry/Model.h>
 #include <Scene.h>
-#include "ULight.h"
+#include "Light.h"
 
 #include "FrameBuffer.h"
 #include "Renderer.h"
@@ -24,21 +24,19 @@ void RenderPassPlain::render(Scene & scene)
 	fboMain_->bind();
 	// setAttachment后会绑定到0 fbo，所以记得绑定回来
 
-	for (const auto& model : scene.getModels()) {
-		for (const auto& mesh : model->getMeshes()) {
-			for (const auto& light: scene.getLights()) {
-				// setupShadowMapBuffer(tempDepthBuffer_, config.Resolution_ShadowMap, config.Resolution_ShadowMap, false, false);
-				// fboMain_->setDepthAttachment(tempDepthBuffer_);
-				// fboMain_->bind();
 
-				renderer_.updateLightUniformBlock(*mesh, light);
-				renderer_.draw(*mesh, shaderPass_, nullptr);
-			}
+	for (const auto& light: scene.getLights()) {
+		// setupShadowMapBuffer(tempDepthBuffer_, config.Resolution_ShadowMap, config.Resolution_ShadowMap, false, false);
+		// fboMain_->setDepthAttachment(tempDepthBuffer_);
+		// fboMain_->bind();
+		renderer_.updateLightUniformBlock(light);
+		for (const auto& model : scene.getModels()) {
+			renderer_.draw(*model, shaderPass_, nullptr);
 		}
 	}
 ;
 	for (const auto& light: scene.getLights()) {
-		renderer_.updateLightUniformBlock(*light, nullptr);
+		renderer_.updateLightUniformBlock(nullptr);
 		renderer_.draw(*light, shaderPass_, nullptr);
 	}
 

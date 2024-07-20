@@ -1,4 +1,4 @@
-#include "ULight.h"
+#include "Light.h"
 #include "Shader.h"
 #include "Material.h"
 #include "Geometry/Geometry.h"
@@ -112,8 +112,8 @@ LightType ULight::getType() const
     UObject::updateFrame(renderer);
 
     if (lightData_.uLightType == LightType_SpotLight) {
-        lightData_.uLightDirection = renderer.getCamera().forward();
-        setPosition(renderer.getCamera().position());
+        lightData_.uLightDirection = renderer.getCamera()->forward();
+        setPosition(renderer.getCamera()->position());
     }
 }
 

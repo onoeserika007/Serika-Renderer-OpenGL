@@ -8,7 +8,7 @@ class Renderer;
 class Shader;
 class UObject;
 class Texture;
-class Model;
+class UModel;
 
 // 区分通用渲染过程和renderpass wides的渲染过程，前者放在renderer里，后面的setup放在renderpass里（暂定）
 class RenderPass {

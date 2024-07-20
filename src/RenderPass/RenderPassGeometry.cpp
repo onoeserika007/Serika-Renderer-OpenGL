@@ -1,6 +1,6 @@
 #include "RenderPass/RenderPassGeometry.h"
 
-#include <Model.h>
+#include <../../include/Geometry/Model.h>
 #include <Scene.h>
 
 #include "Renderer.h"
@@ -44,9 +44,7 @@ void RenderPassGeometry::setupBuffers()
 void RenderPassGeometry::render(Scene & scene) {
 	setupBuffers();
 	for (auto& model : scene.getModels()) {
-		for (auto& mesh : model->getMeshes()) {
-			renderer_.draw(*mesh, shaderPass_, nullptr);
-		}
+		renderer_.draw(*model, shaderPass_, nullptr);
 	}
 }
 

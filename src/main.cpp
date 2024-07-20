@@ -12,10 +12,10 @@
 #include "Camera.h"
 #include "Geometry/Geometry.h"
 #include "BufferAttribute.h"
-#include "../include/Geometry/UObject.h"
+#include "../include/Geometry/Object.h"
 #include "Material.h"
-#include "ULight.h"
-#include "Model.h"
+#include "Light.h"
+#include "../include/Geometry/Model.h"
 #include "ViewerOpenGL.h"
 #include "Utils/OpenGLUtils.h"
 #include "Base/Config.h"
@@ -179,7 +179,7 @@ void App::setupWindow() {
     camera->setPosition(cameraPos);
 
     // viewer
-    viewer_ = std::make_shared<ViewerOpenGL>(*camera, config);
+    viewer_ = std::make_shared<ViewerOpenGL>(camera);
     viewer_->init(frameWidth, frameHeight, 0);
     //viewer_ = nullptr;
     //ViewerOpenGL testViewer{ *camera, config };
@@ -327,7 +327,8 @@ void App::setupResource()
 
     // nanosuit
     std::string nanosuitPath = "./assets/models/nanosuit/nanosuit.obj";
-    auto nanosuit = std::make_shared<Model>(nanosuitPath);
+    auto nanosuit = UModel::makeModel();
+    nanosuit->loadModel(nanosuitPath);
     nanosuit->setScale(0.1, 0.1, 0.1);
     // nanosuit->
 
@@ -344,12 +345,12 @@ void App::setupResource()
     auto plightMaterial = std::make_shared<StandardMaterial>();
     plightMaterial->setShadingMode(ShadingMode::Shading_BaseColor);
     //light = std::make_shared<Light>("light", glm::vec3(0.2f, 0.2f, 0.2f), glm::vec3(0.5f, 0.5f, 0.5f), glm::vec3(1.0f, 1.0f, 1.0f), cubeGeometry, plightMaterial);
-    auto light = std::make_shared<ULight>(cubeGeometry, plightMaterial);
+    auto light = ULight::makeLight(cubeGeometry, plightMaterial);
     light->setAsPointLight(glm::vec3(3, 3, 3), glm::vec3(0.2f, 0.2f, 0.2f), glm::vec3(0.5f, 0.5f, 0.5f), glm::vec3(1.0f, 1.0f, 1.0f), 1.0, 0.045, 0.0075);
     light->setScale({ 0.1, 0.1, 0.1 });
     scene_->addLight(light);
 
-    auto light2 = std::make_shared<ULight>(cubeGeometry, plightMaterial);
+    auto light2 = ULight::makeLight(cubeGeometry, plightMaterial);
     light2->setAsPointLight(glm::vec3(0, 0, 0), glm::vec3(0.2f, 0.2f, 0.2f), glm::vec3(0.5f, 0.5f, 0.5f), glm::vec3(1.0f, 1.0f, 1.0f), 1.0, 0.045, 0.0075);
     light2->setScale({ 0.1, 0.1, 0.1 });
     scene_->addLight(light2);

@@ -8,6 +8,6 @@ class ViewerOpenGL : public Viewer {
 private:
 
 public:
-	ViewerOpenGL(Camera& camera, Config& config);
+	explicit ViewerOpenGL(const std::shared_ptr<Camera>& camera);
 	virtual std::shared_ptr<Renderer> createRenderer() override;
 };

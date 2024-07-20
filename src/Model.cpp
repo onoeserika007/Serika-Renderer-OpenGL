@@ -1,27 +1,19 @@
-﻿#include "Model.h"
-#include "Renderer.h"
-#include "../include/Geometry/UObject.h"
+﻿#include <iostream>
+#include "Geometry/Model.h"
+#include "Geometry/Object.h"
 #include "Texture.h"
+#include "Renderer.h"
 #include "Material.h"
 #include "Geometry/Geometry.h"
 #include "BufferAttribute.h"
 #include "ResourceLoader.h"
-#include "ULight.h"
-#include <iostream>
-
 #include "assimp/postprocess.h"
-#include "Geometry/UMesh.h"
 
-Model::Model(const std::string& path)
-{
-	loadModel(path);
-}
+#include "Geometry/Mesh.h"
 
-void Model::setScale(float x, float y, float z)
+UModel::UModel()
 {
-	for (auto& mesh : meshes) {
-		mesh->setScale(x, y, z);
-	}
+	bDrawable = false;
 }
 
 //void Model::setupPipeline(Renderer& renderer)
@@ -31,13 +23,7 @@ void Model::setScale(float x, float y, float z)
 //	}
 //}
 
-std::vector<std::shared_ptr<UMesh>>& Model::getMeshes()
-{
-	// TODO: 在此处插入 return 语句
-	return meshes;
-}
-
-void Model::loadModel(const std::string& path)
+void UModel::loadModel(const std::string& path)
 {
 	Assimp::Importer importer;
 	/*aiProcess_GenNormals：如果模型不包含法向量的话，就为每个顶点创建法线。
@@ -55,13 +41,15 @@ void Model::loadModel(const std::string& path)
 	processNode(scene->mRootNode, scene);
 }
 
-void Model::processNode(aiNode* node, const aiScene* scene)
+void UModel::processNode(aiNode* node, const aiScene* scene)
 {
 	// 处理节点所有的网格（如果有的话）
 	for (unsigned int i = 0; i < node->mNumMeshes; i++)
 	{
 		aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
-		meshes.push_back(processMesh(mesh, scene));
+		auto&& loadedMesh = processMesh(mesh, scene);
+		// meshes.push_back(loadedMesh);
+		addChild(loadedMesh);
 	}
 	// 接下来对它的子节点重复这一过程
 	for (unsigned int i = 0; i < node->mNumChildren; i++)
@@ -70,7 +58,7 @@ void Model::processNode(aiNode* node, const aiScene* scene)
 	}
 }
 
-std::shared_ptr<UMesh> Model::processMesh(aiMesh *mesh, const aiScene *scene)
+std::shared_ptr<UMesh> UModel::processMesh(aiMesh *mesh, const aiScene *scene)
 {
 	std::vector<float> PosArray;
 	std::vector<float> TexCoordArray;
@@ -142,7 +130,7 @@ std::shared_ptr<UMesh> Model::processMesh(aiMesh *mesh, const aiScene *scene)
 	}
 
 
-	auto pobject = std::make_shared<UMesh>(pgeomerty, pmaterial);
+	auto pobject = UMesh::makeMesh(pgeomerty, pmaterial);
 	return pobject;
 }
 

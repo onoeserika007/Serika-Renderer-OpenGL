@@ -1,8 +1,8 @@
 #include "RenderPass/RenderPassShadow.h"
 #include "Renderer.h"
 #include "FrameBufferOpenGL.h"
-#include "ULight.h"
-#include "Model.h"
+#include "Light.h"
+#include "../../include/Geometry/Model.h"
 #include "Scene.h"
 #include "Base/Config.h"
 
@@ -21,9 +21,7 @@ void RenderPassShadow::render(Scene &scene) {
 		fboShadow_->isValid();
 		fboShadow_->bind();
 		for (const auto& model: scene.getModels()) {
-			for (const auto& mesh: model->getMeshes()) {
-				renderer_.draw(*mesh, shaderPass_, nullptr);
-			}
+			renderer_.draw(*model, shaderPass_, nullptr);
 		}
 	}
 	fboShadow_->setDepthAttachment(texDepthMain_);

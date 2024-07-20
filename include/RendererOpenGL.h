@@ -5,7 +5,7 @@ class ShaderGLSL;
 
 class RendererOpenGL : public Renderer {
 public:
-	RendererOpenGL(Camera& camera);
+	RendererOpenGL(const std::shared_ptr<Camera>& camera);
 	virtual void init() override;
 
 	virtual std::shared_ptr<UniformBlock> createUniformBlock(const std::string& name, int size) override;

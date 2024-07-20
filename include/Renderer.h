@@ -39,7 +39,7 @@ enum TextureFormat;
 
 class Renderer {
 public:
-	Renderer(Camera& camera);
+	explicit Renderer(const std::shared_ptr<Camera> &camera);
 	virtual void init() = 0;
 
 	virtual std::shared_ptr<UniformBlock> createUniformBlock(const std::string& name, int size) = 0;
@@ -60,9 +60,10 @@ public:
 	virtual void useMaterial(Material& material, ShaderPass pass) = 0;
 	virtual void draw(UMesh &mesh, ShaderPass pass, const std::shared_ptr<Camera>&shadowCamera) = 0;
 
+	void loadUniformBlocks(UMesh& mesh);
 	void updateModelUniformBlock(UMesh & mesh, Camera& camera, const std::shared_ptr<Camera> &shadowCamera = nullptr) const;
 	void updateLightUniformBlock(Shader& shader, const std::shared_ptr<ULight>& light) const;
-	void updateLightUniformBlock(UMesh &mesh, const std::shared_ptr<ULight>& light) const;
+	void updateLightUniformBlock(const std::shared_ptr<ULight>& light) const;
 
 	// pipeline related
 	virtual void updateRenderStates(RenderStates& renderStates) = 0;
@@ -84,7 +85,7 @@ public:
 	virtual ~Renderer();
 	virtual void clearTexture(Texture& texture) = 0;
 
-	Camera& getCamera();
+	std::shared_ptr<Camera> getCamera();
 	int width();
 	int height();
 protected:
@@ -94,7 +95,10 @@ protected:
 	int viewer_y_ = 0;
 	int viewer_width_ = 0;
 	int viewer_height_ = 0;
-	Camera& camera_;
+
+	std::shared_ptr<Camera> mainCamera_;
+	std::shared_ptr<Camera> viewCamera_;
+
 	std::shared_ptr<UniformBlock> modelUniformBlock_;
 	std::shared_ptr<UniformBlock> lightUniformBlock_;
 	std::shared_ptr<Texture> shadowPlaceholder_ = nullptr;

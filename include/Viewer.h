@@ -16,11 +16,11 @@ class FrameBuffer;
 class UObject;
 class RenderPassPlain;
 class Scene;
-class Model;
+class UModel;
 
 class Viewer {
 public:
-	Viewer(Camera& camera, Config& config);
+	Viewer(const std::shared_ptr<Camera>& camera);
 	virtual ~Viewer();
 	void init(int width, int height, int outTexId);
 	void setViewPort(int x, int y, int width, int height);
@@ -29,7 +29,7 @@ public:
 	void drawScene(std::shared_ptr<Scene> scene);
 	void drawScene_DefferedRendering(std::shared_ptr<Scene> scene);
 	void drawScene_ShadowMapTest(std::shared_ptr<Scene> scene);
-	void drawModel(std::shared_ptr<Model> model);
+	void drawModel(std::shared_ptr<UModel> model);
 
 	std::shared_ptr<Camera> createCamera(CameraType type);
 	virtual std::shared_ptr<Renderer> createRenderer() = 0;
@@ -37,8 +37,7 @@ public:
 public:
 
 protected:
-	Config& config_;
-	Camera& cameraMain_;
+	std::shared_ptr<Camera> cameraMain_;
 	std::shared_ptr<Camera> cameraDepth_ = nullptr;
 
 	// scene

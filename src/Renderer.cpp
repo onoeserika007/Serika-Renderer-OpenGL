@@ -1,23 +1,32 @@
 #include "Renderer.h"
 
-#include <ULight.h>
+#include <Light.h>
 #include <Shader.h>
 
 #include "Camera.h"
-#include "../include/Geometry/UObject.h"
+#include "../include/Geometry/Object.h"
 
 #include "Uniform.h"
 #include "Base/GLMInc.h"
-#include "Geometry/UMesh.h"
+#include "Geometry/Mesh.h"
 
-Renderer::Renderer(Camera& camera) : camera_(camera) {
+Renderer::Renderer(const std::shared_ptr<Camera> &camera) {
 	// 在基类的构造函数里调用虚函数是无效的！会调用基类的实现，但是基类是纯虚函数，没有实现，所以会发生链接错误
 	// modelUniformBlock_ = createUniformBlock("Model", sizeof(ModelUniformBlock));
+	mainCamera_ = camera;
+	viewCamera_ = camera;
+}
+
+void Renderer::loadUniformBlocks(UMesh &mesh) {
+	const auto pmat = mesh.getpMaterial();
+	// uniforms will be loaded to shader when Material::use(ShaderPass) is called.
+	pmat->setUniform(modelUniformBlock_->name(), modelUniformBlock_);
+	pmat->setUniform(lightUniformBlock_->name(), lightUniformBlock_);
 }
 
 void Renderer::updateModelUniformBlock(UMesh & mesh, Camera &camera, const std::shared_ptr<Camera> &shadowCamera) const {
 	ModelUniformBlock tmp{};
-	tmp.uModel = mesh.getModelMatrix();
+	tmp.uModel = mesh.getWorldMatrix();
 	tmp.uNormalToWorld = mesh.getNormalToWorld();
 	tmp.uProjection = camera.GetProjectionMatrix();
 	tmp.uView = camera.GetViewMatrix();
@@ -45,7 +54,7 @@ void Renderer::updateLightUniformBlock(Shader &shader, const std::shared_ptr<ULi
 	shader.bindUniform(*lightUniformBlock_);
 }
 
-void Renderer::updateLightUniformBlock(UMesh &mesh, const std::shared_ptr<ULight>& light) const {
+void Renderer::updateLightUniformBlock(const std::shared_ptr<ULight>& light) const {
 	// 现在可以确定内存布局没问题了，只能是c++端的问题，light初始化有问题
 	LightDataUniformBlock tmp;
 	if (light) {
@@ -55,9 +64,6 @@ void Renderer::updateLightUniformBlock(UMesh &mesh, const std::shared_ptr<ULight
 		tmp.uLightType = LightType_NoLight;
 	}
 	lightUniformBlock_->setData(&tmp, sizeof(LightDataUniformBlock));
-
-	const auto pmat = mesh.getpMaterial();
-	pmat->setUniform(lightUniformBlock_->name(), lightUniformBlock_); // uniforms will be loaded to shader when Material::use(ShaderPass) is called.
 }
 
 void Renderer::setViewPort(int x, int y, int width, int height) {
@@ -77,9 +83,9 @@ Renderer::~Renderer()
 	std::cout << "Base renderer here!" << std::endl;
 }
 
-Camera& Renderer::getCamera()
+std::shared_ptr<Camera> Renderer::getCamera()
 {
-	return camera_;
+	return mainCamera_;
 }
 
 int Renderer::width()

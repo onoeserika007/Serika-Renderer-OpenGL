@@ -1,11 +1,11 @@
 #include "Scene.h"
 
-void Scene::addModel(std::shared_ptr<Model> model)
+void Scene::addModel(std::shared_ptr<UModel> model)
 {
 	models_.emplace_back(std::move(model));
 }
 
-std::vector<std::shared_ptr<Model>>& Scene::getModels()
+std::vector<std::shared_ptr<UModel>>& Scene::getModels()
 {
 	// TODO: 在此处插入 return 语句
 	return models_;

@@ -6,17 +6,17 @@
 #include "RenderPass/RenderPassLight.h"
 
 #include "Camera.h"
-#include "ULight.h"
+#include "Light.h"
 #include "Utils/Logger.h"
 #include "Texture.h"
 #include "Renderer.h"
 #include "RenderPass/RenderPassPlain.h"
-#include "Model.h"
+#include "../include/Geometry/Model.h"
 #include "Scene.h"
 #include "RenderPass/RenderPassShadow.h"
 #include "Utils/OpenGLUtils.h"
 
-Viewer::Viewer(Camera& camera, Config& config) : cameraMain_(camera), config_(config) {
+Viewer::Viewer(const std::shared_ptr<Camera>& camera) : cameraMain_(camera) {
 }
 
 Viewer::~Viewer() {
@@ -53,9 +53,6 @@ void Viewer::init(int width, int height, int outTexId)
 
 	setViewPort(0, 0, width_, height_);
 
-	//// create resources
-	//shadowPlaceholder_ = Texture::createTexture2DDefault(1, 1, TextureFormat_FLOAT32, TextureUsage_Sampler);
-
 	// passes
 	plainPass_ = std::make_shared<RenderPassPlain>(*renderer_);
 	plainPass_->init();
@@ -84,26 +81,17 @@ void Viewer::cleanup()
 	if (renderer_) {
 		renderer_->waitIdle();
 	}
-
-	// main fbo 
-	//fboMain_ = nullptr;
-	//texColorMain_ = nullptr;
-	//texDepthMain_ = nullptr;
-
-	// shadow map
-	//fboShadow_ = nullptr;
-	//texDepthShadow_ = nullptr;
-	//shadowPlaceholder_ = nullptr;
 }
 
 void Viewer::render(std::shared_ptr<Scene> scene) {
-	if (config_.RenderMode == ERenderMode::RenderMode_ForwardRendering) {
+	auto&& config = Config::getInstance();
+	if (config.RenderMode == ERenderMode::RenderMode_ForwardRendering) {
 		drawScene(scene);
 	}
-	else if (config_.RenderMode == ERenderMode::RenderMode_DefferedRendering) {
+	else if (config.RenderMode == ERenderMode::RenderMode_DefferedRendering) {
 		drawScene_DefferedRendering(scene);
 	}
-	else if (config_.RenderMode == ERenderMode::RenderMode_TestRendering) {
+	else if (config.RenderMode == ERenderMode::RenderMode_TestRendering) {
 		drawScene_ShadowMapTest(scene);
 	}
 }
@@ -256,7 +244,7 @@ void Viewer::drawScene_ShadowMapTest(std::shared_ptr<Scene> scene) {
 
 }
 
-void Viewer::drawModel(std::shared_ptr<Model> model)
+void Viewer::drawModel(std::shared_ptr<UModel> model)
 {
 
 }

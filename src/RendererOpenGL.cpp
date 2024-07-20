@@ -7,12 +7,13 @@
 #include "Geometry/Geometry.h"
 #include "TextureOpenGL.h"
 #include "OpenGL/EnumsOpenGL.h"
-#include "../include/Geometry/UObject.h"
+#include "../include/Geometry/Object.h"
 #include "Camera.h"
 #include "FrameBufferOpenGL.h"
 #include "Utils/Logger.h"
 #include "Utils/OpenGLUtils.h"
-#include "ULight.h"
+#include "Light.h"
+#include "Geometry/Mesh.h"
 #include <GLFW/glfw3.h>
 
 // set up vertex data (and buffer(s)) and configure vertex attributes
@@ -28,7 +29,7 @@ constexpr unsigned int ToScreenRectangleIndices[] = {
 	1, 2, 3  // second triangle
 };
 
-RendererOpenGL::RendererOpenGL(Camera& camera): Renderer(camera)
+RendererOpenGL::RendererOpenGL(const std::shared_ptr<Camera>& camera): Renderer(camera)
 {
 	;
 }
@@ -260,27 +261,38 @@ void RendererOpenGL::useMaterial(Material& material, ShaderPass pass)
 {
 }
 
-void RendererOpenGL::draw(UMesh &mesh, ShaderPass pass, const std::shared_ptr<Camera>& shadowCamera)
+void RendererOpenGL::draw(UMesh &mesh, const ShaderPass pass, const std::shared_ptr<Camera>& shadowCamera)
 {
-	setupMesh(mesh, pass);
-	GL_CHECK(;);
-	mesh.updateFrame(*this);
-	updateModelUniformBlock(mesh, camera_, shadowCamera);
-	auto pmaterial = mesh.getpMaterial();
-	pmaterial->use(pass);
+	if (mesh.drawable()) {
+		setupMesh(mesh, pass);
+		mesh.updateFrame(*this);
 
-	auto VAO = mesh.getVAO();
-	auto pgeometry = mesh.getpGeometry();
-	GL_CHECK(glBindVertexArray(VAO));
-	if (pgeometry->isMesh()) {
-		// primitive | 顶点数组起始索引 | 绘制indices数量
-		GL_CHECK(glDrawArrays(GL_TRIANGLES, 0, pgeometry->getVeticesNum()));
+		updateModelUniformBlock(mesh, *mainCamera_, shadowCamera);
+		loadUniformBlocks(mesh);
+
+		auto pmaterial = mesh.getpMaterial();
+		pmaterial->use(pass);
+
+		auto VAO = mesh.getVAO();
+		auto pgeometry = mesh.getpGeometry();
+		GL_CHECK(glBindVertexArray(VAO));
+		if (pgeometry->isMesh()) {
+			// primitive | 顶点数组起始索引 | 绘制indices数量
+			GL_CHECK(glDrawArrays(GL_TRIANGLES, 0, pgeometry->getVeticesNum()));
+		}
+		else {
+			// primitive | nums | 索引类型 | 最后一个参数里我们可以指定EBO中的偏移量（或者传递一个索引数组，但是这是当你不在使用EBO的时候），但是我们会在这里填写0。
+			GL_CHECK(glDrawElements(GL_TRIANGLES, pgeometry->getIndicesNum(), GL_UNSIGNED_INT, 0));
+		}
+		GL_CHECK(glBindVertexArray(0));
 	}
-	else {
-		// primitive | nums | 索引类型 | 最后一个参数里我们可以指定EBO中的偏移量（或者传递一个索引数组，但是这是当你不在使用EBO的时候），但是我们会在这里填写0。
-		GL_CHECK(glDrawElements(GL_TRIANGLES, pgeometry->getIndicesNum(), GL_UNSIGNED_INT, 0));
+
+	for (auto&& child: mesh.getChildren()) {
+		if (auto* childMesh = dynamic_cast<UMesh*>(child.get())) {
+			draw(*childMesh, pass, shadowCamera);
+		}
 	}
-	GL_CHECK(glBindVertexArray(0));
+
 }
 
 #define GL_STATE_SET(var, gl_state) if (var) GL_CHECK(glEnable(gl_state)); else GL_CHECK(glDisable(gl_state));
