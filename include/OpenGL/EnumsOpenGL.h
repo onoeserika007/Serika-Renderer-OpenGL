@@ -11,7 +11,7 @@ namespace OpenGL {
         GLenum format;
         GLenum type;
     };
-
+;
 #define CASE_CVT_GL(PRE, TOKEN) case PRE##TOKEN: return GL_##TOKEN
 
     static inline TextureOpenGLDesc cvtTextureFormat(TextureFormat format) {

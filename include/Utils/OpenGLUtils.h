@@ -1,5 +1,7 @@
+#pragma once
 #include <stdio.h>
 #include <glad/glad.h>
+
 
 void checkGLError_(const char* stmt, const char* file, int line);
 

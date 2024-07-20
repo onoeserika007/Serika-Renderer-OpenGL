@@ -10,15 +10,17 @@ int UniformSamplerOpenGL::getLocation(Shader& program) {
 
 // the location is from getLocation func above
 void UniformSamplerOpenGL::bindProgram(Shader& program, int location) {
-	program.use();
+	// call this will reset binding counter, do not use it.
+	// program.use();
+	// reseting should be ensured before call bindProgram
 	auto binding = program.getSamplerBinding();
 	GL_CHECK(glActiveTexture(GL_TEXTURE0 + binding));
 	GL_CHECK(glBindTexture(GL_TEXTURE_2D, textureId_));
 	GL_CHECK(glUniform1i(location, binding));
 }
 
-void UniformSamplerOpenGL::setTexture(const std::shared_ptr<Texture>& tex) {
-	textureId_ = tex->getId();
+void UniformSamplerOpenGL::setTexture(const Texture &tex) {
+	textureId_ = tex.getId();
 }
 
 UniformBlockOpenGL::UniformBlockOpenGL(const std::string& name, int size) : UniformBlock(name, size) {
@@ -32,10 +34,12 @@ UniformBlockOpenGL::~UniformBlockOpenGL() {
 	GL_CHECK(glDeleteBuffers(1, &ubo_));
 }
 
+// location是从shader中计算出来的，这和block binding无关
 int UniformBlockOpenGL::getLocation(Shader& program) {
 	return glGetUniformBlockIndex(program.getId(), name_.c_str());
 }
 
+// binding Point只用作通信用，它是0还是100无关紧要，当数据传输到gpu后它的使命就完成了
 void UniformBlockOpenGL::bindProgram(Shader& program, int location) {
 	if (location < 0) {
 		return;

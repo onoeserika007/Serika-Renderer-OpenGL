@@ -57,3 +57,32 @@ void RenderPass::setupDepthBuffer(std::shared_ptr<Texture>& depthBuffer, bool mu
 		depthBuffer = renderer_.createTexture(texInfo, smInfo);
 	}
 }
+
+void RenderPass::setupShadowMapBuffer(std::shared_ptr<Texture> &depthBuffer, int width, int height, bool multiSample,
+	bool force) {
+	if (depthBuffer) {
+		const TextureInfo& texInfo = depthBuffer->getTextureInfo();
+		force = force || texInfo.width != width || texInfo.height != height;
+		force = force || texInfo.target != TextureTarget_2D || texInfo.format != TextureFormat_FLOAT32;
+	}
+
+	if (!depthBuffer || depthBuffer->multiSample() != multiSample || force) {
+		TextureInfo texInfo{};
+		texInfo.width = width;
+		texInfo.height = height;
+		texInfo.target = TextureTarget::TextureTarget_2D;
+		texInfo.format = TextureFormat::TextureFormat_FLOAT32;
+		texInfo.usage = TextureUsage::TextureUsage_AttachmentColor | TextureUsage::TextureUsage_Sampler;
+		texInfo.multiSample = multiSample;
+		texInfo.useMipmaps = false;
+
+		SamplerInfo smInfo{};
+		smInfo.filterMag = Filter_NEAREST;
+		smInfo.filterMin = Filter_NEAREST;
+		smInfo.wrapS = Wrap_CLAMP_TO_EDGE;
+		smInfo.wrapT = Wrap_CLAMP_TO_EDGE;
+
+		depthBuffer = renderer_.createTexture(texInfo, smInfo);
+	}
+}
+

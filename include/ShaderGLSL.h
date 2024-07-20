@@ -9,6 +9,12 @@
 #include <unordered_map>
 #include "Base/GLMInc.h"
 #include "Shader.h"
+#include <glslang/Public/ShaderLang.h>
+
+enum ShaderType{
+    ShaderType_VertexShader,
+    ShaderType_FragmentShader
+};
 
 class ShaderGLSL: public Shader
 {
@@ -35,10 +41,11 @@ public:
     static std::shared_ptr<ShaderGLSL> loadShader(const std::string& vertexPath, const std::string& fragmentPath);
     static std::shared_ptr<ShaderGLSL> loadDefaultShader();
     static std::shared_ptr<ShaderGLSL> loadPlainPassShader();
+    static std::shared_ptr<ShaderGLSL> loadGeometryShader();
     static std::shared_ptr<ShaderGLSL> loadPhongMaterialShader();
     static std::shared_ptr<ShaderGLSL> loadLightMapMaterialShader();
     static std::shared_ptr<ShaderGLSL> loadStandardMaterialShader();
-    static std::shared_ptr<ShaderGLSL> loadShadowMapShader();
+    static std::shared_ptr<ShaderGLSL> loadShadowPassShader();
     static std::shared_ptr<ShaderGLSL> loadFromRawSource(const std::string& VS, const std::string& FS);
 
     // compile

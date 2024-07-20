@@ -1,19 +1,12 @@
-﻿# CMakeList.txt: learnOpenGL-aTriangle 的 CMake 项目，在此处包括源代码并定义
-# 项目特定的逻辑。
-#
-cmake_minimum_required (VERSION 3.8)
-
-# 如果支持，请为 MSVC 编译器启用热重载。
-if (POLICY CMP0141)
-  cmake_policy(SET CMP0141 NEW)
-  set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT "$<IF:$<AND:$<C_COMPILER_ID:MSVC>,$<CXX_COMPILER_ID:MSVC>>,$<$<CONFIG:Debug,RelWithDebInfo>:EditAndContinue>,$<$<CONFIG:Debug,RelWithDebInfo>:ProgramDatabase>>")
-endif()
-
-# for mingw
-# add_compile_options(-msse4.1)
+﻿cmake_minimum_required (VERSION 3.8)
 
 set(TARGET_NAME LearnOpenGL-Personal)
 project (${TARGET_NAME})
+
+set(CMAKE_CXX_STANDARD 17)
+#set(CMAKE_BUILD_TYPE "Release")
+#set(CMAKE_BUILD_TYPE "RelWithDebInfo")
+
 
 # 用于配置项目中源文件的查找目录
 #include_directories(${PROJECT_SOURCE_DIR}/include)
@@ -28,6 +21,9 @@ include_directories(
         ${THIRD_PARTY_DIR}/stb
         ${THIRD_PARTY_DIR}/assimp/include
         ${THIRD_PARTY_DIR}/assimp/contrib
+        ${THIRD_PARTY_DIR}/nlohmann
+        ${THIRD_PARTY_DIR}/json11
+        ${THIRD_PARTY_DIR}/glsl
 )
 
 # assimp
@@ -37,6 +33,7 @@ set(ASSIMP_BUILD_TESTS OFF)
 set(ASSIMP_INSTALL OFF)
 set(ASSIMP_BUILD_ASSIMP_TOOLS OFF)
 set(ASSIMP_BUILD_ZLIB ON)
+#set(BUILD_SHARED_LIBS ON)
 
 set(ASSIMP_BUILD_ALL_IMPORTERS_BY_DEFAULT FALSE)
 set(ASSIMP_BUILD_OBJ_IMPORTER TRUE)
@@ -46,13 +43,27 @@ add_subdirectory(${THIRD_PARTY_DIR}/assimp)
 # glfw
 add_subdirectory(${THIRD_PARTY_DIR}/glfw)
 
+# glslang
+set(SKIP_GLSLANG_INSTALL ON)
+set(ENABLE_OPT OFF)
+set(ENABLE_SPVREMAPPER OFF)
+set(ENABLE_GLSLANG_BINARIES OFF)
+set(ENABLE_CTEST OFF)
+set(ENABLE_PCH OFF)
+set(BUILD_TESTING OFF)
+set(USE_CCACHE ON)
+add_subdirectory(${THIRD_PARTY_DIR}/glslang)
+
 
 # set(CMAKE_CXX_FLAGS "${CAMKE_CXX_FLAGS} -O3 -fopenmp")
-set(CMAKE_CXX_STANDARD 17)
-# set(CMAKE_BUILD_TYPE "Release")
 
 # 将源代码添加到此项目的可执行文件。
-add_executable (${TARGET_NAME} "src/main.cpp" "src/glad.c" "include/primitives.h"  "src/ShaderGLSL.cpp" "include/Shader.h" "include/Utils/utils.h" "src/Utils/utils.cpp" "include/Texture.h" "src/Texture.cpp" "include/Geometry.h" "include/Camera.h"  "include/Object.h" "include/BufferAttribute.h" "include/Material.h" "include/Light.h" "src/Object.cpp" "src/Materials/PhongMaterial.cpp" "src/Materials/Material.cpp" "src/Light.cpp" "src/Geometry.cpp"  "include/Model.h" "src/Model.cpp" "src/Materials/StandardMaterial.cpp" "include/Utils/Logger.h" "src/Utils/Logger.cpp" "include/OrbitController.h" "include/Buffer.h" "include/Utils/ImageUtils.h" "include/ResourceLoader.h" "src/Utils/ImageUtils.cpp"  "include/Utils/OpenGLUtils.h" "src/Utils/OpenGLUtils.cpp" "include/ShaderGLSL.h" "include/Uniform.h" "include/Utils/UUID.h" "include/UniformOpenGL.h" "src/UniformOpengl.cpp"  "include/Renderer.h"   "src/Renderer.cpp" "src/ResourceLoader.cpp" "src/Uniform.cpp" "include/FrameBuffer.h" "include/FrameBufferOpenGL.h" "include/OpenGL/EnumsOpenGL.h" "include/Base/RenderStates.h" "include/Viewer.h" "src/Viewer.cpp" "include/ViewerOpenGL.h" "include/Base/Config.h" "include/RenderPass/RenderPass.h" "src/RenderPass/RenderPass.cpp"   "include/RenderPass/RenderPassShadow.h"  "include/RendererOpenGL.h" "src/RendererOpenGL.cpp" "src/RenderPass/RenderPassShadow.cpp" "include/TextureOpenGL.h" "src/TextureOpenGL.cpp" "include/RenderPass/RenderPassGeometry.h" "src/RenderPass/RenderPassGeometry.cpp" "src/FrameBuffer.cpp" "src/FrameBufferOpenGL.cpp" "include/RenderPass/RenderPassToScreen.h" "src/RenderPass/RenderPassToScreen.cpp" "include/Base/TextureTypeEnum.def" "include/RenderPass/RenderPassPlain.h" "src/RenderPass/RenderPassPlain.cpp" "include/Scene.h" "src/Scene.cpp" "src/ViewerOpenGL.cpp")
+file(GLOB_RECURSE SOURCES "${PROJECT_SOURCE_DIR}/src/*.cpp" "${PROJECT_SOURCE_DIR}/src/*.c" "${PROJECT_SOURCE_DIR}/include/*.h")
+add_executable (
+        ${TARGET_NAME}
+        ${SOURCES}
+        ${THIRD_PARTY_DIR}/json11/json11.cpp
+)
 
 if (CMAKE_VERSION VERSION_GREATER 3.12)
   set_property(TARGET ${TARGET_NAME} PROPERTY CXX_STANDARD 20)

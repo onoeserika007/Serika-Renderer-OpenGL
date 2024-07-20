@@ -1,7 +1,7 @@
 #include "Material.h"
 #include "Texture.h"
 #include "Shader.h"
-#include "Light.h"
+#include "ULight.h"
 #include "Base/GLMInc.h"
 #include "Utils/utils.h"
 #include "Renderer.h"
@@ -77,7 +77,7 @@
 
  void Material::setUniform(const std::string& name, std::shared_ptr<Uniform> uniform)
  {
-	 uniforms_[name] = uniform;
+	 uniforms_[name] = std::move(uniform);
  }
 
  std::shared_ptr<Uniform> Material::getUniform(const std::string& name)
@@ -126,34 +126,34 @@ void Material::setTextureData(int textureType, TextureData ptex) {
  }
 
  void Material::setShadingMode(ShadingMode mode) {
+ 	setShaderReady(shaderReady() && (mode == shadingMode_));
 	 shadingMode_ = mode;
-	 setShaderReady(false);
  }
 
  std::string Material::getName() {
 	return shaderStructName_;
 }
 
- void Material::setLight(std::shared_ptr<Light> light) const {
+ void Material::setLight(std::shared_ptr<ULight> light) const {
 	light->setToShader(pshader_);
 }
 
- void Material::setLightArray(const std::vector<std::shared_ptr<Light>>& lightArray)
+ void Material::setLightArray(const std::vector<std::shared_ptr<ULight>>& lightArray)
  {
-	 // 假设shader中的light全部以数组形式存储
-	 int pointIdx = 0, dirIdx = 0, spotIdx = 0;
-	 for (const auto& light : lightArray) {
-		 if (light->getType() == Light::PointLight) {
-			 light->setToShader(pshader_, pointIdx++);
-		 }
-		 else if (light->getType() == Light::DirectionalLight) {
-			 light->setToShader(pshader_, dirIdx++);
-		 }
-		 else if (light->getType() == Light::SpotLight) {
-			 light->setToShader(pshader_, spotIdx++);
-		 }
-		 //light->setToShader(pshader_, 0);
-	 }
+	 // // 假设shader中的light全部以数组形式存储
+	 // int pointIdx = 0, dirIdx = 0, spotIdx = 0;
+	 // for (const auto& light : lightArray) {
+		//  if (light->getType() == Light::PointLight) {
+		// 	 light->setToShader(pshader_, pointIdx++);
+		//  }
+		//  else if (light->getType() == Light::DirectionalLight) {
+		// 	 light->setToShader(pshader_, dirIdx++);
+		//  }
+		//  else if (light->getType() == Light::SpotLight) {
+		// 	 light->setToShader(pshader_, spotIdx++);
+		//  }
+		//  //light->setToShader(pshader_, 0);
+	 // }
  }
 
  void Material::use()
@@ -162,7 +162,7 @@ void Material::setTextureData(int textureType, TextureData ptex) {
 
  void Material::use(ShaderPass pass)
  {
-	 if (!shaders_.count(pass)) {
+	 if (!shaders_.contains(pass)) {
 		 LOGE("Rendering pass missing corresponding shader!");
 	 }
 	 else {

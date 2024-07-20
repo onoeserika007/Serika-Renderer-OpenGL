@@ -5,6 +5,7 @@
 
 #include <unordered_map>
 #include "Base/GLMInc.h"
+#include "Texture.h"
 
 enum AlphaMode {
 	Alpha_Opaque,
@@ -25,13 +26,13 @@ enum ShadingMode {
 enum class ShaderPass: uint8_t {
 	Shader_Shadow_Pass,
 	Shader_Plain_Pass,
-	Shader_ToScreen_Pass
+	Shader_ToScreen_Pass,
+	Shader_Geometry_Pass,
+	Shader_Light_Pass
 };
 
-class Texture;
-struct TextureData;
 class Shader;
-class Light;
+class ULight;
 class Uniform;
 class Renderer;
 
@@ -115,9 +116,9 @@ public:
 
 	std::string getName();
 
-	void setLight(std::shared_ptr<Light> light) const;
+	void setLight(std::shared_ptr<ULight> light) const;
 
-	void setLightArray(const std::vector<std::shared_ptr<Light>>& lightArray);
+	void setLightArray(const std::vector<std::shared_ptr<ULight>>& lightArray);
 
 	void use();
 

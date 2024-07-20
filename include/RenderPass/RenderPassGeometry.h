@@ -16,11 +16,14 @@ public:
         GBUFFER_NUM_TEXTURES
     };
 
-    virtual void init() override;
+    virtual void render(Scene & scene) override;
     virtual void setupBuffers() override;
+    virtual void init() override;
+
+    std::shared_ptr<FrameBuffer> getFramebufferMain() override;
 
 private:
-    std::shared_ptr<FrameBuffer> fboGbuffer_;;
+    std::shared_ptr<FrameBuffer> fboGbuffer_;
     std::vector<std::shared_ptr<Texture>> gbufferTextures_;
     std::shared_ptr<Texture> depthTexture_;
 	std::shared_ptr<UniformSampler> depthShadowSampler_ = nullptr;

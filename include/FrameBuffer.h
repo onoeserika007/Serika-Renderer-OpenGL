@@ -18,10 +18,15 @@ public:
     virtual int getId() const = 0;
     virtual bool isValid() const = 0;
     virtual void bind() const = 0;
+    virtual void bindForReading() const = 0;
+    virtual void bindForWriting() const = 0;
+    virtual void disableForWriting() const = 0;
+    virtual void diableForReading() const = 0;
+    virtual void setReadBuffer(int colorAttachmentType) = 0;
 
-    virtual void setColorAttachment(std::shared_ptr<Texture>& color, int level, int pos = 0);;
+    virtual void setColorAttachment(std::shared_ptr<Texture>& color, int level, int pos);
 
-    virtual void setColorAttachment(std::shared_ptr<Texture>& color, CubeMapFace face, int level, int pos = 0);;
+    virtual void setColorAttachment(std::shared_ptr<Texture>& color, CubeMapFace face, int level, int pos);
 
     virtual void setDepthAttachment(std::shared_ptr<Texture>& depth);;
 

@@ -41,7 +41,7 @@ public:
 protected:
     std::string name_;
 private:
-    UUID<Uniform> uuid_;
+    Serika::UUID<Uniform> uuid_;
 };
 
 class UniformBlock : public Uniform {
@@ -77,7 +77,7 @@ public:
         }
     }
 
-    virtual void setTexture(const std::shared_ptr<Texture>& tex) = 0;
+    virtual void setTexture(const Texture &tex) = 0;
 
 protected:
     TextureTarget target_;

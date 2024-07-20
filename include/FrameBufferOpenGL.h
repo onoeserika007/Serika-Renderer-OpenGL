@@ -12,17 +12,21 @@ public:
 
     ~FrameBufferOpenGL();
 
-    int getId() const override;
+    virtual int getId() const override;
+    virtual bool isValid() const override;
+    virtual void bind() const override;
+    virtual void bindForReading() const override;
+    virtual void bindForWriting() const override;
+    virtual void disableForWriting() const override;
+    virtual void diableForReading() const override;
 
-    bool isValid() const override;
+    void setReadBuffer(int colorAttachmentType) override;
 
-    void setColorAttachment(std::shared_ptr<Texture>& color, int level, int pos = 0) override;
+    void setColorAttachment(std::shared_ptr<Texture>& color, int level, int pos) override;
 
-    void setColorAttachment(std::shared_ptr<Texture>& color, CubeMapFace face, int level, int pos = 0) override;
+    void setColorAttachment(std::shared_ptr<Texture>& color, CubeMapFace face, int level, int pos) override;
 
     void setDepthAttachment(std::shared_ptr<Texture>& depth) override;
-
-    void bind() const override;
 
 private:
     GLuint fbo_ = 0;

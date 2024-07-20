@@ -1,5 +1,8 @@
 #include "TextureOpenGL.h"
 #include <glad/glad.h>
+
+#include "Renderer.h"
+#include "Uniform.h"
 #include "OpenGL/EnumsOpenGL.h"
 #include "Utils//OpenGLUtils.h"
 
@@ -13,6 +16,17 @@ TextureOpenGL::TextureOpenGL(const TextureInfo& texInfo, const SamplerInfo& smIn
 
 TextureOpenGL::~TextureOpenGL()
 {
+}
+
+std::shared_ptr<UniformSampler> TextureOpenGL::getUniformSampler(Renderer &renderer) {
+	if (!sampler_) {
+		auto&& texInfo = getTextureInfo();
+		sampler_ = renderer.createUniformSampler(texInfo);
+	}
+
+	// update colorbuffer in case it rebuilt.
+	sampler_->setTexture(*this);
+	return sampler_;
 }
 
 
@@ -63,6 +77,36 @@ void TextureOpenGL2D::setupPipeline()
 	else {
 		GL_CHECK(glTexImage2D(target, 0, openglTextureInfo.internalformat, textureInfo.width, textureInfo.height, 0, openglTextureInfo.format, openglTextureInfo.type, textureData_.dataArray[0]->rawData()));
 	}
+}
+
+void TextureOpenGL2D::copyDataTo(Texture &other) {
+	TextureOpenGL::copyDataTo(other);
+
+	auto& textureInfo = getTextureInfo();
+	const auto& openglTextureInfo = OpenGL::cvtTextureFormat(static_cast<TextureFormat>(textureInfo.format));
+
+	GLint oldFBO_ = 0;
+	glGetIntegerv(GL_FRAMEBUFFER_BINDING, &oldFBO_);
+
+	GLuint fbo;
+	glGenFramebuffers(1, &fbo);
+	glBindFramebuffer(GL_READ_FRAMEBUFFER, fbo);
+	GLuint texureId = getId();
+	auto target = multiSample() ? GL_TEXTURE_2D_MULTISAMPLE : GL_TEXTURE_2D;
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texureId, 0);
+	GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+	if (status != GL_FRAMEBUFFER_COMPLETE) {
+		LOGE("glCheckFramebufferStatus: %x", status);
+	}
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+	GLuint textureId_copyTo = other.getId();
+	glBindTexture(target, textureId_copyTo);
+	glCopyTexImage2D(target, 0, openglTextureInfo.internalformat, 0, 0, width(), height(), 0);
+
+	glDeleteFramebuffers(1, &fbo);
+
+	glBindFramebuffer(GL_FRAMEBUFFER, oldFBO_);
 }
 
 TextureOpenGL2D::~TextureOpenGL2D()

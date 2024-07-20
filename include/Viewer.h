@@ -1,27 +1,47 @@
 #pragma once
 #include <memory>
+#include "Base/Config.h"
+
 #include "Camera.h"
 
+class RenderPassShadow;
+class RenderPassLight;
+class RenderPassGeometry;
 class Renderer;
 class Texture;
 class FrameBuffer;
 
 // 错误地将struct前向声明为class也会引起链接错误
-struct Config;
-class Object;
+// struct Config;
+class UObject;
 class RenderPassPlain;
 class Scene;
 class Model;
 
 class Viewer {
-private:
+public:
+	Viewer(Camera& camera, Config& config);
+	virtual ~Viewer();
+	void init(int width, int height, int outTexId);
+	void setViewPort(int x, int y, int width, int height);
+	void cleanup();
+	void render(std::shared_ptr<Scene> scene);
+	void drawScene(std::shared_ptr<Scene> scene);
+	void drawScene_DefferedRendering(std::shared_ptr<Scene> scene);
+	void drawScene_ShadowMapTest(std::shared_ptr<Scene> scene);
+	void drawModel(std::shared_ptr<Model> model);
+
+	std::shared_ptr<Camera> createCamera(CameraType type);
+	virtual std::shared_ptr<Renderer> createRenderer() = 0;
+
+public:
+
 protected:
 	Config& config_;
 	Camera& cameraMain_;
 	std::shared_ptr<Camera> cameraDepth_ = nullptr;
 
 	// scene
-
 	int width_ = 0;
 	int height_ = 0;
 	int outTexId_ = 0;
@@ -44,15 +64,9 @@ protected:
 
 	// renderpasses
 	std::shared_ptr<RenderPassPlain> plainPass_ = nullptr;
+	std::shared_ptr<RenderPassGeometry> geometryPass_ = nullptr;
+	std::shared_ptr<RenderPassLight> lightPass_ = nullptr;
+	std::shared_ptr<RenderPassShadow> shadowPass_ = nullptr;
+private:
 
-public:
-	Viewer(Camera& camera, Config& config);
-	void init(int width, int height, int outTexId);
-	void setViewPort(int x, int y, int width, int height);
-	void cleanup();
-
-	std::shared_ptr<Camera> createCamera(CameraType type);
-	virtual std::shared_ptr<Renderer> createRenderer() = 0;
-	virtual void drawScene(std::shared_ptr<Scene> scene);
-	virtual void drawModel(std::shared_ptr<Model> model);
 };

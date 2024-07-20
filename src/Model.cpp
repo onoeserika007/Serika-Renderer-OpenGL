@@ -1,33 +1,20 @@
 ﻿#include "Model.h"
 #include "Renderer.h"
-#include "Camera.h"
-#include "Object.h"
+#include "../include/Geometry/UObject.h"
 #include "Texture.h"
 #include "Material.h"
-#include "Geometry.h"
+#include "Geometry/Geometry.h"
 #include "BufferAttribute.h"
 #include "ResourceLoader.h"
-#include "Shader.h"
-#include "Light.h"
+#include "ULight.h"
 #include <iostream>
+
+#include "assimp/postprocess.h"
+#include "Geometry/UMesh.h"
 
 Model::Model(const std::string& path)
 {
 	loadModel(path);
-}
-
-void Model::draw(Renderer& renderer)
-{
-	for (auto& mesh : meshes) {
-		mesh->draw(renderer);
-	}
-}
-
-void Model::setLightArray(std::vector<std::shared_ptr<Light>> lightArray)
-{
-	for (auto& mesh : meshes) {
-		mesh->setLightArray(lightArray);
-	}
 }
 
 void Model::setScale(float x, float y, float z)
@@ -44,17 +31,10 @@ void Model::setScale(float x, float y, float z)
 //	}
 //}
 
-std::vector<std::shared_ptr<Object>>& Model::getMeshes()
+std::vector<std::shared_ptr<UMesh>>& Model::getMeshes()
 {
 	// TODO: 在此处插入 return 语句
 	return meshes;
-}
-
-void Model::setShader(std::shared_ptr<Shader> pshader)
-{
-	for (auto& mesh : meshes) {
-		mesh->setpshader(pshader->clone());
-	}
 }
 
 void Model::loadModel(const std::string& path)
@@ -90,7 +70,7 @@ void Model::processNode(aiNode* node, const aiScene* scene)
 	}
 }
 
-std::shared_ptr<Object> Model::processMesh(aiMesh* mesh, const aiScene* scene)
+std::shared_ptr<UMesh> Model::processMesh(aiMesh *mesh, const aiScene *scene)
 {
 	std::vector<float> PosArray;
 	std::vector<float> TexCoordArray;
@@ -162,7 +142,7 @@ std::shared_ptr<Object> Model::processMesh(aiMesh* mesh, const aiScene* scene)
 	}
 
 
-	auto pobject = std::make_shared<Object>(pgeomerty, pmaterial);
+	auto pobject = std::make_shared<UMesh>(pgeomerty, pmaterial);
 	return pobject;
 }
 

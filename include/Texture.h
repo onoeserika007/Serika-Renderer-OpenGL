@@ -98,6 +98,7 @@ protected:
     // name_ is trouble from a texture
     //std::string name_;
     bool pipelineReady_ = false;
+    std::shared_ptr<UniformSampler> sampler_;
 
     // texture description
     TextureInfo textureInfo_;
@@ -105,7 +106,7 @@ protected:
     TextureData textureData_;
 
 public:
-    static std::shared_ptr<Texture> createTexture2DDefault(int width, int height, TextureFormat format, TextureUsage usage);
+    // static std::shared_ptr<Texture> createTexture2DDefault(int width, int height, TextureFormat format, TextureUsage usage);
     static const char* materialTexTypeStr(TextureType usage);
     static const char* samplerDefine(TextureType usage);
     static const char* samplerName(TextureType usage);
@@ -135,10 +136,13 @@ public:
     bool ready();
     void setReady(bool flag);
 
-    unsigned getId();
+    unsigned getId() const;
     void setId(unsigned id);
     void setMipmaps(bool flag);
     void setMultiSample(bool flag);
+
+    virtual void copyDataTo(Texture& other);
+    virtual std::shared_ptr<UniformSampler> getUniformSampler(Renderer &renderer) = 0;
 };
 
 

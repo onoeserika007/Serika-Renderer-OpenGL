@@ -36,6 +36,8 @@ public:
     //    }
     //}
 
+    // This is the initial call between uniform and shader.
+    // and this will definitely reset binding counter!!
     virtual bool bindUniform(Uniform& uniform) {
         int hash = uniform.getHash();
         int location = -1;

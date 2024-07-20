@@ -9,6 +9,23 @@
 //std::unordered_map<std::string, std::shared_ptr<ShaderGLSL>> ShaderGLSL::shader_map_;
 const std::string OPENGL_VERSION_HEADER = "#version 330 core";
 
+// 构造器读取并构建着色器
+ShaderGLSL::ShaderGLSL(const std::string& vertexPath, const std::string& fragmentPath) {
+    // 1. 从文件路径中获取顶点/片段着色器
+    vertexCode_ = ResourceLoader::loadShader(vertexPath);
+    fragmentCode_ = ResourceLoader::loadShader(fragmentPath);
+
+    vsPath_ = vertexPath;
+    fsPath_ = fragmentPath;
+
+    addHeader(OPENGL_VERSION_HEADER);
+}
+
+ShaderGLSL::ShaderGLSL()
+{
+    addHeader(OPENGL_VERSION_HEADER);
+}
+
 std::shared_ptr<ShaderGLSL> ShaderGLSL::loadShader(const std::string& vertexPath, const std::string& fragmentPath) {
     // 更高的异常安全级别，防止构造 shared_ptr 之前就调用 new ，抛出异常;
     // 仅分配1次内存来保存引用对象和控制块(两者内存分布是连续的);
@@ -30,6 +47,10 @@ std::shared_ptr<ShaderGLSL> ShaderGLSL::loadPlainPassShader()
     return loadShader("./assets/shader/Passes/PlainPass/PlainPass.vert", "./assets/shader/Passes/PlainPass/PlainPass.frag");
 }
 
+std::shared_ptr<ShaderGLSL> ShaderGLSL::loadGeometryShader() {
+    return loadShader("./assets/shader/Passes/DefferedRendering/Geometry.vert", "./assets/shader/Passes/DefferedRendering/Geometry.frag");
+}
+
 std::shared_ptr<ShaderGLSL> ShaderGLSL::loadPhongMaterialShader() {
     return loadShader("./assets/shader/PhongMaterial.vert", "./assets/shader/PhongMaterial.frag");
 }
@@ -44,9 +65,9 @@ std::shared_ptr<ShaderGLSL> ShaderGLSL::loadStandardMaterialShader()
     return loadShader("./assets/shader/Standard.vert", "./assets/shader/Standard.frag");
 }
 
-std::shared_ptr<ShaderGLSL> ShaderGLSL::loadShadowMapShader()
+std::shared_ptr<ShaderGLSL> ShaderGLSL::loadShadowPassShader()
 {
-    return loadDefaultShader();
+    return loadShader("./assets/shader/Passes/ShadowPass/ShadowPass.vert", "./assets/shader/Passes/ShadowPass/ShadowPass.frag");
 }
 
 std::shared_ptr<ShaderGLSL> ShaderGLSL::loadFromRawSource(const std::string& VS, const std::string& FS)
@@ -101,6 +122,8 @@ void ShaderGLSL::compileAndLink()
         glGetShaderInfoLog(vertex, 512, NULL, infoLog);
         std::cout << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n" << infoLog << std::endl;
         std::cout << "VertexShader Path: " + vsPath_ << std::endl;
+        std::cout << vertexCode << std::endl;
+        exit(-1);
     };
 
     // 片段着色器
@@ -114,6 +137,8 @@ void ShaderGLSL::compileAndLink()
         glGetShaderInfoLog(fragment, 512, NULL, infoLog);
         std::cout << "ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n" << infoLog << std::endl;
         std::cout << "FragmentShader Path: " + fsPath_ << std::endl;
+        std::cout << fragmentCode << std::endl;
+        exit(-1);
     };
 
     // 着色器程序
@@ -132,24 +157,6 @@ void ShaderGLSL::compileAndLink()
     // 删除着色器，它们已经链接到我们的程序中了，已经不再需要了
     glDeleteShader(vertex);
     glDeleteShader(fragment);
-}
-
-
-// 构造器读取并构建着色器
-ShaderGLSL::ShaderGLSL(const std::string& vertexPath, const std::string& fragmentPath) {
-    // 1. 从文件路径中获取顶点/片段着色器
-    vertexCode_ = ResourceLoader::loadShader(vertexPath);
-    fragmentCode_ = ResourceLoader::loadShader(fragmentPath);
-
-    vsPath_ = vertexPath;
-    fsPath_ = fragmentPath;
-
-    addHeader(OPENGL_VERSION_HEADER);
-}
-
-ShaderGLSL::ShaderGLSL()
-{
-    addHeader(OPENGL_VERSION_HEADER);
 }
 
 void ShaderGLSL::setupPipeline(Material& material)
@@ -212,7 +219,7 @@ unsigned ShaderGLSL::getUniformBlockBinding()
 
 int ShaderGLSL::getId() const 
 {
-    return  ID;
+    return ID;
 }
 
 std::shared_ptr<Shader> ShaderGLSL::clone() const

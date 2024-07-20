@@ -4,15 +4,29 @@
 #include "ShaderGLSL.h"
 #include "glad/glad.h"
 #include "BufferAttribute.h"
-#include "Geometry.h"
+#include "Geometry/Geometry.h"
 #include "TextureOpenGL.h"
 #include "OpenGL/EnumsOpenGL.h"
-#include "Object.h"
+#include "../include/Geometry/UObject.h"
 #include "Camera.h"
 #include "FrameBufferOpenGL.h"
 #include "Utils/Logger.h"
 #include "Utils/OpenGLUtils.h"
+#include "ULight.h"
 #include <GLFW/glfw3.h>
+
+// set up vertex data (and buffer(s)) and configure vertex attributes
+constexpr float ToScreenRectangleVertices[] = {
+	// positions | texture coords
+	1.f, 1.f, 0.0f, 1.0f, 1.0f,   // top right
+	1.f, -1.f, 0.0f, 1.0f, 0.0f,  // bottom right
+	-1.f, -1.f, 0.0f, 0.0f, 0.0f, // bottom left
+	-1.f, 1.f, 0.0f, 0.0f, 1.0f   // top left
+};
+constexpr unsigned int ToScreenRectangleIndices[] = {
+	0, 1, 3, // first triangle
+	1, 2, 3  // second triangle
+};
 
 RendererOpenGL::RendererOpenGL(Camera& camera): Renderer(camera)
 {
@@ -21,7 +35,9 @@ RendererOpenGL::RendererOpenGL(Camera& camera): Renderer(camera)
 
 void RendererOpenGL::init()
 {
+	// The name in shader
 	modelUniformBlock_ = createUniformBlock("Model", sizeof(ModelUniformBlock));
+	lightUniformBlock_ = createUniformBlock("Light", sizeof(LightDataUniformBlock));
 }
 
 std::shared_ptr<UniformBlock> RendererOpenGL::createUniformBlock(const std::string& name, int size)
@@ -100,6 +116,7 @@ void RendererOpenGL::setupGeometry(Geometry& geometry)
 	geometry.setPipelineReady(true);
 }
 
+// Each kind of shading is consist of multiple renderpass.
 void RendererOpenGL::loadShaders(Material& material)
 {
 	auto shadingMode = material.shadingMode();
@@ -109,10 +126,13 @@ void RendererOpenGL::loadShaders(Material& material)
 		break;
 	case Shading_BaseColor:
 		material.setShader(ShaderPass::Shader_Plain_Pass, ShaderGLSL::loadPlainPassShader());
+		material.setShader(ShaderPass::Shader_Geometry_Pass, ShaderGLSL::loadGeometryShader());
+		material.setShader(ShaderPass::Shader_Shadow_Pass, ShaderGLSL::loadShadowPassShader());
 		break;
-	case Shading_BlinnPhong: 
-		material.setShader(ShaderPass::Shader_Shadow_Pass, ShaderGLSL::loadShadowMapShader());
+	case Shading_BlinnPhong:
 		material.setShader(ShaderPass::Shader_Plain_Pass, ShaderGLSL::loadPlainPassShader());
+		material.setShader(ShaderPass::Shader_Geometry_Pass, ShaderGLSL::loadGeometryShader());
+		material.setShader(ShaderPass::Shader_Shadow_Pass, ShaderGLSL::loadShadowPassShader());
 		break;
 	case Shading_PBR:
 		break;
@@ -141,7 +161,7 @@ void RendererOpenGL::setupMaterial(Material& material)
 			texInfo.height = textureData.dataArray[0]->height();
 			texInfo.target = TextureTarget::TextureTarget_2D;
 			texInfo.format = TextureFormat::TextureFormat_RGBA8;
-			texInfo.usage = TextureUsage_AttachmentColor | TextureUsage_RendererOutput;
+			texInfo.usage = TextureUsage_Sampler;
 			texInfo.multiSample = false;;
 			texInfo.useMipmaps = false;
 
@@ -154,7 +174,7 @@ void RendererOpenGL::setupMaterial(Material& material)
 
 			const auto& samplerName = Texture::samplerName(static_cast<TextureType>(type));
 			auto sampler = std::make_shared<UniformSamplerOpenGL>(samplerName, (TextureTarget)texInfo.target, (TextureFormat)texInfo.format);
-			sampler->setTexture(texture);
+			sampler->setTexture(*texture);
 			material.setUniform(sampler->name(), sampler);
 		}
 
@@ -171,22 +191,22 @@ void RendererOpenGL::setupMaterial(Material& material)
 	}
 }
 
-void RendererOpenGL::setupObject(Object& object, ShaderPass shaderPass)
+void RendererOpenGL::setupMesh(UMesh &mesh, ShaderPass shaderPass)
 {
 
-	auto pmaterial = object.getpMaterial();
-	if (auto pmaterial = object.getpMaterial()) {
+	auto pmaterial = mesh.getpMaterial();
+	if (auto pmaterial = mesh.getpMaterial()) {
 
 		// set shading mode
-		pmaterial->setShadingMode(object.getShadingMode());
+		pmaterial->setShadingMode(mesh.getShadingMode());
 		pmaterial->setupPipeline(*this);
 
-		if (auto pgeometry = object.getpGeometry()) {
+		if (auto pgeometry = mesh.getpGeometry()) {
 
 			pgeometry->setupPipeline(*this);
 
 			// if VBO ready
-			if (object.isPipelineReady()) {
+			if (mesh.isPipelineReady()) {
 				return;
 			}
 
@@ -197,6 +217,9 @@ void RendererOpenGL::setupObject(Object& object, ShaderPass shaderPass)
 			// attrs
 			const auto& attrList = pgeometry->getAttributeNameList();
 			for (const auto& attr : attrList) {
+				// uniform updated in Material::ues(ShaderPass)
+				pmaterial->use(shaderPass);
+				// shaderPass used here.
 				if (auto pshader = pmaterial->getShader(shaderPass)) {
 					auto loc = pshader->getAttributeLocation(attr);
 					if (loc != -1) {
@@ -221,10 +244,10 @@ void RendererOpenGL::setupObject(Object& object, ShaderPass shaderPass)
 			}
 
 			// set back
-			object.setVAO(VAO);
+			mesh.setVAO(VAO);
 			GL_CHECK(glBindVertexArray(0));
 
-			object.setPipelineReady(true);
+			mesh.setPipelineReady(true);
 		} // geometry
 	} // material
 }
@@ -237,17 +260,17 @@ void RendererOpenGL::useMaterial(Material& material, ShaderPass pass)
 {
 }
 
-void RendererOpenGL::drawObject(Object& object, ShaderPass pass)
+void RendererOpenGL::draw(UMesh &mesh, ShaderPass pass, const std::shared_ptr<Camera>& shadowCamera)
 {
-	setupObject(object, pass);
+	setupMesh(mesh, pass);
 	GL_CHECK(;);
-	object.updateFrame(*this);
-	updateModelUniformBlock(object, camera_, false);
-	auto pmaterial = object.getpMaterial();
+	mesh.updateFrame(*this);
+	updateModelUniformBlock(mesh, camera_, shadowCamera);
+	auto pmaterial = mesh.getpMaterial();
 	pmaterial->use(pass);
 
-	auto VAO = object.getVAO();
-	auto pgeometry = object.getpGeometry();
+	auto VAO = mesh.getVAO();
+	auto pgeometry = mesh.getpGeometry();
 	GL_CHECK(glBindVertexArray(VAO));
 	if (pgeometry->isMesh()) {
 		// primitive | 顶点数组起始索引 | 绘制indices数量
@@ -260,23 +283,39 @@ void RendererOpenGL::drawObject(Object& object, ShaderPass pass)
 	GL_CHECK(glBindVertexArray(0));
 }
 
-void RendererOpenGL::updateModelUniformBlock(Object& object, Camera& camera, bool shadowPass)
-{
-	ModelUniformBlock tmp{};
-	tmp.uModel = object.getModelMatrix();
-	tmp.uNormalToWorld = object.getNormalToWorld();
-	tmp.uProjection = camera.GetProjectionMatrix();
-	tmp.uView = camera.GetViewMatrix();
-	tmp.uViewPos = camera.position();
-	if (shadowPass) {
-		// ?????
-		tmp.uShadowMapMVP = tmp.uProjection * tmp.uView * tmp.uModel; 
+#define GL_STATE_SET(var, gl_state) if (var) GL_CHECK(glEnable(gl_state)); else GL_CHECK(glDisable(gl_state));
+
+void RendererOpenGL::updateRenderStates(RenderStates &renderStates) {
+	renderStates_ = std::make_shared<RenderStates>(renderStates);
+
+	// blend
+	GL_STATE_SET(renderStates.blend, GL_BLEND)
+	GL_CHECK(glBlendEquationSeparate(OpenGL::cvtBlendFunction(renderStates.blendParams.blendFuncRgb),
+									 OpenGL::cvtBlendFunction(renderStates.blendParams.blendFuncAlpha)));
+	GL_CHECK(glBlendFuncSeparate(OpenGL::cvtBlendFactor(renderStates.blendParams.blendSrcRgb),
+								 OpenGL::cvtBlendFactor(renderStates.blendParams.blendDstRgb),
+								 OpenGL::cvtBlendFactor(renderStates.blendParams.blendSrcAlpha),
+								 OpenGL::cvtBlendFactor(renderStates.blendParams.blendDstAlpha)));
+
+	// depth
+	GL_STATE_SET(renderStates.depthTest, GL_DEPTH_TEST);
+	GL_CHECK(glDepthMask(renderStates.depthMask));
+	GL_CHECK(glDepthFunc(OpenGL::cvtDepthFunc(renderStates.depthFunc)));
+
+	GL_STATE_SET(renderStates.cullFace, GL_CULL_FACE);
+	GL_CHECK(glPolygonMode(GL_FRONT_AND_BACK, OpenGL::cvtPolygonMode(renderStates.polygonMode)));
+
+	GL_CHECK(glLineWidth(renderStates.lineWidth));
+	GL_CHECK(glEnable(GL_PROGRAM_POINT_SIZE));
+
+}
+
+RenderStates RendererOpenGL::getRenderStates() {
+	RenderStates ret;
+	if (renderStates_) {
+		ret = *renderStates_;
 	}
-
-	modelUniformBlock_->setData(&tmp, sizeof(ModelUniformBlock));
-
-	auto pmat = object.getpMaterial();
-	pmat->setUniform(modelUniformBlock_->name(), modelUniformBlock_);
+	return ret;
 }
 
 void RendererOpenGL::beginRenderPass(std::shared_ptr<FrameBuffer> frameBuffer, const ClearStates& states)
@@ -306,13 +345,12 @@ void RendererOpenGL::endRenderPass()
 	// reset gl states
 	GL_CHECK(glDisable(GL_BLEND));
 	GL_CHECK(glDisable(GL_DEPTH_TEST));
-	GL_CHECK(glDepthMask(true));
+	GL_CHECK(glDepthMask(false));
 	GL_CHECK(glDisable(GL_CULL_FACE));
 	GL_CHECK(glPolygonMode(GL_FRONT_AND_BACK, GL_FILL));
 }
 
-void RendererOpenGL::setViewPort(int x, int y, int width, int height)
-{
+void RendererOpenGL::setRenderViewPort(int x, int y, int width, int height) {
 	width_ = width;
 	height_ = height;
 	GL_CHECK(glViewport(x, y, width, height));
@@ -323,8 +361,72 @@ void RendererOpenGL::waitIdle()
 	GL_CHECK(glFinish());
 }
 
-void RendererOpenGL::renderToScreen(UniformSampler& outTex, int screen_width, int screen_height)
+void RendererOpenGL::renderToScreen(UniformSampler& outTex, int screen_width, int screen_height, bool bFromColor)
 {
+	outTex.setName("uTexture");
+
+	static GLuint VAO = 0;
+	static GLuint VBO = 0;
+	static GLuint EBO = 0;
+
+	std::shared_ptr<ShaderGLSL> program;
+	if (bFromColor) {
+		program = getToScreenColorProgram(outTex);
+	}
+	else {
+		program = getToScreenDepthProgram(outTex);
+	}
+
+	if (0 == VAO) {
+		GL_CHECK(glGenVertexArrays(1, &VAO));
+		GL_CHECK(glBindVertexArray(VAO));
+
+		if (VBO == 0) {
+			GL_CHECK(glGenBuffers(1, &VBO));
+			GL_CHECK(glBindBuffer(GL_ARRAY_BUFFER, VBO));
+			GL_CHECK(glBufferData(GL_ARRAY_BUFFER, sizeof(ToScreenRectangleVertices), ToScreenRectangleVertices, GL_STATIC_DRAW));
+
+			GL_CHECK(glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), nullptr));
+			GL_CHECK(glEnableVertexAttribArray(0));
+			GL_CHECK(glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float))));
+			GL_CHECK(glEnableVertexAttribArray(1));
+		}
+
+		if (EBO == 0) {
+			GL_CHECK(glGenBuffers(1, &EBO));
+			GL_CHECK(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO));
+			GL_CHECK(glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(ToScreenRectangleIndices), ToScreenRectangleIndices, GL_STATIC_DRAW));
+		}
+
+		GL_CHECK(glBindVertexArray(GL_NONE));
+	}
+
+	if (VAO && EBO && VBO ) {
+		GL_CHECK(glDisable(GL_BLEND));
+		GL_CHECK(glDisable(GL_DEPTH_TEST));
+		GL_CHECK(glDepthMask(true));
+		GL_CHECK(glDisable(GL_CULL_FACE));
+		GL_CHECK(glPolygonMode(GL_FRONT_AND_BACK, GL_FILL));
+
+		GL_CHECK(glBindFramebuffer(GL_FRAMEBUFFER, 0));
+		GL_CHECK(glViewport(0, 0, screen_width, screen_height));
+
+		GL_CHECK(glClearColor(0.f, 0.f, 0.f, 0.0f));
+		GL_CHECK(glClear(GL_COLOR_BUFFER_BIT));
+
+		// name of outTex here should be corresponding to that in shader.
+		program->use();
+		program->bindUniform(outTex);
+
+		GL_CHECK(glBindVertexArray(VAO));
+		GL_CHECK(glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr));
+	}
+	else {
+		LOGE("Failed render to screen!");
+	}
+}
+
+std::shared_ptr<ShaderGLSL> RendererOpenGL::getToScreenColorProgram(UniformSampler& outTex) {
 	outTex.setName("uTexture");
 
 	static const char* VS = R"(
@@ -352,21 +454,6 @@ void RendererOpenGL::renderToScreen(UniformSampler& outTex, int screen_width, in
 	}
 	)";
 
-	// set up vertex data (and buffer(s)) and configure vertex attributes
-	static float vertices[] = {
-		// positions | texture coords
-		1.f, 1.f, 0.0f, 1.0f, 1.0f,   // top right
-		1.f, -1.f, 0.0f, 1.0f, 0.0f,  // bottom right
-		-1.f, -1.f, 0.0f, 0.0f, 0.0f, // bottom left
-		-1.f, 1.f, 0.0f, 0.0f, 1.0f   // top left
-	};
-	static unsigned int indices[] = {
-		0, 1, 3, // first triangle
-		1, 2, 3  // second triangle
-	};
-
-	static GLuint VAO, VBO, EBO;
-	static unsigned int texture;
 	static std::shared_ptr<ShaderGLSL> program;
 
 	if (!program) {
@@ -374,78 +461,46 @@ void RendererOpenGL::renderToScreen(UniformSampler& outTex, int screen_width, in
 		program->compileAndLink();
 	}
 
-	if (0 == VAO) {
-		GL_CHECK(glGenVertexArrays(1, &VAO));
-		GL_CHECK(glBindVertexArray(VAO));
+	return program;
+}
 
-		if (VBO == 0) {
-			GL_CHECK(glGenBuffers(1, &VBO));
-			GL_CHECK(glBindBuffer(GL_ARRAY_BUFFER, VBO));
-			GL_CHECK(glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW));
+std::shared_ptr<ShaderGLSL> RendererOpenGL::getToScreenDepthProgram(UniformSampler& outTex) {
+	outTex.setName("uTexture");
 
-			GL_CHECK(glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), nullptr));
-			GL_CHECK(glEnableVertexAttribArray(0));
-			GL_CHECK(glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float))));
-			GL_CHECK(glEnableVertexAttribArray(1));
-		}
+	static const char* VS = R"(
+	layout (location = 0) in vec3 aPos;
+	layout (location = 1) in vec2 aTexCoord;
 
-		if (EBO == 0) {
-			GL_CHECK(glGenBuffers(1, &EBO));
-			GL_CHECK(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO));
-			GL_CHECK(glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW));
-		}
+	out vec2 TexCoord;
 
-		GL_CHECK(glBindVertexArray(GL_NONE));
+	void main()
+	{
+		gl_Position = vec4(aPos, 1.0);
+		TexCoord = vec2(aTexCoord.x, aTexCoord.y);
+	}
+	)";
+
+	static const char* FS = R"(
+	in vec2 TexCoord;
+	out vec4 FragColor;
+
+	uniform sampler2D uTexture;
+
+	void main()
+	{
+		float Depth = texture(uTexture, TexCoord).x;
+		FragColor = vec4(vec3(Depth), 1.f);
+	}
+	)";
+
+	static std::shared_ptr<ShaderGLSL> program;
+
+	if (!program) {
+		program = ShaderGLSL::loadFromRawSource(VS, FS);
+		program->compileAndLink();
 	}
 
-	//if (texture == 0) {
-	//	glGenTextures(1, &texture);
-	//	glActiveTexture(GL_TEXTURE0);
-	//	glBindTexture(GL_TEXTURE_2D, texture);
-	//	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	//	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-	//	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	//	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	//	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, screen_width, screen_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
-
-	//	program->use();
-	//	glUniform1i(glGetUniformLocation(program->getId(), "uTexture"), 0);
-	//}
-	//else {
-	//	glActiveTexture(GL_TEXTURE0);
-	//	glBindTexture(GL_TEXTURE_2D, texture);
-	//	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, screen_width, screen_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
-	//	program->use();
-	//	glUniform1i(glGetUniformLocation(program->getId(), "uTexture"), 0);
-	//}
-
-	if (VAO && EBO && VBO && program) {
-		// real frame buffer size
-
-		GL_CHECK(glDisable(GL_BLEND));
-		GL_CHECK(glDisable(GL_DEPTH_TEST));
-		GL_CHECK(glDepthMask(true));
-		GL_CHECK(glDisable(GL_CULL_FACE));
-		GL_CHECK(glPolygonMode(GL_FRONT_AND_BACK, GL_FILL));
-
-		GL_CHECK(glBindFramebuffer(GL_FRAMEBUFFER, 0));
-		GL_CHECK(glViewport(0, 0, screen_width, screen_height));
-
-		GL_CHECK(glClearColor(0.f, 0.f, 0.f, 0.0f));
-		GL_CHECK(glClear(GL_COLOR_BUFFER_BIT));
-
-		
-		//  name of outTex here should be corresponding to that in shader.
-		program->bindUniform(outTex);
-		// 
-		//GL_CHECK(glUniform1i(glGetUniformLocation(program->getId(), "uTexture"), 0));
-
-		GL_CHECK(glBindVertexArray(VAO));
-		GL_CHECK(glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr));
-	}
-	else {
-		LOGE("Failed render to screen!");
-	}
+	return program;
 }
 
 RendererOpenGL::~RendererOpenGL()
@@ -455,3 +510,5 @@ RendererOpenGL::~RendererOpenGL()
 void RendererOpenGL::clearTexture(Texture& texture)
 {
 }
+
+

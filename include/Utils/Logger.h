@@ -4,7 +4,7 @@
 #include <cstring>
 #include <cstdarg>
 #include <mutex>
-
+;
 namespace SerikaGL {
 
 #define LOGI(...) SerikaGL::Logger::log(SerikaGL::LOG_INFO,     __FILE__, __LINE__, __VA_ARGS__)

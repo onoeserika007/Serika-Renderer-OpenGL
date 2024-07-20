@@ -2,10 +2,11 @@
 #include <iostream>
 #include "Material.h"
 
+class Scene;
 class FrameBuffer;
 class Renderer;
 class Shader;
-class Object;
+class UObject;
 class Texture;
 class Model;
 
@@ -20,9 +21,11 @@ protected:
 	ShaderPass shaderPass_ = ShaderPass::Shader_Plain_Pass;
 public:
 	RenderPass(Renderer& renderer) : renderer_(renderer) {}
-	virtual void render(Object& obj) = 0;
+	virtual void render(Scene & scene) = 0;
 	virtual void setupBuffers() = 0;
 	virtual void init() = 0;
+	virtual std::shared_ptr<FrameBuffer> getFramebufferMain() = 0;
 	void setupColorBuffer(std::shared_ptr<Texture>& colorBuffer, bool multiSample, bool force = false);
 	void setupDepthBuffer(std::shared_ptr<Texture>& depthBuffer, bool multiSample, bool force = false);
+	void setupShadowMapBuffer(std::shared_ptr<Texture>& depthBuffer, int width, int height, bool multiSample, bool force = false);
 };

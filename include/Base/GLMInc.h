@@ -2,14 +2,10 @@
 // 或项目特定的包含文件。
 
 #pragma once
-#define GLM_FORCE_ALIGNED
+// #define GLM_FORCE_ALIGNED
 #define GLM_FORCE_INLINE
-#define GLM_FORCE_AVX2
 
 #include <glm.hpp>
-#include <glm/gtc/quaternion.hpp>
-#include <glm/gtc/type_aligned.hpp>
-#include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
 using RGBA = glm::u8vec4;
@@ -17,12 +13,12 @@ using RGBA = glm::u8vec4;
 #define DEBUG
 
 struct ModelUniformBlock{
-	glm::mat4 uModel;
-	glm::mat4 uView;
-	glm::mat4 uProjection;
-	glm::mat4 uNormalToWorld;
-	glm::mat4 uShadowMapMVP;
-	glm::vec3 uViewPos;
+	alignas(64) glm::mat4 uModel;
+	alignas(64) glm::mat4 uView;
+	alignas(64) glm::mat4 uProjection;
+	alignas(64) glm::mat4 uNormalToWorld;
+	alignas(64) glm::mat4 uShadowMapMVP;
+	alignas(16) glm::vec3 uViewPos;
 };
 
 // TODO: 在此处引用程序需要的其他标头。

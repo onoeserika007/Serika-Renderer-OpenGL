@@ -1,9 +1,14 @@
 #include "RenderPass/RenderPassGeometry.h"
+
+#include <Model.h>
+#include <Scene.h>
+
 #include "Renderer.h"
 #include "FrameBuffer.h"
 
 RenderPassGeometry::RenderPassGeometry(Renderer& renderer): RenderPass(renderer)
 {
+	shaderPass_ = ShaderPass::Shader_Geometry_Pass;
 }
 
 void RenderPassGeometry::init()
@@ -24,11 +29,24 @@ void RenderPassGeometry::init()
 	}
 }
 
+std::shared_ptr<FrameBuffer> RenderPassGeometry::getFramebufferMain() {
+	return fboGbuffer_;
+}
+
 void RenderPassGeometry::setupBuffers()
 {
 	for (auto& colorAttachment : gbufferTextures_) {
 		setupColorBuffer(colorAttachment, false, true);
 	}
 	setupDepthBuffer(depthTexture_, false, true);
+}
+
+void RenderPassGeometry::render(Scene & scene) {
+	setupBuffers();
+	for (auto& model : scene.getModels()) {
+		for (auto& mesh : model->getMeshes()) {
+			renderer_.draw(*mesh, shaderPass_, nullptr);
+		}
+	}
 }
 

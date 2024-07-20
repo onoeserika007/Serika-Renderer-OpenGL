@@ -81,6 +81,8 @@ struct RenderStates {
     PolygonMode polygonMode = PolygonMode_FILL;
 
     float lineWidth = 1.f;
+    bool bBufferWrite = true;
+    bool bBufferRead = false;
 };
 
 struct ClearStates {

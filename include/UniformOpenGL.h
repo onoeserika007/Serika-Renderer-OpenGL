@@ -12,7 +12,7 @@ public:
     UniformSamplerOpenGL(const TextureInfo& info): UniformSampler(info) {}
 	int getLocation(Shader& program) override;
 	virtual void bindProgram(Shader& program, int location) override;
-	virtual void setTexture(const std::shared_ptr<Texture>& tex) override;
+	virtual void setTexture(const Texture &tex) override;
 };
 
 class UniformBlockOpenGL : public UniformBlock {

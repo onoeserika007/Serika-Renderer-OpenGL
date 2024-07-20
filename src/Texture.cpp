@@ -9,7 +9,7 @@
 #include "ResourceLoader.h"
 #include "Renderer.h"
 
-const char* SamplerDefinesTextureType[] = {
+const char* SamplerDefinesToTextureType[] = {
 	"NONE_MAP",
 	"DIFFUSE_MAP",
 	"SPECULAR_MAP",
@@ -37,16 +37,16 @@ const char* SamplerDefinesTextureType[] = {
 
 #define CASE_ENUM_STR(type) case type: return #type
 
-std::shared_ptr<Texture> Texture::createTexture2DDefault(int width, int height, TextureFormat format, TextureUsage usage)
-{
-	TextureInfo info;
-	info.width = width;
-	info.height = height;
-	info.format = format;
-	info.usage = usage;
-	info.target = TextureTarget_2D;
-	return std::make_shared<Texture>(info);
-}
+// std::shared_ptr<Texture> Texture::createTexture2DDefault(int width, int height, TextureFormat format, TextureUsage usage)
+// {
+// 	TextureInfo info;
+// 	info.width = width;
+// 	info.height = height;
+// 	info.format = format;
+// 	info.usage = usage;
+// 	info.target = TextureTarget_2D;
+// 	return std::make_shared<Texture>(info);
+// }
 
 const char* Texture::materialTexTypeStr(TextureType usage)
 {
@@ -62,9 +62,9 @@ const char* Texture::materialTexTypeStr(TextureType usage)
 
 const char* Texture::samplerDefine(TextureType usage)
 {
-	auto len = sizeof(SamplerDefinesTextureType) / sizeof(const char*);
+	auto len = sizeof(SamplerDefinesToTextureType) / sizeof(const char*);
 	if (usage < len) {
-		return SamplerDefinesTextureType[usage];
+		return SamplerDefinesToTextureType[usage];
 	}
 	return "";
 }
@@ -212,8 +212,7 @@ void Texture::setReady(bool flag)
 	pipelineReady_ = flag;
 }
 
-unsigned Texture::getId()
-{
+unsigned Texture::getId() const {
 	return textureId_;
 }
 
@@ -230,4 +229,17 @@ void Texture::setMipmaps(bool flag)
 void Texture::setMultiSample(bool flag)
 {
 	textureInfo_.multiSample = flag;
+}
+
+void Texture::copyDataTo(Texture &other) {
+	const auto& otherTexInfo = other.getTextureInfo();
+	assert(width() == other.width() && height() == other.height(), "Src and dist size not compatible, texture copy failed.");
+	assert(textureInfo_.target == otherTexInfo.target && textureInfo_.format == otherTexInfo.format, "Src and dist format not compatible, texture copy failed.");
+
+	TextureData tmp;
+	tmp.path = textureData_.path;
+	for(const auto& elem: textureData_.dataArray) {
+		tmp.dataArray.emplace_back(std::make_shared<Buffer<RGBA>>(*elem));
+	}
+	other.textureData_ = std::move(tmp);
 }
