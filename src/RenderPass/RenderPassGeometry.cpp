@@ -36,9 +36,9 @@ std::shared_ptr<FrameBuffer> RenderPassGeometry::getFramebufferMain() {
 void RenderPassGeometry::setupBuffers()
 {
 	for (auto& colorAttachment : gbufferTextures_) {
-		setupColorBuffer(colorAttachment, false, true);
+		renderer_.setupColorBuffer(colorAttachment, false, true);
 	}
-	setupDepthBuffer(depthTexture_, false, true);
+	renderer_.setupDepthBuffer(depthTexture_, false, true);
 }
 
 void RenderPassGeometry::render(Scene & scene) {

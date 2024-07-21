@@ -11,8 +11,8 @@ Camera::Camera(glm::vec3 position, glm::vec3 up): Front(glm::vec3(0.0f, 0.0f, -1
     MovementSpeed = config.CameraSpeed;
     MouseSensitivity = config.MouseSensitivity;
     Zoom = config.CameraZoom;
-    updateCameraVectors();
-}
+    updateCameraVectors();;;
+};
 
 Camera::Camera(float posX, float posY, float posZ, float upX, float upY, float upZ, float yaw, float pitch): Camera({posX, posY, posZ}, {upX, upY, upZ}) {
 }
@@ -37,7 +37,7 @@ void Camera::ProcessKeyboard(Camera_Movement direction, float deltaTime) {
         Position -= Right * velocity;
     if (direction == RIGHT)
         Position += Right * velocity;
-}
+};
 
 void Camera::ProcessMouseMovement(float xoffset, float yoffset, GLboolean constrainPitch) {
     xoffset *= MouseSensitivity;

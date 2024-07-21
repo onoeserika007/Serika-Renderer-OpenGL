@@ -28,14 +28,16 @@ unsigned UMesh::getVAO() const {
     return VAO;
 }
 
-EShadingMode UMesh::getShadingMode() const {
-    return shadingMode_;
-}
 
 void UMesh::setVAO(unsigned id) {
     VAO = id;
 }
 
-void UMesh::setShadingMode(EShadingMode shadingMode) {
-    shadingMode_ = shadingMode;
+
+void UMesh::setPipelineReady(bool ready) {
+    bPipelineSetup = ready;
+}
+
+bool UMesh::isPipelineReady() const {
+    return bPipelineSetup;
 }

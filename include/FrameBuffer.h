@@ -20,10 +20,11 @@ public:
     virtual void bind() const = 0;
     virtual void bindForReading() const = 0;
     virtual void bindForWriting() const = 0;
-    virtual void disableForWriting() const = 0;
-    virtual void diableForReading() const = 0;
+    virtual void disableForColorWriting() const = 0;
+    virtual void diableForColorReading() const = 0;
     virtual void setReadBuffer(int colorAttachmentType) = 0;
-    virtual void setWriteBuffer(int colorAttachmentType) = 0;
+    virtual void setWriteBuffer(int colorAttachmentType, bool bClear) = 0;
+    virtual void clearDepthBuffer() = 0;
 
     virtual void setColorAttachment(std::shared_ptr<Texture>& color, int level, int pos);
 

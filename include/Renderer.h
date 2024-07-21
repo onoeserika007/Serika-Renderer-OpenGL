@@ -43,12 +43,15 @@ public:
 	explicit Renderer(const std::shared_ptr<Camera> &camera);
 	virtual void init() = 0;
 
-	virtual std::shared_ptr<UniformBlock> createUniformBlock(const std::string& name, int size) = 0;
-	virtual std::shared_ptr< UniformSampler> createUniformSampler(const std::string& name, TextureTarget target, TextureFormat format) = 0;
-	virtual std::shared_ptr< UniformSampler> createUniformSampler(const TextureInfo& texInfo) = 0;
+	virtual std::shared_ptr<UniformBlock> createUniformBlock(const std::string& name, int size) const  = 0;
+	virtual std::shared_ptr< UniformSampler> createUniformSampler(const std::string& name, TextureTarget target, TextureFormat format) const = 0;
+	virtual std::shared_ptr< UniformSampler> createUniformSampler(const TextureInfo& texInfo) const = 0;
 	virtual std::shared_ptr<Shader> createShader(const std::string& vsPath = "", const std::string& fsPsth = "") = 0;
-	virtual std::shared_ptr<Texture> createTexture(const TextureInfo& texInfo, const SamplerInfo& smInfo, const TextureData& texData = TextureData()) = 0;
+	virtual std::shared_ptr<Texture> createTexture(const TextureInfo& texInfo, const SamplerInfo& smInfo, const TextureData& texData = TextureData()) const = 0;
 	virtual std::shared_ptr<FrameBuffer> createFrameBuffer(bool offScreen) = 0;
+	virtual void setupColorBuffer(std::shared_ptr<Texture>& colorBuffer, bool multiSample, bool force = false) const = 0;
+	virtual void setupDepthBuffer(std::shared_ptr<Texture>& depthBuffer, bool multiSample, bool force = false) const = 0;
+	virtual void setupShadowMapBuffer(std::shared_ptr<Texture>& depthBuffer, int width, int height, bool multiSample, bool force = false) const  = 0;
 
 	virtual void setupVertexAttribute(BufferAttribute& vertexAttribute) = 0;
 	virtual void setupGeometry(Geometry& geometry) = 0;
@@ -57,12 +60,10 @@ public:
 	//virtual void setupStandardMaterial(StandardMaterial& material) = 0;
 	virtual void setupMesh(UMesh &mesh, ShaderPass shaderPass) = 0;
 
-	virtual void useMaterial(Material& material) = 0;
-	virtual void useMaterial(Material& material, ShaderPass pass) = 0;
-	virtual void draw(UMesh &mesh, ShaderPass pass, const std::shared_ptr<Camera>&shadowCamera) = 0;
+	virtual void draw(UMesh &mesh, ShaderPass pass, const std::shared_ptr<ULight> &shadowLight) = 0;
 
 	void loadUniformBlocks(UMesh& mesh);
-	void updateModelUniformBlock(UMesh & mesh, Camera& camera, const std::shared_ptr<Camera> &shadowCamera = nullptr) const;
+	void updateModelUniformBlock(UMesh & mesh, Camera& camera, const std::shared_ptr<ULight> &shadowLight = nullptr) const;
 	void updateLightUniformBlock(Shader& shader, const std::shared_ptr<ULight>& light) const;
 	void updateLightUniformBlock(const std::shared_ptr<ULight>& light) const;
 
@@ -88,8 +89,8 @@ public:
 	std::shared_ptr<Camera> getCamera();
 	void setCamera(const std::shared_ptr<Camera>& camera);
 	void setBackToViewCamera();
-	int width();
-	int height();
+	int width() const const;
+	int height() const;
 
 	ERenderMode render_mode;
 	EShadingMode render_shading_mode;

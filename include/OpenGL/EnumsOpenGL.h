@@ -109,6 +109,8 @@ namespace OpenGL {
             CASE_CVT_GL(BlendFactor_, ONE_MINUS_SRC_ALPHA);
             CASE_CVT_GL(BlendFactor_, ONE_MINUS_DST_COLOR);
             CASE_CVT_GL(BlendFactor_, ONE_MINUS_DST_ALPHA);
+            CASE_CVT_GL(BlendFactor_, CONSTANT_COLOR);
+            CASE_CVT_GL(BlendFactor_, ONE_MINUS_CONSTANT_COLOR);
         default:
             break;
         }

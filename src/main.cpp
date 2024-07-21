@@ -301,6 +301,7 @@ void App::setupScene()
     nanosuit->setScale(0.1, 0.1, 0.1);
     nanosuit->setPosition(glm::vec3(0.f, -0.5f, 0.f));
     nanosuit->setShadingMode(EShadingMode::Shading_BlinnPhong);
+    nanosuit->enableCastShadow(true);
     scene_->addModel(nanosuit);
 
     // floor
@@ -308,37 +309,39 @@ void App::setupScene()
     floor->setPosition({0.f, -0.5f, 0.f});
     floor->setScale({0.1f, 0.1f, 0.1f});
     floor->setShadingMode(EShadingMode::Shading_BlinnPhong);
+    floor->enableCastShadow(true);
     scene_->addModel(floor);
 
 
     // point light
     // shaders will be loaded by ShaderMode now, no longer needed to load manually.
     // here cube point light just use BaseColor.
-    auto plightMaterial = std::make_shared<StandardMaterial>();
+    auto plightMaterial = std::make_shared<Material>();
     plightMaterial->setShadingMode(EShadingMode::Shading_BaseColor);
 
-    auto dirLight = ULight::makeLight(cubeGeometry, plightMaterial);
-    glm::vec3 dirLightPos {3, 3, 3};
-    dirLight->setAsDirectionalLight(floor->getPosition() - dirLightPos, glm::vec3(0.f), glm::vec3(0.5f, 0.5f, 0.5f), glm::vec3(0.5));
-    dirLight->setScale({ 0.1, 0.1, 0.1 });
-    dirLight->setPosition(dirLightPos);
-    scene_->addLight(dirLight);
+    {
+        auto dirLight = ULight::makeLight(cubeGeometry, plightMaterial);
+        glm::vec3 dirLightPos {1, 1, 1};
+        dirLight->setAsDirectionalLight(floor->getPosition() - dirLightPos, glm::vec3(0.1f), glm::vec3(1.f), glm::vec3(0.5f));
+        dirLight->setScale({ 0.1, 0.1, 0.1 });
+        dirLight->setPosition(dirLightPos);
+        scene_->addLight(dirLight);
+    }
 
     // auto light2 = ULight::makeLight(cubeGeometry, plightMaterial);
-    // light2->setAsPointLight(glm::vec3(0, 0, 0), glm::vec3(0.f), glm::vec3(0.5f, 0.5f, 0.5f), glm::vec3(1.0f, 1.0f, 1.0f), 1.0, 0.045, 0.0075);
+    // light2->setAsPointLight(glm::vec3(0, 0, 0), glm::vec3(0.f), glm::vec3(0.5f, 0.5f, 0.5f), glm::vec3(0.5f), 1.0, 0.045, 0.0075);
     // light2->setScale({ 0.1, 0.1, 0.1 });
-    // light2->setPosition({-3, 3, -3});
+    // light2->setPosition({3, 3, -3});
     // scene_->addLight(light2);
 
-    ////light->setAttribute(glm::vec3(0, 0, 0), glm::vec3(0.2f, 0.2f, 0.2f), glm::vec3(0.5f, 0.5f, 0.5f), glm::vec3(1.0f, 1.0f, 1.0f), 1.0, 0.045, 0.0075);
-    //light->setName("pointLightArray");
-    //glm::vec3 lightPos(1.2f, 1.0f, 2.0f);
-    //model = glm::mat4(1.0f);
-    //model = glm::translate(model, lightPos);
-    //model = glm::scale(model, glm::vec3(0.2f));
-    //auto lightShader = light->getpShader();
-    //light->setWorldMatrix(model);
-    //lightArray.push_back(light);
+    {
+        auto dirLight2 = ULight::makeLight(cubeGeometry, plightMaterial);
+        glm::vec3 dirLightPos {1, 1, -1};
+        dirLight2->setAsDirectionalLight(floor->getPosition() - dirLightPos, glm::vec3(0.1f), glm::vec3(1.f), glm::vec3(0.5f));
+        dirLight2->setScale({ 0.1, 0.1, 0.1 });
+        dirLight2->setPosition(dirLightPos);
+        scene_->addLight(dirLight2);
+    }
 
     // spotlight
     //auto pspotlight = std::make_shared<Light>();

@@ -15,22 +15,15 @@ public:
     std::shared_ptr<Geometry> getpGeometry();
     std::shared_ptr<Material> getpMaterial();;
     unsigned getVAO() const;
-    EShadingMode getShadingMode() const;
 
     // setters
     void setVAO(unsigned id);
-    void setShadingMode(EShadingMode shadingMode);
 
     ///
     /// pipeline
     ///
-    void setPipelineReady(bool ready) {
-        bPipelineSetup = ready;
-    }
-
-    bool isPipelineReady() const {
-        return bPipelineSetup;
-    }
+    void setPipelineReady(bool ready);
+    bool isPipelineReady() const;
 
 protected:
     UMesh();
@@ -40,7 +33,6 @@ private:
     // mesh
     std::shared_ptr<Geometry> pgeometry_;
     std::shared_ptr<Material> pmaterial_;
-    EShadingMode shadingMode_ = Shading_BaseColor;
     unsigned VAO;
     bool bPipelineSetup = false;
 };

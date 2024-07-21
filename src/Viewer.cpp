@@ -143,36 +143,66 @@ void Viewer::drawScene_ShadowMapTest(std::shared_ptr<Scene> scene) {
 	/*
 	* ShadowPass
 	*/
-	ClearStates clearStatesPlainPass;
-	clearStatesPlainPass.clearColor = clearColor;
-	clearStatesPlainPass.colorFlag = true;
-	clearStatesPlainPass.depthFlag = true;
+	{
+		ClearStates ClearStatsShadowPass;
+		ClearStatsShadowPass.clearColor = clearColor;
+		ClearStatsShadowPass.colorFlag = true;
+		ClearStatsShadowPass.depthFlag = true;
 
-	auto&& renderStates = renderer_->renderStates;
-	renderStates.blend = true;
-	renderStates.depthMask = true;
-	renderStates.depthTest = true;
-	renderer_->updateRenderStates(renderStates);
+		auto&& renderStates = renderer_->renderStates;
+		renderStates.blend = false;
+		renderStates.depthMask = true;
+		renderStates.depthTest = true;
+		renderer_->updateRenderStates(renderStates);
 
-	renderer_->beginRenderPass(shadowPass_->getFramebufferMain(), clearStatesPlainPass);
-	renderer_->executeRenderPass(shadowPass_, *scene);
-	renderer_->endRenderPass();
-
-
-	if (!scene->getLights().empty()) {
-		/*
-		* ToScreenPass
-		*/
-		ClearStates clearStatesToScreenPass;
-		clearStatesToScreenPass.clearColor = clearColor;
-		clearStatesToScreenPass.colorFlag = true;
-		clearStatesToScreenPass.depthFlag = true;
-
-		auto outTex = scene->getLights()[0]->getShadowMap(*shadowPass_)->getUniformSampler(*renderer_);
-		renderer_->beginRenderPass(nullptr, clearStatesToScreenPass);
-		renderer_->dump(*outTex, false, false, nullptr, 1);
+		renderer_->beginRenderPass(shadowPass_->getFramebufferMain(), ClearStatsShadowPass);
+		renderer_->executeRenderPass(shadowPass_, *scene);
 		renderer_->endRenderPass();
 	}
+
+	/*
+	 * Forwarding Pass
+	 */
+
+	{
+		ClearStates clearStatesForwardingPass;
+		clearStatesForwardingPass.clearColor = BLACK_COLOR;
+		clearStatesForwardingPass.colorFlag = true;
+		clearStatesForwardingPass.depthFlag = true;
+
+		auto&& renderStates = renderer_->renderStates;
+		renderStates.blend = true;
+		renderStates.depthMask = true;
+		renderStates.depthTest = true;
+		renderStates.cullFace = true;
+		renderer_->updateRenderStates(renderStates); // 有可能上一帧关闭了DepthMask，所以每个renderPass开始前一定要检查状态
+
+		renderer_->beginRenderPass(plainPass_->getFramebufferMain(), clearStatesForwardingPass);
+		renderer_->executeRenderPass(plainPass_, *scene);
+		renderer_->endRenderPass();
+	}
+
+	/*
+	* ToScreenPass
+	*/
+	auto outTex = plainPass_->getTexColorSampler();
+	renderer_->dump(*outTex, true, false, nullptr, 0);
+	renderer_->endRenderPass();
+
+	// if (!scene->getLights().empty()) {
+	// 	/*
+	// 	* ToScreenPass
+	// 	*/
+	// 	ClearStates clearStatesToScreenPass;
+	// 	clearStatesToScreenPass.clearColor = clearColor;
+	// 	clearStatesToScreenPass.colorFlag = true;
+	// 	clearStatesToScreenPass.depthFlag = true;
+	//
+	// 	auto outTex = scene->getLights()[0]->getShadowMap(*shadowPass_)->getUniformSampler(*renderer_);
+	// 	renderer_->beginRenderPass(nullptr, clearStatesToScreenPass);
+	// 	renderer_->dump(*outTex, false, false, nullptr, 1);
+	// 	renderer_->endRenderPass();
+	// }
 
 
 }

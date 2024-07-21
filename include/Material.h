@@ -117,44 +117,15 @@ public:
 
 	std::string getName();
 
-	void setLight(std::shared_ptr<ULight> light) const;
-
-	void setLightArray(const std::vector<std::shared_ptr<ULight>>& lightArray);
-
 	void use();
 
 	void use(ShaderPass pass);
 
 	virtual ~Material() {}
 
-	virtual void setName(const std::string& name);
+	void setName(const std::string& name);
 
-	virtual void init();
+	void init();
 
-	virtual void setupPipeline(Renderer& renderer) = 0;
-};
-
-class PhongMaterial : public Material{
-	glm::vec3 ambient_;
-	glm::vec3 diffuse_;
-	glm::vec3 specular_;
-	float shininess_;
-public:
-
-	PhongMaterial();
-	PhongMaterial(std::string name, glm::vec3 ambient, glm::vec3 diffuse, glm::vec3 specular, float shininess);
-
-	virtual void init() override;
-	void print();
-
-	virtual void setName(const std::string name);
-};
-
-class StandardMaterial : public Material {
-public:
-	StandardMaterial();
-	StandardMaterial(const std::string& name);
-
-	virtual void setupPipeline(Renderer& renderer) override;
-	//virtual void use(Renderer& renderer) override;
+	void setupPipeline(Renderer& renderer) ;
 };

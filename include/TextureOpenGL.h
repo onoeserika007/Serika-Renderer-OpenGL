@@ -7,7 +7,7 @@ public:
     TextureOpenGL(const TextureInfo& texInfo, const SamplerInfo& smInfo, const TextureData& texData);
 
     virtual ~TextureOpenGL();
-    virtual std::shared_ptr<UniformSampler> getUniformSampler(Renderer &renderer) override;
+    virtual std::shared_ptr<UniformSampler> getUniformSampler(const Renderer &renderer) override;
 };
 
 class TextureOpenGL2D : public TextureOpenGL {

@@ -134,28 +134,6 @@ void Material::setTextureData(int textureType, TextureData ptex) {
 	return shaderStructName_;
 }
 
- void Material::setLight(std::shared_ptr<ULight> light) const {
-	light->setToShader(pshader_);
-}
-
- void Material::setLightArray(const std::vector<std::shared_ptr<ULight>>& lightArray)
- {
-	 // // 假设shader中的light全部以数组形式存储
-	 // int pointIdx = 0, dirIdx = 0, spotIdx = 0;
-	 // for (const auto& light : lightArray) {
-		//  if (light->getType() == Light::PointLight) {
-		// 	 light->setToShader(pshader_, pointIdx++);
-		//  }
-		//  else if (light->getType() == Light::DirectionalLight) {
-		// 	 light->setToShader(pshader_, dirIdx++);
-		//  }
-		//  else if (light->getType() == Light::SpotLight) {
-		// 	 light->setToShader(pshader_, spotIdx++);
-		//  }
-		//  //light->setToShader(pshader_, 0);
-	 // }
- }
-
  void Material::use()
  {
  }
@@ -180,3 +158,7 @@ void Material::setTextureData(int textureType, TextureData ptex) {
  void Material::init()
  {
  }
+
+void Material::setupPipeline(Renderer &renderer) {
+ 	renderer.setupMaterial(*this);
+}

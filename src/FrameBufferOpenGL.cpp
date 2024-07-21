@@ -104,7 +104,6 @@ void FrameBufferOpenGL::bind() const {
         if (Status != GL_FRAMEBUFFER_COMPLETE) {
             LOGE("FB error, status: 0x%x\n", Status);
         }
-        GL_CHECK(;);
     }
 }
 
@@ -117,12 +116,12 @@ void FrameBufferOpenGL::bindForWriting() const {
     GL_CHECK(glBindFramebuffer(GL_DRAW_FRAMEBUFFER, fbo_));
 }
 
-void FrameBufferOpenGL::disableForWriting() const {
+void FrameBufferOpenGL::disableForColorWriting() const {
     GL_CHECK(glBindFramebuffer(GL_FRAMEBUFFER, fbo_));
     GL_CHECK(glDrawBuffer(GL_NONE));
 }
 
-void FrameBufferOpenGL::diableForReading() const {
+void FrameBufferOpenGL::diableForColorReading() const {
     GL_CHECK(glBindFramebuffer(GL_FRAMEBUFFER, fbo_));
     GL_CHECK(glReadBuffer(GL_NONE));
 }
@@ -131,6 +130,15 @@ void FrameBufferOpenGL::setReadBuffer(int colorAttachmentType) {
     GL_CHECK(glReadBuffer(GL_COLOR_ATTACHMENT0 + colorAttachmentType));
 }
 
-void FrameBufferOpenGL::setWriteBuffer(int colorAttachmentType) {
+void FrameBufferOpenGL::setWriteBuffer(int colorAttachmentType, bool bClear) {
+    // setForWriting means clear
     GL_CHECK(glDrawBuffer(GL_COLOR_ATTACHMENT0 + colorAttachmentType));
+    if (bClear) {
+        GL_CHECK(glClear(GL_COLOR_BUFFER_BIT));
+    }
+}
+
+void FrameBufferOpenGL::clearDepthBuffer() {
+    GL_CHECK(glBindFramebuffer(GL_FRAMEBUFFER, fbo_));
+    GL_CHECK(glClear(GL_DEPTH_BUFFER_BIT));
 }

@@ -99,6 +99,7 @@ public:
 
     LightDataUniformBlock serialize() const;
     ULight& deserialize(const LightDataUniformBlock &block);
+
     LightType getType() const;
     std::string getName() const;
 
@@ -108,10 +109,8 @@ public:
     static std::shared_ptr<ULight> generateDefaultDirectionalLight();
     static std::shared_ptr<ULight> generateDefaultSpotLight();
 
-    std::shared_ptr<Camera> getLightCamera();
-    std::shared_ptr<Texture> getShadowMap(RenderPass& renderPass);
-    // glm::mat4 getLightVP();
-    void markLightVPDirty();
+    std::shared_ptr<Camera> getLightCamera() const;
+    std::shared_ptr<Texture> getShadowMap(const Renderer &renderer) const;
 
 private:
 
@@ -122,9 +121,8 @@ private:
     ULight(std::string name, glm::vec3 ambient, glm::vec3 diff, glm::vec3 spec, std::shared_ptr<Geometry> pgeometry, std::shared_ptr<Material> pmaterial);
 
     std::string name_in_shader_;
-    std::shared_ptr<Camera> camera_;
-    std::shared_ptr<Texture> shadowMap_;
-    std::shared_ptr<glm::mat4> lightVP_;
+    mutable std::shared_ptr<Camera> camera_;
+    mutable std::shared_ptr<Texture> shadowMap_;
 
     LightDataUniformBlock lightData_;
 };

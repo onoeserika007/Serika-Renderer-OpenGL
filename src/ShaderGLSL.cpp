@@ -38,8 +38,15 @@ std::shared_ptr<ShaderGLSL> ShaderGLSL::loadShader(const std::string& vertexPath
     return std::make_shared<ShaderGLSL>(PassKey(), vertexPath, fragmentPath);
 }
 
+// 用这个shader规定顶点输入的布局
 std::shared_ptr<ShaderGLSL> ShaderGLSL::loadDefaultShader() {
-    return loadShader("./assets/shader/default.vert", "./assets/shader/default.frag");
+    static std::shared_ptr<ShaderGLSL> shader{};
+    if (!shader) {
+        shader = loadShader("./assets/shader/default.vert", "./assets/shader/default.frag");
+        shader->compileAndLink();
+        shader->setReady(true);
+    }
+    return shader;
 }
 
 std::shared_ptr<ShaderGLSL> ShaderGLSL::loadBaseColorShader() {
@@ -141,7 +148,7 @@ void ShaderGLSL::compileAndLink()
         glGetShaderInfoLog(fragment, 512, NULL, infoLog);
         std::cout << "ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n" << infoLog << std::endl;
         std::cout << "FragmentShader Path: " + fsPath_ << std::endl;
-        std::cout << fragmentCode << std::endl;
+        std::cout << fShaderSource << std::endl;
         exit(-1);
     };
 
@@ -208,6 +215,7 @@ void ShaderGLSL::setVec3(const std::string& name, float x, float y, float z) con
     setVec3(name, glm::vec3(x, y, z));
 }
 GLint ShaderGLSL::getAttributeLocation(const std::string& name) const {
+    glUseProgram(ID); // neccessary!!!
     return glGetAttribLocation(ID, name.data());
 }
 

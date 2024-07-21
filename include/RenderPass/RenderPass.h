@@ -23,7 +23,4 @@ public:
 	virtual void setupBuffers() = 0;
 	virtual void init() = 0;
 	virtual std::shared_ptr<FrameBuffer> getFramebufferMain() = 0;
-	void setupColorBuffer(std::shared_ptr<Texture>& colorBuffer, bool multiSample, bool force = false);
-	void setupDepthBuffer(std::shared_ptr<Texture>& depthBuffer, bool multiSample, bool force = false);
-	void setupShadowMapBuffer(std::shared_ptr<Texture>& depthBuffer, int width, int height, bool multiSample, bool force = false);
 };

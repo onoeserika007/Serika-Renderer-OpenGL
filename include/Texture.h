@@ -142,7 +142,7 @@ public:
     void setMultiSample(bool flag);
 
     virtual void copyDataTo(Texture& other);
-    virtual std::shared_ptr<UniformSampler> getUniformSampler(Renderer &renderer) = 0;
+    virtual std::shared_ptr<UniformSampler> getUniformSampler(const Renderer &renderer) = 0;
 };
 
 

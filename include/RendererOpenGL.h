@@ -8,12 +8,15 @@ public:
 	RendererOpenGL(const std::shared_ptr<Camera>& camera);
 	virtual void init() override;
 
-	virtual std::shared_ptr<UniformBlock> createUniformBlock(const std::string& name, int size) override;
-	virtual std::shared_ptr<UniformSampler> createUniformSampler(const std::string& name, TextureTarget target, TextureFormat format) override;
-	virtual std::shared_ptr<UniformSampler> createUniformSampler(const TextureInfo& texInfo) override;
+	virtual std::shared_ptr<UniformBlock> createUniformBlock(const std::string& name, int size) const override;
+	virtual std::shared_ptr<UniformSampler> createUniformSampler(const std::string& name, TextureTarget target, TextureFormat format) const override;
+	virtual std::shared_ptr<UniformSampler> createUniformSampler(const TextureInfo& texInfo) const override;
 	virtual std::shared_ptr<Shader> createShader(const std::string& vsPath = "", const std::string& fsPsth = "") override;
-	virtual std::shared_ptr<Texture> createTexture(const TextureInfo& texInfo, const SamplerInfo& smInfo, const TextureData& texData) override;
+	virtual std::shared_ptr<Texture> createTexture(const TextureInfo& texInfo, const SamplerInfo& smInfo, const TextureData& texData) const override;
 	virtual std::shared_ptr<FrameBuffer> createFrameBuffer(bool offScreen) override;
+	virtual void setupColorBuffer(std::shared_ptr<Texture>& colorBuffer, bool multiSample, bool force = false) const override;
+	virtual void setupDepthBuffer(std::shared_ptr<Texture>& depthBuffer, bool multiSample, bool force = false) const override;
+	virtual void setupShadowMapBuffer(std::shared_ptr<Texture>& depthBuffer, int width, int height, bool multiSample, bool force = false) const override;
 
 	virtual void setupVertexAttribute(BufferAttribute& vertexAttribute) override;
 	virtual void setupGeometry(Geometry& geometry) override;
@@ -22,9 +25,7 @@ public:
 	//virtual void setupStandardMaterial(StandardMaterial& material) override;
 	virtual void setupMesh(UMesh &mesh, ShaderPass shaderPass) override;
 
-	virtual void useMaterial(Material& material) override;
-	virtual void useMaterial(Material& material, ShaderPass pass) override;
-	virtual void draw(UMesh &mesh, ShaderPass pass, const std::shared_ptr<Camera>&shadowCamera) override;
+	virtual void draw(UMesh &mesh, ShaderPass pass, const std::shared_ptr<ULight> &shadowLight) override;
 
 	// pipeline related
 	virtual void updateRenderStates(RenderStates& renderStates) override;

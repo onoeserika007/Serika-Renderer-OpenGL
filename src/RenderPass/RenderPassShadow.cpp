@@ -15,24 +15,27 @@ void RenderPassShadow::render(Scene &scene) {
 	renderer_.setRenderViewPort(0, 0, config.Resolution_ShadowMap, config.Resolution_ShadowMap);
 	setupBuffers();
 	fboShadow_->bind();
+	fboShadow_->disableForColorWriting();
+	fboShadow_->diableForColorReading();
 
 	for(const auto& light: scene.getLights()) {
 		// when change depth attachment, texture contents lost. Reason not clear. So I updated to opengl 4.3.
-		auto&& shadowMapBuffer = light->getShadowMap(*this);
+		auto&& shadowMapBuffer = light->getShadowMap(renderer_);
 		renderer_.setCamera(light->getLightCamera());
 
 		for (const auto& model: scene.getModels()) {
 			renderer_.draw(*model, shaderPass_, nullptr);
 		}
 		texDepthMain_->copyDataTo(*shadowMapBuffer);
+		fboShadow_->clearDepthBuffer();
 	}
 	renderer_.restoreViewPort();
 	renderer_.setBackToViewCamera();
 }
 
 void RenderPassShadow::setupBuffers() {
-	setupColorBuffer(texColorMain_, false, false);
-	setupDepthBuffer(texDepthMain_, false, false);
+	renderer_.setupColorBuffer(texColorMain_, false, false);
+	renderer_.setupDepthBuffer(texDepthMain_, false, false);
 
 	// create fbo
 	if (!fboShadow_) {
@@ -46,7 +49,6 @@ void RenderPassShadow::setupBuffers() {
 void RenderPassShadow::init() {
 	// init and resize depth Buffer
 	setupBuffers();
-
 }
 
 std::shared_ptr<FrameBuffer> RenderPassShadow::getFramebufferMain() {

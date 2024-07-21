@@ -15,7 +15,7 @@ RenderPassForwardShading::RenderPassForwardShading(Renderer& renderer): RenderPa
 
 void RenderPassForwardShading::render(Scene & scene)
 {
-	// auto&& config = Config::getInstance();
+	auto&& config = Config::getInstance();
 	// renderer_.setRenderViewPort(0, 0, config.Resolution_ShadowMap, config.Resolution_ShadowMap);
 
 	// 更新新Buffer后还要记得重新绑定到fbo
@@ -27,14 +27,10 @@ void RenderPassForwardShading::render(Scene & scene)
 	BlendParameters blendParams;
 	blendParams.SetBlendFactor(BlendFactor_ONE, BlendFactor_ONE);
 	blendParams.SetBlendFunc(BlendFunc_ADD);
+	// blendParams.SetBlendFactor(BlendFactor_CONSTANT_COLOR, BlendFactor_ONE_MINUS_CONSTANT_COLOR);
+	// blendParams.SetBlendFunc(BlendFunc_ADD);
+	// blendParams.blendColor = glm::vec4(0.5f, 0.5f, 0.5f, 1.f);
 	renderStates.blendParams = blendParams;
-	auto setupToScreen = [&renderStates, this]() {
-		renderStates.blend = true;
-		renderStates.depthTest = false;
-		renderStates.depthMask = false;
-		renderStates.cullFace = false;
-		renderer_.updateRenderStates(renderStates);
-	};
 
 	auto setupComputeLight = [&renderStates, this]() {
 		renderStates.blend = false;
@@ -44,46 +40,55 @@ void RenderPassForwardShading::render(Scene & scene)
 		renderer_.updateRenderStates(renderStates);
 	};
 
+	auto setupToScreen = [&renderStates, this]() {
+		renderStates.blend = true;
+		renderStates.depthTest = false;
+		renderStates.depthMask = false;
+		renderStates.cullFace = false;
+		renderer_.updateRenderStates(renderStates);
+	};
+
 	// setAttachment后会绑定到0 fbo，所以记得绑定回来
-
-	// 目前仅支持单光源
-
 	for (const auto& light: scene.getLights()) {
 		renderer_.updateLightUniformBlock(light);
+		std::shared_ptr<Camera> shadowCamera {};
 
 		// 关闭混合
 		setupComputeLight();
+		fboMain_->setWriteBuffer(0, true); // to render target
+		fboMain_->clearDepthBuffer();
 		// 渲染所有mesh时关闭混合，保证深度测试
 		for (const auto& model : scene.getModels()) {
-			renderer_.draw(*model, shaderPass_, nullptr);
+			if (config.bShadowMap) {
+				renderer_.draw(*model, shaderPass_, light);
+			}
+			else {
+				renderer_.draw(*model, shaderPass_, nullptr);
+			}
 		}
 
 		// 混合光照结果时打开混合
 		setupToScreen();
 		auto outTex = texColorMain_->getUniformSampler(renderer_);
-		renderer_.dump(*outTex, true, true, fboMain_, 1);
+		renderer_.dump(*outTex, true, true, fboMain_, 1); // to blend target
 	}
 
 	// 画光源时关闭混合
 	setupComputeLight();
+	fboMain_->setWriteBuffer(1, false); // to blend target
 	for (const auto& light: scene.getLights()) {
 		renderer_.updateLightUniformBlock(nullptr);
 		renderer_.draw(*light, shaderPass_, nullptr);
 	}
-
-	// 混合光照结果时打开混合
-	setupToScreen();
-	auto outTex = texColorMain_->getUniformSampler(renderer_);
-	renderer_.dump(*outTex, true, true, fboMain_, 1);
 
 }
 
 void RenderPassForwardShading::setupBuffers()
 {
 
-	setupColorBuffer(texColorMain_, false, false);
-	setupColorBuffer(texBlendResult_, false, false);
-	setupDepthBuffer(texDepthMain_, false, false);
+	renderer_.setupColorBuffer(texColorMain_, false, false);
+	renderer_.setupColorBuffer(texBlendResult_, false, false);
+	renderer_.setupDepthBuffer(texDepthMain_, false, false);
 
 	// create fbo
 	if (!fboMain_) {

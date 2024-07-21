@@ -129,7 +129,7 @@ std::shared_ptr<ULight> ULight::generateDefaultSpotLight() {
      return {};
 }
 
-std::shared_ptr<Camera> ULight::getLightCamera() {
+std::shared_ptr<Camera> ULight::getLightCamera() const {
      if (!camera_) {
          auto&& config = Config::getInstance();
          if (lightData_.uLightType == LightType_DirectionalLight) {
@@ -147,15 +147,11 @@ std::shared_ptr<Camera> ULight::getLightCamera() {
      return camera_;
 }
 
-std::shared_ptr<Texture> ULight::getShadowMap(RenderPass &renderPass) {
+std::shared_ptr<Texture> ULight::getShadowMap(const Renderer &renderer) const {
      if (!shadowMap_) {
          const Config& config = Config::getInstance();
-         renderPass.setupShadowMapBuffer(shadowMap_, config.Resolution_ShadowMap, config.Resolution_ShadowMap, false);
+         renderer.setupShadowMapBuffer(shadowMap_, config.Resolution_ShadowMap, config.Resolution_ShadowMap, false);
      }
      return shadowMap_;
 }
 
-
-void ULight::markLightVPDirty() {
-     lightVP_ = nullptr;
-}

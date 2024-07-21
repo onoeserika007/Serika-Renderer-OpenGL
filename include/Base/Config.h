@@ -40,16 +40,12 @@ struct Config {
 	// Ortho camera
 	float CaptureRadius_ShadowMap = 2.f;
 
+
 	void serialize(const std::string& path);
-
 	void deserialize(const std::string& path);
-
 	static Config& getInstance();
-
 	json11::Json to_json() const;
-
 	Config& from_json(const json11::Json & j);
-
 private:
 	Config() = default;
 	Config(const Config&) = default;

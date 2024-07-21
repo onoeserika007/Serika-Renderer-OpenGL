@@ -41,18 +41,15 @@ void RendererOpenGL::init()
 	lightUniformBlock_ = createUniformBlock("Light", sizeof(LightDataUniformBlock));
 }
 
-std::shared_ptr<UniformBlock> RendererOpenGL::createUniformBlock(const std::string& name, int size)
-{
+std::shared_ptr<UniformBlock> RendererOpenGL::createUniformBlock(const std::string& name, int size) const {
 	return std::make_shared<UniformBlockOpenGL>(name, size);
 }
 
-std::shared_ptr<UniformSampler> RendererOpenGL::createUniformSampler(const std::string& name, TextureTarget target, TextureFormat format)
-{
+std::shared_ptr<UniformSampler> RendererOpenGL::createUniformSampler(const std::string& name, TextureTarget target, TextureFormat format) const {
 	return std::make_shared<UniformSamplerOpenGL>(name, target, format);
 }
 
-std::shared_ptr<UniformSampler> RendererOpenGL::createUniformSampler(const TextureInfo& texInfo)
-{
+std::shared_ptr<UniformSampler> RendererOpenGL::createUniformSampler(const TextureInfo& texInfo) const {
 	return std::make_shared<UniformSamplerOpenGL>(texInfo);
 }
 
@@ -61,8 +58,7 @@ std::shared_ptr<Shader> RendererOpenGL::createShader(const std::string& vsPath, 
 	return ShaderGLSL::loadShader(vsPath, fsPsth);
 }
 
-std::shared_ptr<Texture> RendererOpenGL::createTexture(const TextureInfo& texInfo, const SamplerInfo& smInfo, const TextureData& texData)
-{
+std::shared_ptr<Texture> RendererOpenGL::createTexture(const TextureInfo& texInfo, const SamplerInfo& smInfo, const TextureData& texData) const {
 	if (texInfo.target == TextureTarget::TextureTarget_2D) {
 		return std::make_shared<TextureOpenGL2D>(texInfo, smInfo, texData);
 	}
@@ -75,6 +71,89 @@ std::shared_ptr<Texture> RendererOpenGL::createTexture(const TextureInfo& texInf
 std::shared_ptr<FrameBuffer> RendererOpenGL::createFrameBuffer(bool offScreen)
 {
 	return std::make_shared<FrameBufferOpenGL>(offScreen);
+}
+
+void RendererOpenGL::setupColorBuffer(std::shared_ptr<Texture> &colorBuffer, bool multiSample, bool force) const {
+	if (colorBuffer) {
+		const TextureInfo& texInfo = colorBuffer->getTextureInfo();
+		force = force || texInfo.width != width() || texInfo.height != height();
+		force = force || texInfo.target != TextureTarget_2D || texInfo.format != TextureFormat_RGBA8;
+	}
+
+	if (!colorBuffer || colorBuffer->multiSample() != multiSample || force) {
+		TextureInfo texInfo{};
+		texInfo.width = width();
+		texInfo.height = height();
+		texInfo.target = TextureTarget::TextureTarget_2D;
+		texInfo.format = TextureFormat::TextureFormat_RGBA8;
+		texInfo.usage = TextureUsage_AttachmentColor | TextureUsage_RendererOutput;
+		texInfo.multiSample = multiSample;
+		texInfo.useMipmaps = false;
+
+		SamplerInfo smInfo{};
+		smInfo.filterMag = Filter_LINEAR;
+		smInfo.filterMin = Filter_LINEAR;
+
+		colorBuffer = createTexture(texInfo, smInfo, {});
+
+		// now loading is handled in constructor, manual loading is nolonger needed.
+		// load to pipeline
+		//colorBuffer->setupPipeline(renderer_);
+	}
+}
+
+void RendererOpenGL::setupDepthBuffer(std::shared_ptr<Texture> &depthBuffer, bool multiSample, bool force) const {
+	if (depthBuffer) {
+		const TextureInfo& texInfo = depthBuffer->getTextureInfo();
+		force = force || texInfo.width != width() || texInfo.height != height();
+		force = force || texInfo.target != TextureTarget_2D || texInfo.format != TextureFormat_FLOAT32;
+	}
+
+	if (!depthBuffer || depthBuffer->multiSample() != multiSample || force) {
+		TextureInfo texInfo{};
+		texInfo.width = width();
+		texInfo.height = height();
+		texInfo.target = TextureTarget::TextureTarget_2D;
+		texInfo.format = TextureFormat::TextureFormat_FLOAT32;
+		texInfo.usage = TextureUsage::TextureUsage_AttachmentDepth;
+		texInfo.multiSample = multiSample;
+		texInfo.useMipmaps = false;
+
+		SamplerInfo smInfo{};
+		smInfo.filterMag = Filter_NEAREST;
+		smInfo.filterMin = Filter_NEAREST;
+
+		depthBuffer = createTexture(texInfo, smInfo, {});
+	}
+}
+
+void RendererOpenGL::setupShadowMapBuffer(std::shared_ptr<Texture> &depthBuffer, int width, int height,
+	bool multiSample, bool force) const {
+	if (depthBuffer) {
+		const TextureInfo& texInfo = depthBuffer->getTextureInfo();
+		force = force || texInfo.width != width || texInfo.height != height;
+		force = force || texInfo.target != TextureTarget_2D || texInfo.format != TextureFormat_FLOAT32;
+	}
+
+	if (!depthBuffer || depthBuffer->multiSample() != multiSample || force) {
+		TextureInfo texInfo{};
+		texInfo.width = width;
+		texInfo.height = height;
+		texInfo.target = TextureTarget::TextureTarget_2D;
+		texInfo.format = TextureFormat::TextureFormat_FLOAT32;
+		texInfo.usage = TextureUsage::TextureUsage_AttachmentColor | TextureUsage::TextureUsage_Sampler;
+		texInfo.type = TextureType::TEXTURE_SHADOW;
+		texInfo.multiSample = multiSample;
+		texInfo.useMipmaps = false;
+
+		SamplerInfo smInfo{};
+		smInfo.filterMag = Filter_NEAREST;
+		smInfo.filterMin = Filter_NEAREST;
+		smInfo.wrapS = Wrap_CLAMP_TO_EDGE;
+		smInfo.wrapT = Wrap_CLAMP_TO_EDGE;
+
+		depthBuffer = createTexture(texInfo, smInfo, {});
+	}
 }
 
 void RendererOpenGL::setupVertexAttribute(BufferAttribute& vertexAttribute)
@@ -182,6 +261,7 @@ void RendererOpenGL::setupMaterial(Material& material)
 		material.setTexturesReady(true);
 	}
 
+
 	// shaders
 	if (!material.shaderReady()) {
 		loadShaders(material); 
@@ -194,13 +274,12 @@ void RendererOpenGL::setupMaterial(Material& material)
 
 void RendererOpenGL::setupMesh(UMesh &mesh, ShaderPass shaderPass)
 {
-
 	auto pmaterial = mesh.getpMaterial();
 	if (auto pmaterial = mesh.getpMaterial()) {
 
 		// set shading mode
 		pmaterial->setShadingMode(mesh.getShadingMode());
-		pmaterial->setupPipeline(*this);
+		setupMaterial(*pmaterial);
 
 		if (auto pgeometry = mesh.getpGeometry()) {
 
@@ -218,10 +297,9 @@ void RendererOpenGL::setupMesh(UMesh &mesh, ShaderPass shaderPass)
 			// attrs
 			const auto& attrList = pgeometry->getAttributeNameList();
 			for (const auto& attr : attrList) {
-				// uniform updated in Material::ues(ShaderPass)
-				pmaterial->use(shaderPass);
-				// shaderPass used here.
-				if (auto pshader = pmaterial->getShader(shaderPass)) {
+				if (auto pshader = ShaderGLSL::loadDefaultShader()) {
+					// 错误的初始化shader，用于查找location，可能导致错误的顶点数据绑定，需要格外小心。
+					// 当然最简单的方法就是直接硬编码顺序
 					auto loc = pshader->getAttributeLocation(attr);
 					if (loc != -1) {
 						//const auto& VBO = pgeometry_->getAttributeBuffer(attr);
@@ -249,26 +327,20 @@ void RendererOpenGL::setupMesh(UMesh &mesh, ShaderPass shaderPass)
 			GL_CHECK(glBindVertexArray(0));
 
 			mesh.setPipelineReady(true);
+
 		} // geometry
+
 	} // material
+
 }
 
-void RendererOpenGL::useMaterial(Material& material)
-{
-}
-
-void RendererOpenGL::useMaterial(Material& material, ShaderPass pass)
-{
-}
-
-void RendererOpenGL::draw(UMesh &mesh, const ShaderPass pass, const std::shared_ptr<Camera>& shadowCamera)
+void RendererOpenGL::draw(UMesh &mesh, const ShaderPass pass, const std::shared_ptr<ULight> &shadowLight)
 {
 	if (mesh.drawable()) {
-		// mesh.setShadingMode(render_shading_mode);
 		setupMesh(mesh, pass);
 		mesh.updateFrame(*this);
 
-		updateModelUniformBlock(mesh, *mainCamera_, shadowCamera);
+		updateModelUniformBlock(mesh, *mainCamera_, shadowLight);
 		loadUniformBlocks(mesh);
 
 		auto pmaterial = mesh.getpMaterial();
@@ -283,7 +355,7 @@ void RendererOpenGL::draw(UMesh &mesh, const ShaderPass pass, const std::shared_
 		}
 		else {
 			// primitive | nums | 索引类型 | 最后一个参数里我们可以指定EBO中的偏移量（或者传递一个索引数组，但是这是当你不在使用EBO的时候），但是我们会在这里填写0。
-			GL_CHECK(glDrawElements(GL_TRIANGLES, pgeometry->getIndicesNum(), GL_UNSIGNED_INT, 0));
+			GL_CHECK(glDrawElements(GL_TRIANGLES, pgeometry->getIndicesNum(), GL_UNSIGNED_INT, nullptr));
 		}
 		GL_CHECK(glBindVertexArray(0));
 	}
@@ -291,13 +363,14 @@ void RendererOpenGL::draw(UMesh &mesh, const ShaderPass pass, const std::shared_
 	for (auto&& child: mesh.getChildren()) {
 		if (auto* childMesh = dynamic_cast<UMesh*>(child.get())) {
 			childMesh->setShadingMode(mesh.getShadingMode());
-			draw(*childMesh, pass, shadowCamera);
+			draw(*childMesh, pass, shadowLight);
 		}
 	}
 
 }
 
 #define GL_STATE_SET(var, gl_state) if (var) GL_CHECK(glEnable(gl_state)); else GL_CHECK(glDisable(gl_state));
+#define GL_COLOR_SET(color) GL_CHECK(color.x, color.y, coloy.z, color.w);
 
 void RendererOpenGL::updateRenderStates(RenderStates &renderStates) {
 
@@ -309,6 +382,8 @@ void RendererOpenGL::updateRenderStates(RenderStates &renderStates) {
 								 OpenGL::cvtBlendFactor(renderStates.blendParams.blendDstRgb),
 								 OpenGL::cvtBlendFactor(renderStates.blendParams.blendSrcAlpha),
 								 OpenGL::cvtBlendFactor(renderStates.blendParams.blendDstAlpha)));
+	// blend color
+	GL_COLOR_SET(renderStates.blendParams.blendColor);
 
 	// depth
 	GL_STATE_SET(renderStates.depthTest, GL_DEPTH_TEST);
@@ -410,8 +485,9 @@ void RendererOpenGL::dump(UniformSampler& srcTex, bool bFromColor, bool bBlend, 
 	if (VAO && EBO && VBO ) {
 		// GL_CHECK(glDisable(GL_BLEND));
 		if (targetFrameBuffer) {
+			// blend ni kita no
 			targetFrameBuffer->bind();
-			targetFrameBuffer->setWriteBuffer(dstColorBuffer);
+			targetFrameBuffer->setWriteBuffer(dstColorBuffer, false);
 		}
 		else {
 			GL_CHECK(glBindFramebuffer(GL_FRAMEBUFFER, 0));

@@ -18,7 +18,7 @@ TextureOpenGL::~TextureOpenGL()
 {
 }
 
-std::shared_ptr<UniformSampler> TextureOpenGL::getUniformSampler(Renderer &renderer) {
+std::shared_ptr<UniformSampler> TextureOpenGL::getUniformSampler(const Renderer &renderer) {
 	if (!sampler_) {
 		auto&& texInfo = getTextureInfo();
 		sampler_ = renderer.createUniformSampler(texInfo);
@@ -93,7 +93,6 @@ void TextureOpenGL2D::copyDataTo(Texture &other) {
 
 	auto w = width();
 	auto h = height();
-	GL_CHECK(; );
 	GL_CHECK(glCopyImageSubData(
 	srcTextureId, srcTarget, 0, 0, 0, 0,
 	dstTextureId, dstTarget, 0, 0, 0, 0,

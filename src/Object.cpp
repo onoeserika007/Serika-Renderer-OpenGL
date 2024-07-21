@@ -56,16 +56,6 @@ void UObject::setParentWorldMatrix(const glm::mat4 &transform) {
  	parentWorldMatrix_ = transform;
 
  	setWorldMatrix(parentWorldMatrix_ * localMatrix_);
-
- 	// for(auto it = children_.begin(); it != children_.end(); ) { // for weak_ptr
- 	// 	if (auto&& child = it->lock()) {
- 	// 		child->setParentWorldMatrix(worldMatrix_);
- 	// 		++it;
- 	// 	}
- 	// 	else {
- 	// 		it = children_.erase(it);
- 	// 	}
- 	// }
 }
 
 void UObject::setParent(const std::shared_ptr<UObject> &parent) {
@@ -80,6 +70,20 @@ void UObject::addChild(const std::shared_ptr<UObject> &child) {
 
 std::vector<std::shared_ptr<UObject>>& UObject::getChildren() {
  	return children_;
+}
+
+void UObject::enableCastShadow(const bool enabled) {
+	bCastShadow = enabled;
+	for(auto&& child: children_) {
+		child->enableCastShadow(enabled);
+	}
+}
+
+void UObject::setShadingMode(EShadingMode shadingMode) {
+	shadingMode_ = shadingMode;
+	for(auto&& child: children_) {
+		child->setShadingMode(shadingMode);
+	}
 }
 
 void UObject::updateWorldMatrix() {

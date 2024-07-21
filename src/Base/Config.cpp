@@ -91,5 +91,5 @@ Config & Config::from_json(const json &j) {
     ShadingMode = static_cast<EShadingMode>(j["ShadingMode"].int_value());
     WindowWidth = j["WindowWidth"].int_value();
     WindowHeight = j["WindowHeight"].int_value();
-    return *this;;
+    return *this;
 }

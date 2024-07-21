@@ -24,6 +24,8 @@ enum BlendFactor {
     BlendFactor_ONE_MINUS_SRC_ALPHA,
     BlendFactor_ONE_MINUS_DST_COLOR,
     BlendFactor_ONE_MINUS_DST_ALPHA,
+    BlendFactor_CONSTANT_COLOR,
+    BlendFactor_ONE_MINUS_CONSTANT_COLOR
 };
 
 enum BlendFunction {
@@ -48,6 +50,9 @@ struct BlendParameters {
     BlendFunction blendFuncAlpha = BlendFunc_ADD;
     BlendFactor blendSrcAlpha = BlendFactor_ONE;
     BlendFactor blendDstAlpha = BlendFactor_ZERO;
+
+    glm::vec4 blendColor;
+
 
     void SetBlendFactor(BlendFactor src, BlendFactor dst) {
         blendSrcRgb = src;

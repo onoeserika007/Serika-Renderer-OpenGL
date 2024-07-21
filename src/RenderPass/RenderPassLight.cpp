@@ -38,8 +38,8 @@ void RenderPassLight::render(Scene & scene) {
 }
 
 void RenderPassLight::setupBuffers() {
-    setupColorBuffer(texColorMain_, false, false);
-    setupDepthBuffer(texDepthMain_, false, false);
+    renderer_.setupColorBuffer(texColorMain_, false, false);
+    renderer_.setupDepthBuffer(texDepthMain_, false, false);
 }
 
 void RenderPassLight::init() {

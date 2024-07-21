@@ -24,21 +24,28 @@ void Renderer::loadUniformBlocks(UMesh &mesh) {
 	pmat->setUniform(lightUniformBlock_->name(), lightUniformBlock_);
 }
 
-void Renderer::updateModelUniformBlock(UMesh & mesh, Camera &camera, const std::shared_ptr<Camera> &shadowCamera) const {
+void Renderer::updateModelUniformBlock(UMesh & mesh, Camera &camera, const std::shared_ptr<ULight> &shadowLight) const {
 	ModelUniformBlock tmp{};
 	tmp.uModel = mesh.getWorldMatrix();
 	tmp.uNormalToWorld = mesh.getNormalToWorld();
 	tmp.uProjection = camera.GetProjectionMatrix();
 	tmp.uView = camera.GetViewMatrix();
 	tmp.uViewPos = camera.position();
-	if (shadowCamera) {
+	if (shadowLight && mesh.castShadow()) {
+		auto&& shadowCamera = shadowLight->getLightCamera();
+		auto&& shadowMapSampler = shadowLight->getShadowMap(*this)->getUniformSampler(*this);
 		tmp.uShadowMapMVP = shadowCamera->GetProjectionMatrix() * shadowCamera->GetViewMatrix() * tmp.uModel;
+		tmp.uUseShadowMap = true;
+
+		const auto pmat = mesh.getpMaterial();
+		pmat->setUniform(shadowMapSampler->name(), shadowMapSampler);
+	}
+	else {
+		tmp.uUseShadowMap = false;
 	}
 
 	modelUniformBlock_->setData(&tmp, sizeof(ModelUniformBlock));
 
-	const auto pmat = mesh.getpMaterial();
-	pmat->setUniform(modelUniformBlock_->name(), modelUniformBlock_);
 }
 
 void Renderer::updateLightUniformBlock(Shader &shader, const std::shared_ptr<ULight>& light) const {
@@ -96,12 +103,10 @@ void Renderer::setBackToViewCamera() {
 	setCamera(viewCamera_);
 }
 
-int Renderer::width()
-{
+int Renderer::width() const {
 	return width_;
 }
 
-int Renderer::height()
-{
+int Renderer::height() const {
 	return height_;
 }

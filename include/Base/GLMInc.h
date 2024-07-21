@@ -19,6 +19,7 @@ struct ModelUniformBlock{
 	alignas(64) glm::mat4 uNormalToWorld;
 	alignas(64) glm::mat4 uShadowMapMVP;
 	alignas(16) glm::vec3 uViewPos;
+	alignas(4)	glm::int32 uUseShadowMap;
 };
 
 // TODO: 在此处引用程序需要的其他标头。

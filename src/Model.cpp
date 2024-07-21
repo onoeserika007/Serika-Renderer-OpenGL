@@ -93,7 +93,7 @@ std::shared_ptr<UMesh> UModel::processMesh(aiMesh *mesh, const aiScene *scene)
 	pgeomerty->setIndex(indices);
 
 	// 处理材质
-	auto pmaterial = std::make_shared<StandardMaterial>();
+	auto pmaterial = std::make_shared<Material>();
 	//std::vector<aiTextureType> types = { aiTextureType_DIFFUSE, aiTextureType_SPECULAR, aiTextureType_NORMALS, aiTextureType_UNKNOWN };
 	if (mesh->mMaterialIndex >= 0)
 	{
