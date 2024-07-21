@@ -1,7 +1,7 @@
 #pragma once
-#include <fstream>
 #include <iostream>
-#include "Utils/Logger.h"
+
+#include "Material.h"
 
 namespace json11 {
 	class Json;
@@ -15,8 +15,12 @@ enum class ERenderMode: int {
 
 // 修改这里前要删掉config，不然会崩溃
 struct Config {
+	// viewer
+	int WindowWidth = 1920;
+	int WindowHeight = 1080;
 	bool bShadowMap = false;
 	ERenderMode RenderMode = ERenderMode::RenderMode_ForwardRendering;
+	EShadingMode ShadingMode = EShadingMode::Shading_BlinnPhong;
 
 	// Default camera values
 	float CameraYaw = -90.0f;
@@ -25,17 +29,16 @@ struct Config {
 	float MouseSensitivity = 0.1f;
 	float CameraZoom = 45.0f;
 
-
 	// shadow map
 	int Resolution_ShadowMap = 1024;
 
 	float CameraNear = 0.1f;
-	float CameraFar = 100.f;
+	float CameraFar = 8.f;
 	// perspective camera
 	float CameraAspect = 1.f;
 	float CameraFOV = 45.f;
 	// Ortho camera
-	float CaptureRadius_ShadowMap = 20.f;
+	float CaptureRadius_ShadowMap = 2.f;
 
 	void serialize(const std::string& path);
 

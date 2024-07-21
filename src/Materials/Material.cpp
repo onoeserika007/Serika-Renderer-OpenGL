@@ -121,11 +121,11 @@ void Material::setTextureData(int textureType, TextureData ptex) {
 	 texturesRuntime_.clear();
  }
 
- ShadingMode Material::shadingMode() {
+ EShadingMode Material::shadingMode() {
 	 return shadingMode_;
  }
 
- void Material::setShadingMode(ShadingMode mode) {
+ void Material::setShadingMode(EShadingMode mode) {
  	setShaderReady(shaderReady() && (mode == shadingMode_));
 	 shadingMode_ = mode;
  }
@@ -163,7 +163,7 @@ void Material::setTextureData(int textureType, TextureData ptex) {
  void Material::use(ShaderPass pass)
  {
 	 if (!shaders_.contains(pass)) {
-		 LOGE("Rendering pass missing corresponding shader!");
+		 LOGE("Rendering pass missing corresponding shader - %d", pass);
 	 }
 	 else {
 		 shaders_[pass]->use();

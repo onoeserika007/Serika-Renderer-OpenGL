@@ -13,7 +13,6 @@ public:
 	virtual void setupBuffers() override;
 	virtual void init() override;
 	virtual std::shared_ptr<FrameBuffer> getFramebufferMain() override;
-	std::shared_ptr<Texture> texTempDepth_ = nullptr;
 private:
 	std::shared_ptr<FrameBuffer> fboShadow_;
 	std::shared_ptr<Texture> texColorMain_ = nullptr;

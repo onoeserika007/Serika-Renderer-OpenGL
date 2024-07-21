@@ -69,16 +69,16 @@ public:
         pipelineSetup_ = flag;
     }
 
-    ShadingMode shadingMode() {
+    EShadingMode shadingMode() {
         return shadingMode_;
     }
 
-    void setShadingMode(ShadingMode mode) {
+    void setShadingMode(EShadingMode mode) {
         shadingMode_ = mode;
     }
 
 protected:
     std::unordered_map<int, int> uniformLocations_;
     bool pipelineSetup_ = false;
-    ShadingMode shadingMode_;
+    EShadingMode shadingMode_;
 };

@@ -6,7 +6,7 @@
 #include "Material.h"
 #include "Geometry/Geometry.h"
 #include "BufferAttribute.h"
-#include "ResourceLoader.h"
+#include "../include/Base/ResourceLoader.h"
 #include "assimp/postprocess.h"
 
 #include "Geometry/Mesh.h"

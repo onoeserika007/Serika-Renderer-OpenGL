@@ -19,7 +19,7 @@ Geometry::Geometry() :size_(0), geometry_type_(Mesh) {
 	//if(attr != "position" && size_ && size_ != data.size())
 	if (isVertex) {
 		size_ = data.size();
-	}
+	};
 
 	data_map_[attr] = data;
 }

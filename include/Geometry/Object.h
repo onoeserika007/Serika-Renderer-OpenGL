@@ -14,7 +14,7 @@ class Camera;
 class Material;
 class Renderer;
 class Mesh;
-enum ShadingMode;
+enum EShadingMode;
 
 // _Wptr is initialized in shared_ptr<>
 class UObject: public std::enable_shared_from_this<UObject> {

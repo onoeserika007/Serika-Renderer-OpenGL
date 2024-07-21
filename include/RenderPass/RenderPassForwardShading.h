@@ -5,9 +5,9 @@
 class Renderer;
 class UniformSampler;
 
-class RenderPassPlain : public RenderPass {
+class RenderPassForwardShading : public RenderPass {
 public:
-	RenderPassPlain(Renderer& renderer);
+	RenderPassForwardShading(Renderer& renderer);
 
 	//virtual void resetBufferSize() override;
 	virtual void render(Scene & scene) override;
@@ -20,7 +20,6 @@ public:
 private:
 	std::shared_ptr<FrameBuffer> fboMain_ = nullptr;
 	std::shared_ptr<Texture> texColorMain_ = nullptr;
+	std::shared_ptr<Texture> texBlendResult_ = nullptr;
 	std::shared_ptr<Texture> texDepthMain_ = nullptr;
-
-	std::shared_ptr<UniformSampler> texColorSampler = nullptr;
 };

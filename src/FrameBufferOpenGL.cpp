@@ -110,11 +110,11 @@ void FrameBufferOpenGL::bind() const {
 
 // stupid mistake, 居然把这俩写反了
 void FrameBufferOpenGL::bindForReading() const {
-    glBindFramebuffer(GL_READ_FRAMEBUFFER, fbo_);
+    GL_CHECK(glBindFramebuffer(GL_READ_FRAMEBUFFER, fbo_));
 }
 
 void FrameBufferOpenGL::bindForWriting() const {
-    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, fbo_);
+    GL_CHECK(glBindFramebuffer(GL_DRAW_FRAMEBUFFER, fbo_));
 }
 
 void FrameBufferOpenGL::disableForWriting() const {
@@ -128,5 +128,9 @@ void FrameBufferOpenGL::diableForReading() const {
 }
 
 void FrameBufferOpenGL::setReadBuffer(int colorAttachmentType) {
-    glReadBuffer(GL_COLOR_ATTACHMENT0 + colorAttachmentType);
+    GL_CHECK(glReadBuffer(GL_COLOR_ATTACHMENT0 + colorAttachmentType));
+}
+
+void FrameBufferOpenGL::setWriteBuffer(int colorAttachmentType) {
+    GL_CHECK(glDrawBuffer(GL_COLOR_ATTACHMENT0 + colorAttachmentType));
 }

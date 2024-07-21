@@ -6,7 +6,7 @@
 #include "Shader.h"
 #include <iostream>
 #include "Base/GLMInc.h"
-#include "ResourceLoader.h"
+#include "../include/Base/ResourceLoader.h"
 #include "Renderer.h"
 
 const char* SamplerDefinesToTextureType[] = {

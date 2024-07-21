@@ -82,31 +82,23 @@ void TextureOpenGL2D::setupPipeline()
 void TextureOpenGL2D::copyDataTo(Texture &other) {
 	TextureOpenGL::copyDataTo(other);
 
-	auto& textureInfo = getTextureInfo();
-	const auto& openglTextureInfo = OpenGL::cvtTextureFormat(static_cast<TextureFormat>(textureInfo.format));
+	// const auto& srcTexInfo = OpenGL::cvtTextureFormat(static_cast<TextureFormat>(getTextureInfo().format));
+	// const auto& dstTexInfo = OpenGL::cvtTextureFormat(static_cast<TextureFormat>(other.getTextureInfo().format));
 
-	GLint oldFBO_ = 0;
-	glGetIntegerv(GL_FRAMEBUFFER_BINDING, &oldFBO_);
+	auto srcTarget = multiSample() ? GL_TEXTURE_2D_MULTISAMPLE : GL_TEXTURE_2D;
+	auto dstTarget = other.multiSample() ? GL_TEXTURE_2D_MULTISAMPLE : GL_TEXTURE_2D;
 
-	GLuint fbo;
-	glGenFramebuffers(1, &fbo);
-	glBindFramebuffer(GL_READ_FRAMEBUFFER, fbo);
-	GLuint texureId = getId();
-	auto target = multiSample() ? GL_TEXTURE_2D_MULTISAMPLE : GL_TEXTURE_2D;
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, texureId, 0);
-	GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
-	if (status != GL_FRAMEBUFFER_COMPLETE) {
-		LOGE("glCheckFramebufferStatus: %x", status);
-	}
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	auto srcTextureId = getId();
+	auto dstTextureId = other.getId();
 
-	GLuint textureId_copyTo = other.getId();
-	glBindTexture(target, textureId_copyTo);
-	glCopyTexImage2D(target, 0, openglTextureInfo.internalformat, 0, 0, width(), height(), 0);
-
-	glDeleteFramebuffers(1, &fbo);
-
-	glBindFramebuffer(GL_FRAMEBUFFER, oldFBO_);
+	auto w = width();
+	auto h = height();
+	GL_CHECK(; );
+	GL_CHECK(glCopyImageSubData(
+	srcTextureId, srcTarget, 0, 0, 0, 0,
+	dstTextureId, dstTarget, 0, 0, 0, 0,
+	w, h, 1
+	));
 }
 
 TextureOpenGL2D::~TextureOpenGL2D()

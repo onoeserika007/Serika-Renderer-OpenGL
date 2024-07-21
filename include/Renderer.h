@@ -6,6 +6,7 @@
 #include "ShaderGLSL.h"
 #include "Base/RenderStates.h"
 #include "Texture.h"
+#include "Base/Config.h"
 
 class RenderPass;
 class BufferAttribute;
@@ -67,7 +68,6 @@ public:
 
 	// pipeline related
 	virtual void updateRenderStates(RenderStates& renderStates) = 0;
-	virtual RenderStates getRenderStates() = 0;
 	virtual void beginRenderPass(std::shared_ptr<FrameBuffer> frameBuffer, const ClearStates& states) = 0;
 	virtual void endRenderPass() = 0;
 
@@ -80,14 +80,20 @@ public:
 	// renderpasses
 	template <typename ...Args>
 	void executeRenderPass(std::shared_ptr<RenderPass> renderPass, Args&&... args);
-	virtual void renderToScreen(UniformSampler& outTex, int screen_width, int screen_height, bool bFromColor) = 0;
+	virtual void dump(UniformSampler& srcTex, bool bFromColor, bool bBlend, std::shared_ptr<FrameBuffer> targetFrameBuffer, int dstColorBuffer) = 0;
 
 	virtual ~Renderer();
 	virtual void clearTexture(Texture& texture) = 0;
 
 	std::shared_ptr<Camera> getCamera();
+	void setCamera(const std::shared_ptr<Camera>& camera);
+	void setBackToViewCamera();
 	int width();
 	int height();
+
+	ERenderMode render_mode;
+	EShadingMode render_shading_mode;
+	RenderStates renderStates;
 protected:
 	int width_ = 0;
 	int height_ = 0;
@@ -102,7 +108,6 @@ protected:
 	std::shared_ptr<UniformBlock> modelUniformBlock_;
 	std::shared_ptr<UniformBlock> lightUniformBlock_;
 	std::shared_ptr<Texture> shadowPlaceholder_ = nullptr;
-	std::shared_ptr<RenderStates> renderStates_ = nullptr;
 };
 
 template<typename ... Args>

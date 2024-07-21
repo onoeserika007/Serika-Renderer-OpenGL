@@ -20,6 +20,7 @@
 #include "Utils/OpenGLUtils.h"
 #include "Base/Config.h"
 #include "Scene.h"
+#include "Base/ResourceLoader.h"
 
 using namespace std;
 
@@ -76,7 +77,7 @@ public:
     // ----------------------------------------------------------------------
     static void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 
-    void setupResource();
+    void setupScene();
 
     void beforeLoop();
 
@@ -106,7 +107,7 @@ App& App::getInstance() {
 
 void App::init() {
     setupWindow();
-    setupResource();
+    setupScene();
     printMaxVertexAttributeNum();
     beforeLoop();
 }
@@ -144,12 +145,12 @@ void App::setupWindow() {
 
     glfwInit();
     //glGetError();
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);                 // OpenGL 主版本号
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);                 // OpenGL 主版本号
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);                 // OpenGL 次版本号
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE); // 使用核心模式
     // glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 
-    window = glfwCreateWindow(800, 600, "LearnOpenGL", nullptr, nullptr);
+    window = glfwCreateWindow(config.WindowWidth, config.WindowHeight, "LearnOpenGL", nullptr, nullptr);
     if (window == nullptr)
     {
         std::cout << "Failed to create GLFW window" << std::endl;
@@ -271,51 +272,21 @@ void App::scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
     app.camera->ProcessMouseScroll(yoffset);
 }
 
-void App::setupResource()
+void App::setupScene()
 {
     scene_ = std::make_shared<Scene>();
 
-
-    std::vector<float> cubePosArray, cubeUvArray, cubeNormalArray;
-    for (int i = 0; i < sizeof(TestTriangle::cubeVertices) / sizeof(float); i += 5) {
-        int j = 0;
-        for (; j < 3; j++) {
-            cubePosArray.push_back(TestTriangle::cubeVertices[i + j]);
-        }
-        for (; j < 5; j++) {
-            cubeUvArray.push_back(TestTriangle::cubeVertices[i + j]);
-        }
-    }
-
-    for (int i = 0; i < sizeof(TestTriangle::cubeVerticesWithNormals) / sizeof(float); i += 6) {
-        int j = 0;
-        while (j < 3) j++;
-        while (j < 6) {
-            cubeNormalArray.push_back(TestTriangle::cubeVerticesWithNormals[i + j]);
-            j++;
-        }
-    }
+    std::vector<float> cubePosArray(TestTriangle::CubeVertices, TestTriangle::CubeVertices + sizeof(TestTriangle::CubeVertices) / sizeof(float));
+    std::vector<float> cubeUvArray(TestTriangle::CubeUVs, TestTriangle::CubeUVs + sizeof(TestTriangle::CubeUVs) / sizeof(float));
+    std::vector<float> cubeNormalArray(TestTriangle::CubeNormals, TestTriangle::CubeNormals + sizeof(TestTriangle::CubeNormals) / sizeof(float));
+    std::vector<unsigned> cubeIndexArray(TestTriangle::CubeIndices, TestTriangle::CubeIndices + sizeof(TestTriangle::CubeIndices) / sizeof(unsigned));
     BufferAttribute cubePosAttribute(cubePosArray, 3), cubeUvAttribute(cubeUvArray, 2), cubeNormalAttribute(cubeNormalArray, 3);
 
-
-    //auto cubeGeometry = std::make_shared<Geometry>();
     auto cubeGeometry = std::make_shared<Geometry>();
     cubeGeometry->setAttribute("aPos", cubePosAttribute, true);
     cubeGeometry->setAttribute("aTexCoord", cubeUvAttribute);
     cubeGeometry->setAttribute("aNormal", cubeNormalAttribute);
-
-
-    // Shader
-    //auto pShader = std::make_shared<Shader>("./assets/shader/vertexShader.vert", "./assets/shader/fragmentShader.frag");
-    //auto pShader = Shader::loadShader("./assets/shader/vertexShader.vert", "./assets/shader/fragmentShader.frag");
-    // 我们还要通过使用glUniform1i设置每个采样器的方式告诉OpenGL每个着色器采样器属于哪个纹理单元。我们只需要设置一次即可，所以这个会放在渲染循环的前面：
-    //glUniform1i(glGetUniformLocation(pShader->ID, "texture1"), 0); // 手动设置
-    //pShader->setInt("texture2", 1); // 或者使用着色器类设置
-
-    // cube
-    //auto pcubeMaterial = std::make_shared<PhongMaterial>("material", glm::vec3(0.0, 0.1, 0.06), glm::vec3(0.0, 0.50980392, 0.50980392), glm::vec3(0.50196078, 0.50196078, 0.50196078), 32.0);
-    //cube = std::make_shared<Object>(cubeGeometry, pcubeMaterial);
-    //cube = std::make_shared<Object<float>>(cubeGeometry, plightedObjectShader);
+    cubeGeometry->setIndex(cubeIndexArray);
 
     // lightMapCube
     //auto plightMapCubeMat = std::make_shared<LightMapMaterial>("material", 32.0f);
@@ -326,35 +297,39 @@ void App::setupResource()
     //lightMapCube = std::make_shared<Object>(cubeGeometry, plightMapCubeMat);
 
     // nanosuit
-    std::string nanosuitPath = "./assets/models/nanosuit/nanosuit.obj";
-    auto nanosuit = UModel::makeModel();
-    nanosuit->loadModel(nanosuitPath);
+    auto nanosuit = ResourceLoader::loadModel("./assets/models/nanosuit/nanosuit.obj");
     nanosuit->setScale(0.1, 0.1, 0.1);
     nanosuit->setPosition(glm::vec3(0.f, -0.5f, 0.f));
-    // nanosuit->
-
+    nanosuit->setShadingMode(EShadingMode::Shading_BlinnPhong);
     scene_->addModel(nanosuit);
-    //auto nanoShader = renderer->createShader("./assets/shader/nanosuit/nanosuit.vert", "./assets/shader/nanosuit/nanosuit.frag");
-    // 模型不同mesh之间的shader不应该共享
-    //auto nanoShader = renderer->createShader("./assets/shader/Standard.vert", "./assets/shader/Standard.frag");
-    ////auto nanoShader = Shader::loadShader("./assets/shader/nanosuit/nanosuit.vert", "./assets/shader/nanosuit/nanosuit.frag");
-    //nanosuit->setShader(nanoShader);
+
+    // floor
+    auto floor = ResourceLoader::loadModel("./assets/models/floor/floor.obj");
+    floor->setPosition({0.f, -0.5f, 0.f});
+    floor->setScale({0.1f, 0.1f, 0.1f});
+    floor->setShadingMode(EShadingMode::Shading_BlinnPhong);
+    scene_->addModel(floor);
+
 
     // point light
     // shaders will be loaded by ShaderMode now, no longer needed to load manually.
     // here cube point light just use BaseColor.
     auto plightMaterial = std::make_shared<StandardMaterial>();
-    plightMaterial->setShadingMode(ShadingMode::Shading_BaseColor);
-    //light = std::make_shared<Light>("light", glm::vec3(0.2f, 0.2f, 0.2f), glm::vec3(0.5f, 0.5f, 0.5f), glm::vec3(1.0f, 1.0f, 1.0f), cubeGeometry, plightMaterial);
-    auto light = ULight::makeLight(cubeGeometry, plightMaterial);
-    light->setAsPointLight(glm::vec3(3, 3, 3), glm::vec3(0.2f, 0.2f, 0.2f), glm::vec3(0.5f, 0.5f, 0.5f), glm::vec3(1.0f, 1.0f, 1.0f), 1.0, 0.045, 0.0075);
-    light->setScale({ 0.1, 0.1, 0.1 });
-    scene_->addLight(light);
+    plightMaterial->setShadingMode(EShadingMode::Shading_BaseColor);
 
-    auto light2 = ULight::makeLight(cubeGeometry, plightMaterial);
-    light2->setAsPointLight(glm::vec3(0, 0, 0), glm::vec3(0.2f, 0.2f, 0.2f), glm::vec3(0.5f, 0.5f, 0.5f), glm::vec3(1.0f, 1.0f, 1.0f), 1.0, 0.045, 0.0075);
-    light2->setScale({ 0.1, 0.1, 0.1 });
-    scene_->addLight(light2);
+    auto dirLight = ULight::makeLight(cubeGeometry, plightMaterial);
+    glm::vec3 dirLightPos {3, 3, 3};
+    dirLight->setAsDirectionalLight(floor->getPosition() - dirLightPos, glm::vec3(0.f), glm::vec3(0.5f, 0.5f, 0.5f), glm::vec3(0.5));
+    dirLight->setScale({ 0.1, 0.1, 0.1 });
+    dirLight->setPosition(dirLightPos);
+    scene_->addLight(dirLight);
+
+    // auto light2 = ULight::makeLight(cubeGeometry, plightMaterial);
+    // light2->setAsPointLight(glm::vec3(0, 0, 0), glm::vec3(0.f), glm::vec3(0.5f, 0.5f, 0.5f), glm::vec3(1.0f, 1.0f, 1.0f), 1.0, 0.045, 0.0075);
+    // light2->setScale({ 0.1, 0.1, 0.1 });
+    // light2->setPosition({-3, 3, -3});
+    // scene_->addLight(light2);
+
     ////light->setAttribute(glm::vec3(0, 0, 0), glm::vec3(0.2f, 0.2f, 0.2f), glm::vec3(0.5f, 0.5f, 0.5f), glm::vec3(1.0f, 1.0f, 1.0f), 1.0, 0.045, 0.0075);
     //light->setName("pointLightArray");
     //glm::vec3 lightPos(1.2f, 1.0f, 2.0f);

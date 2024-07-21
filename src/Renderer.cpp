@@ -88,6 +88,14 @@ std::shared_ptr<Camera> Renderer::getCamera()
 	return mainCamera_;
 }
 
+void Renderer::setCamera(const std::shared_ptr<Camera> &camera) {
+	mainCamera_ = camera;
+}
+
+void Renderer::setBackToViewCamera() {
+	setCamera(viewCamera_);
+}
+
 int Renderer::width()
 {
 	return width_;

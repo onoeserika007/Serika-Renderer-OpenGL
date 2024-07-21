@@ -55,7 +55,7 @@ void main()
     vec3 norm = normalize(worldNormal);
     vec3 viewDir = normalize(viewPos - fragPos);
     if (uLightType == 0) {
-        gl_FragColor = vec4(1.0f);
+        gl_FragColor = vec4(0.0f);
         return;
     }
     // point light
@@ -87,20 +87,21 @@ mat3 calcDirLight(vec3 normal, vec3 viewDir) {
     vec3 ambient  = vec3(0.f);
     vec3 diffuse  = vec3(0.f);
     vec3 specular = vec3(0.f);
-#ifdef DIFFUSE_MAP
+    #ifdef DIFFUSE_MAP
     // 漫反射着色
     float diff = max(dot(normal, lightDir), 0.0);
     // 合并结果
     ambient  = uLightAmbient  * vec3(texture(uDiffuseMap, TexCoord));
     diffuse  = uLightDiffuse  * diff * vec3(texture(uDiffuseMap, TexCoord));
-#endif
+    #endif
 
-#ifdef SPECULAR_MAP
+    #ifdef SPECULAR_MAP
     // 镜面光着色
     vec3 reflectDir = reflect(-lightDir, normal);
-    float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32.f);
+    vec3 halfVector = (reflectDir + viewDir) / 2.f;
+    float spec = pow(max(dot(halfVector, normal), 0.0), 32.f);
     specular = uLightSpecular * spec * vec3(texture(uSpecularMap, TexCoord));
-#endif
+    #endif
     return mat3(ambient, diffuse, specular);
 }
 
@@ -129,12 +130,13 @@ mat3 calcPointLight(vec3 normal, vec3 fragPos, vec3 viewDir) {
     diffuse  = uLightDiffuse  * diff * vec3(texture(uDiffuseMap, TexCoord));
 #endif
 
-#ifdef SPECULAR_MAP
+    #ifdef SPECULAR_MAP
     // 镜面光着色
     vec3 reflectDir = reflect(-lightDir, normal);
-    float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32.f);
+    vec3 halfVector = (reflectDir + viewDir) / 2.f;
+    float spec = pow(max(dot(halfVector, normal), 0.0), 32.f);
     specular = uLightSpecular * spec * vec3(texture(uSpecularMap, TexCoord));
-#endif
+    #endif
 
     ambient  *= attenuation;
     diffuse  *= attenuation;

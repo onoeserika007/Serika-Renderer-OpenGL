@@ -12,7 +12,7 @@ enum AlphaMode {
 	Alpha_Blend,
 };
 
-enum ShadingMode {
+enum EShadingMode {
 	Shading_Unknown = 0,
 	Shading_BaseColor,
 	Shading_BlinnPhong,
@@ -25,10 +25,11 @@ enum ShadingMode {
 
 enum class ShaderPass: uint8_t {
 	Shader_Shadow_Pass,
-	Shader_Plain_Pass,
+	Shader_ForwardShading_Pass,
 	Shader_ToScreen_Pass,
 	Shader_Geometry_Pass,
-	Shader_Light_Pass
+	Shader_Light_Pass,
+	Shader_LightBuffer_Pass
 };
 
 class Shader;
@@ -44,7 +45,7 @@ class Material {
 protected:
 	std::string shaderStructName_;
 	std::shared_ptr<Shader> pshader_;
-	ShadingMode shadingMode_;
+	EShadingMode shadingMode_;
 
 	// unifroms包括uniform block和sampler，每次渲染的时候都需要重新绑定到对应的shader
 	std::unordered_map<std::string, std::shared_ptr<Uniform>> uniforms_; // name -> Uniform
@@ -65,7 +66,7 @@ public:
 	Material();
 	Material(std::string name, std::shared_ptr<Shader> pshader);
 
-	static const char* shadingModelStr(ShadingMode model);
+	static const char* shadingModelStr(EShadingMode model);
 
 	//void loadShader(const std::string& vertexPath, const std::string& fragmentPath);
 
@@ -106,9 +107,9 @@ public:
 
 	void clearTextures();
 
-	ShadingMode shadingMode();
+	EShadingMode shadingMode();
 
-	void setShadingMode(ShadingMode mode);
+	void setShadingMode(EShadingMode mode);
 
 	void addDefine(const std::string& define);
 

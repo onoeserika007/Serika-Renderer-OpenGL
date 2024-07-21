@@ -9,7 +9,7 @@ in vec3 localNormal;
 layout (location = 0) out vec3 WorldPosOut;
 layout (location = 1) out vec3 DiffuseOut;
 layout (location = 2) out vec3 NormalOut;
-layout (location = 3) out vec3 TexCoordOut;
+layout (location = 3) out vec3 SpecularOut;
 
 layout(std140) uniform Model {
     mat4 uModel;
@@ -54,9 +54,11 @@ layout(std140) uniform Light {
 void main()
 {
     WorldPosOut = fragPos;
-#ifdef DIFFUSE_MAPs
+#ifdef DIFFUSE_MAP
     DiffuseOut = texture(uDiffuseMap, TexCoord).xyz;
 #endif
     NormalOut = normalize(worldNormal);
-    TexCoordOut = vec3(TexCoord, 0.0);
+#ifdef SPECULAR_MAP
+    SpecularOut = texture(uSpecularMap, TexCoord).xyz;
+#endif
 }

@@ -1,15 +1,10 @@
 #pragma once
 #include <glad/glad.h> // 包含glad来获取所有的必须OpenGL头文件
 #include <string>
-#include <fstream>
-#include <sstream>
-#include <iostream>
 #include <vector>
 #include <memory>
-#include <unordered_map>
 #include "Base/GLMInc.h"
 #include "Shader.h"
-#include <glslang/Public/ShaderLang.h>
 
 enum ShaderType{
     ShaderType_VertexShader,
@@ -40,7 +35,8 @@ public:
     explicit ShaderGLSL(PassKey passkey, const std::string& vertexPath, const std::string& fragmentPath) : ShaderGLSL(vertexPath, fragmentPath) {}
     static std::shared_ptr<ShaderGLSL> loadShader(const std::string& vertexPath, const std::string& fragmentPath);
     static std::shared_ptr<ShaderGLSL> loadDefaultShader();
-    static std::shared_ptr<ShaderGLSL> loadPlainPassShader();
+    static std::shared_ptr<ShaderGLSL> loadBaseColorShader();
+    static std::shared_ptr<ShaderGLSL> loadBlinnPhongShader();
     static std::shared_ptr<ShaderGLSL> loadGeometryShader();
     static std::shared_ptr<ShaderGLSL> loadPhongMaterialShader();
     static std::shared_ptr<ShaderGLSL> loadLightMapMaterialShader();

@@ -3,11 +3,11 @@
 #include "Utils/utils.h"
 #include "Utils/OpenGLUtils.h"
 #include <vector>
-#include "ResourceLoader.h"
+#include "../include/Base/ResourceLoader.h"
 #include "Material.h"
 
 //std::unordered_map<std::string, std::shared_ptr<ShaderGLSL>> ShaderGLSL::shader_map_;
-const std::string OPENGL_VERSION_HEADER = "#version 330 core";
+const std::string OPENGL_VERSION_HEADER = "#version 430 core";
 
 // 构造器读取并构建着色器
 ShaderGLSL::ShaderGLSL(const std::string& vertexPath, const std::string& fragmentPath) {
@@ -42,9 +42,13 @@ std::shared_ptr<ShaderGLSL> ShaderGLSL::loadDefaultShader() {
     return loadShader("./assets/shader/default.vert", "./assets/shader/default.frag");
 }
 
-std::shared_ptr<ShaderGLSL> ShaderGLSL::loadPlainPassShader()
+std::shared_ptr<ShaderGLSL> ShaderGLSL::loadBaseColorShader() {
+    return loadShader("assets/shader/Passes/PlainPass/BaseColor.vert", "assets/shader/Passes/PlainPass/BaseColor.frag");
+}
+
+std::shared_ptr<ShaderGLSL> ShaderGLSL::loadBlinnPhongShader()
 {
-    return loadShader("./assets/shader/Passes/PlainPass/PlainPass.vert", "./assets/shader/Passes/PlainPass/PlainPass.frag");
+    return loadShader("./assets/shader/Passes/PlainPass/Blinn-Phong.vert", "./assets/shader/Passes/PlainPass/Blinn-Phong.frag");
 }
 
 std::shared_ptr<ShaderGLSL> ShaderGLSL::loadGeometryShader() {

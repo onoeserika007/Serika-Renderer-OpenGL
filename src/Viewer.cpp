@@ -10,7 +10,7 @@
 #include "Utils/Logger.h"
 #include "Texture.h"
 #include "Renderer.h"
-#include "RenderPass/RenderPassPlain.h"
+#include "RenderPass/RenderPassForwardShading.h"
 #include "../include/Geometry/Model.h"
 #include "Scene.h"
 #include "RenderPass/RenderPassShadow.h"
@@ -54,7 +54,7 @@ void Viewer::init(int width, int height, int outTexId)
 	setViewPort(0, 0, width_, height_);
 
 	// passes
-	plainPass_ = std::make_shared<RenderPassPlain>(*renderer_);
+	plainPass_ = std::make_shared<RenderPassForwardShading>(*renderer_);
 	plainPass_->init();
 
 	geometryPass_ = std::make_shared<RenderPassGeometry>(*renderer_);
@@ -85,6 +85,7 @@ void Viewer::cleanup()
 
 void Viewer::render(std::shared_ptr<Scene> scene) {
 	auto&& config = Config::getInstance();
+	renderer_->render_mode = config.RenderMode;
 	if (config.RenderMode == ERenderMode::RenderMode_ForwardRendering) {
 		drawScene(scene);
 	}
@@ -115,14 +116,15 @@ void Viewer::drawScene(std::shared_ptr<Scene> scene)
 	* PlainPass
 	*/
 	ClearStates clearStatesPlainPass;
-	clearStatesPlainPass.clearColor = clearColor;
+	clearStatesPlainPass.clearColor = BLACK_COLOR;
 	clearStatesPlainPass.colorFlag = true;
 	clearStatesPlainPass.depthFlag = true;
 
-	auto&& renderStates = renderer_->getRenderStates();
+	auto&& renderStates = renderer_->renderStates;
 	renderStates.blend = true;
 	renderStates.depthMask = true;
 	renderStates.depthTest = true;
+	renderStates.cullFace = true;
 	renderer_->updateRenderStates(renderStates);
 
 	renderer_->beginRenderPass(plainPass_->getFramebufferMain(), clearStatesPlainPass);
@@ -132,15 +134,8 @@ void Viewer::drawScene(std::shared_ptr<Scene> scene)
 	/*
 	* ToScreenPass
 	*/
-	ClearStates clearStatesToScreenPass;
-	clearStatesToScreenPass.clearColor = clearColor;
-	clearStatesToScreenPass.colorFlag = true;
-	clearStatesToScreenPass.depthFlag = true;
-
-	// auto depthText = plainPass_->tempDepthBuffer_->getUniformSampler(*renderer_);
 	auto outTex = plainPass_->getTexColorSampler();
-	renderer_->beginRenderPass(nullptr, clearStatesToScreenPass);
-	renderer_->renderToScreen(*outTex, width_, height_, true);
+	renderer_->dump(*outTex, true, false, nullptr, 0);
 	renderer_->endRenderPass();
 }
 
@@ -153,7 +148,7 @@ void Viewer::drawScene_ShadowMapTest(std::shared_ptr<Scene> scene) {
 	clearStatesPlainPass.colorFlag = true;
 	clearStatesPlainPass.depthFlag = true;
 
-	auto&& renderStates = renderer_->getRenderStates();
+	auto&& renderStates = renderer_->renderStates;
 	renderStates.blend = true;
 	renderStates.depthMask = true;
 	renderStates.depthTest = true;
@@ -174,9 +169,8 @@ void Viewer::drawScene_ShadowMapTest(std::shared_ptr<Scene> scene) {
 		clearStatesToScreenPass.depthFlag = true;
 
 		auto outTex = scene->getLights()[0]->getShadowMap(*shadowPass_)->getUniformSampler(*renderer_);
-		// auto outTex = shadowPass_->texTempDepth_->getUniformSampler(*renderer_);
 		renderer_->beginRenderPass(nullptr, clearStatesToScreenPass);
-		renderer_->renderToScreen(*outTex, width_, height_, false);
+		renderer_->dump(*outTex, false, false, nullptr, 1);
 		renderer_->endRenderPass();
 	}
 
@@ -193,7 +187,7 @@ void Viewer::drawScene_DefferedRendering(std::shared_ptr<Scene> scene) {
 		clearStateGeometryPass.colorFlag = true;
 		clearStateGeometryPass.depthFlag = true;
 
-		auto&& renderStates = renderer_->getRenderStates();
+		auto&& renderStates = renderer_->renderStates;
 		renderStates.blend = false;
 		renderStates.depthMask = true;
 		renderStates.depthTest = true;
@@ -217,7 +211,7 @@ void Viewer::drawScene_DefferedRendering(std::shared_ptr<Scene> scene) {
 		blendParams.SetBlendFactor(BlendFactor_ONE, BlendFactor_ONE);
 		blendParams.SetBlendFunc(BlendFunc_ADD);
 
-		auto&& renderStates = renderer_->getRenderStates();
+		auto&& renderStates = renderer_->renderStates;
 		renderStates.blend = true;
 		renderStates.blendParams = blendParams;
 		renderStates.depthMask = true;
@@ -239,7 +233,7 @@ void Viewer::drawScene_DefferedRendering(std::shared_ptr<Scene> scene) {
 
 		auto outTex = lightPass_->getTexColorSampler();
 		renderer_->beginRenderPass(nullptr, clearStatesToScreenPass);
-		renderer_->renderToScreen(*outTex, width_, height_, true);
+		renderer_->dump(*outTex, true, false, nullptr, 1);
 		renderer_->endRenderPass();
 	}
 }

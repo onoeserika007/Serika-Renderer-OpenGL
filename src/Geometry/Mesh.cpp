@@ -28,7 +28,7 @@ unsigned UMesh::getVAO() const {
     return VAO;
 }
 
-ShadingMode UMesh::getShadingMode() const {
+EShadingMode UMesh::getShadingMode() const {
     return shadingMode_;
 }
 
@@ -36,6 +36,6 @@ void UMesh::setVAO(unsigned id) {
     VAO = id;
 }
 
-void UMesh::setShadingMode(ShadingMode shadingMode) {
+void UMesh::setShadingMode(EShadingMode shadingMode) {
     shadingMode_ = shadingMode;
 }

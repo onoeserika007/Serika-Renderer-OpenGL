@@ -1,4 +1,6 @@
-#include "ResourceLoader.h"
+#include "../include/Base/ResourceLoader.h"
+
+#include "Geometry/Model.h"
 
 std::unordered_map<std::string, std::shared_ptr<Buffer<RGBA>>> ResourceLoader::textureDataCache_;
 std::unordered_map<std::string, std::string> ResourceLoader::shaderSourceCache_;
@@ -18,4 +20,10 @@ std::string ResourceLoader::loadShader(const std::string& path)
 		shaderSourceCache_[path] = std::string(shaderSource.data(), shaderSource.data() + shaderSource.size());
 	}
 	return shaderSourceCache_[path];
+}
+
+std::shared_ptr<UModel> ResourceLoader::loadModel(const std::string &path) {
+	auto ret = UModel::makeModel();
+	ret->loadModel(path);
+	return ret;
 }

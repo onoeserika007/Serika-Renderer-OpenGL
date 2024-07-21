@@ -126,12 +126,12 @@ void RendererOpenGL::loadShaders(Material& material)
 	case Shading_Unknown:
 		break;
 	case Shading_BaseColor:
-		material.setShader(ShaderPass::Shader_Plain_Pass, ShaderGLSL::loadPlainPassShader());
+		material.setShader(ShaderPass::Shader_ForwardShading_Pass, ShaderGLSL::loadBaseColorShader());
 		material.setShader(ShaderPass::Shader_Geometry_Pass, ShaderGLSL::loadGeometryShader());
 		material.setShader(ShaderPass::Shader_Shadow_Pass, ShaderGLSL::loadShadowPassShader());
 		break;
 	case Shading_BlinnPhong:
-		material.setShader(ShaderPass::Shader_Plain_Pass, ShaderGLSL::loadPlainPassShader());
+		material.setShader(ShaderPass::Shader_ForwardShading_Pass, ShaderGLSL::loadBlinnPhongShader());
 		material.setShader(ShaderPass::Shader_Geometry_Pass, ShaderGLSL::loadGeometryShader());
 		material.setShader(ShaderPass::Shader_Shadow_Pass, ShaderGLSL::loadShadowPassShader());
 		break;
@@ -264,6 +264,7 @@ void RendererOpenGL::useMaterial(Material& material, ShaderPass pass)
 void RendererOpenGL::draw(UMesh &mesh, const ShaderPass pass, const std::shared_ptr<Camera>& shadowCamera)
 {
 	if (mesh.drawable()) {
+		// mesh.setShadingMode(render_shading_mode);
 		setupMesh(mesh, pass);
 		mesh.updateFrame(*this);
 
@@ -289,6 +290,7 @@ void RendererOpenGL::draw(UMesh &mesh, const ShaderPass pass, const std::shared_
 
 	for (auto&& child: mesh.getChildren()) {
 		if (auto* childMesh = dynamic_cast<UMesh*>(child.get())) {
+			childMesh->setShadingMode(mesh.getShadingMode());
 			draw(*childMesh, pass, shadowCamera);
 		}
 	}
@@ -298,7 +300,6 @@ void RendererOpenGL::draw(UMesh &mesh, const ShaderPass pass, const std::shared_
 #define GL_STATE_SET(var, gl_state) if (var) GL_CHECK(glEnable(gl_state)); else GL_CHECK(glDisable(gl_state));
 
 void RendererOpenGL::updateRenderStates(RenderStates &renderStates) {
-	renderStates_ = std::make_shared<RenderStates>(renderStates);
 
 	// blend
 	GL_STATE_SET(renderStates.blend, GL_BLEND)
@@ -322,13 +323,6 @@ void RendererOpenGL::updateRenderStates(RenderStates &renderStates) {
 
 }
 
-RenderStates RendererOpenGL::getRenderStates() {
-	RenderStates ret;
-	if (renderStates_) {
-		ret = *renderStates_;
-	}
-	return ret;
-}
 
 void RendererOpenGL::beginRenderPass(std::shared_ptr<FrameBuffer> frameBuffer, const ClearStates& states)
 {
@@ -373,9 +367,9 @@ void RendererOpenGL::waitIdle()
 	GL_CHECK(glFinish());
 }
 
-void RendererOpenGL::renderToScreen(UniformSampler& outTex, int screen_width, int screen_height, bool bFromColor)
+void RendererOpenGL::dump(UniformSampler& srcTex, bool bFromColor, bool bBlend, std::shared_ptr<FrameBuffer> targetFrameBuffer, int dstColorBuffer)
 {
-	outTex.setName("uTexture");
+	srcTex.setName("uTexture");
 
 	static GLuint VAO = 0;
 	static GLuint VBO = 0;
@@ -383,10 +377,10 @@ void RendererOpenGL::renderToScreen(UniformSampler& outTex, int screen_width, in
 
 	std::shared_ptr<ShaderGLSL> program;
 	if (bFromColor) {
-		program = getToScreenColorProgram(outTex);
+		program = getToScreenColorProgram(srcTex);
 	}
 	else {
-		program = getToScreenDepthProgram(outTex);
+		program = getToScreenDepthProgram(srcTex);
 	}
 
 	if (0 == VAO) {
@@ -414,21 +408,30 @@ void RendererOpenGL::renderToScreen(UniformSampler& outTex, int screen_width, in
 	}
 
 	if (VAO && EBO && VBO ) {
-		GL_CHECK(glDisable(GL_BLEND));
-		GL_CHECK(glDisable(GL_DEPTH_TEST));
-		GL_CHECK(glDepthMask(true));
-		GL_CHECK(glDisable(GL_CULL_FACE));
-		GL_CHECK(glPolygonMode(GL_FRONT_AND_BACK, GL_FILL));
+		// GL_CHECK(glDisable(GL_BLEND));
+		if (targetFrameBuffer) {
+			targetFrameBuffer->bind();
+			targetFrameBuffer->setWriteBuffer(dstColorBuffer);
+		}
+		else {
+			GL_CHECK(glBindFramebuffer(GL_FRAMEBUFFER, 0));
+			GL_CHECK(glDisable(GL_BLEND));
+			GL_CHECK(glDisable(GL_DEPTH_TEST));
+			GL_CHECK(glDepthMask(true));
+			GL_CHECK(glDisable(GL_CULL_FACE));
+			GL_CHECK(glPolygonMode(GL_FRONT_AND_BACK, GL_FILL));
+		}
+		// GL_CHECK(glDisable(GL_CULL_FACE));
+		// GL_CHECK(glPolygonMode(GL_FRONT_AND_BACK, GL_FILL));
 
-		GL_CHECK(glBindFramebuffer(GL_FRAMEBUFFER, 0));
-		GL_CHECK(glViewport(0, 0, screen_width, screen_height));
-
-		GL_CHECK(glClearColor(0.f, 0.f, 0.f, 0.0f));
-		GL_CHECK(glClear(GL_COLOR_BUFFER_BIT));
+		if (!bBlend) {
+			GL_CHECK(glClearColor(0.f, 0.f, 0.f, 0.0f));
+			GL_CHECK(glClear(GL_COLOR_BUFFER_BIT));
+		}
 
 		// name of outTex here should be corresponding to that in shader.
 		program->use();
-		program->bindUniform(outTex);
+		program->bindUniform(srcTex);
 
 		GL_CHECK(glBindVertexArray(VAO));
 		GL_CHECK(glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr));

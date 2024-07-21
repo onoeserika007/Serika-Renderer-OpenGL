@@ -15,11 +15,11 @@ public:
     std::shared_ptr<Geometry> getpGeometry();
     std::shared_ptr<Material> getpMaterial();;
     unsigned getVAO() const;
-    ShadingMode getShadingMode() const;
+    EShadingMode getShadingMode() const;
 
     // setters
     void setVAO(unsigned id);
-    void setShadingMode(ShadingMode shadingMode);
+    void setShadingMode(EShadingMode shadingMode);
 
     ///
     /// pipeline
@@ -40,7 +40,7 @@ private:
     // mesh
     std::shared_ptr<Geometry> pgeometry_;
     std::shared_ptr<Material> pmaterial_;
-    ShadingMode shadingMode_ = Shading_BaseColor;
+    EShadingMode shadingMode_ = Shading_BaseColor;
     unsigned VAO;
     bool bPipelineSetup = false;
 };

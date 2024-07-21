@@ -19,8 +19,8 @@ public:
     virtual void bindForWriting() const override;
     virtual void disableForWriting() const override;
     virtual void diableForReading() const override;
-
-    void setReadBuffer(int colorAttachmentType) override;
+    virtual void setReadBuffer(int colorAttachmentType) override;
+    virtual void setWriteBuffer(int colorAttachmentType) override;
 
     void setColorAttachment(std::shared_ptr<Texture>& color, int level, int pos) override;
 

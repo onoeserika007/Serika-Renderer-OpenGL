@@ -14,7 +14,7 @@ class FrameBuffer;
 // 错误地将struct前向声明为class也会引起链接错误
 // struct Config;
 class UObject;
-class RenderPassPlain;
+class RenderPassForwardShading;
 class Scene;
 class UModel;
 
@@ -48,6 +48,7 @@ protected:
 	std::shared_ptr<Renderer> renderer_ = nullptr;
 
 	glm::vec4 clearColor{ 0.2f, 0.3f, 0.3f, 1.0f };
+	const glm::vec4 BLACK_COLOR {0.f, 0.f, 0.f, 1.f};
 
 	// 现在暂定不对renderpass进行循环渲染，而是手动装配管线，即手动接入和输出renderpass的结果
 
@@ -62,7 +63,7 @@ protected:
 	//std::shared_ptr<Texture> shadowPlaceholder_ = nullptr;
 
 	// renderpasses
-	std::shared_ptr<RenderPassPlain> plainPass_ = nullptr;
+	std::shared_ptr<RenderPassForwardShading> plainPass_ = nullptr;
 	std::shared_ptr<RenderPassGeometry> geometryPass_ = nullptr;
 	std::shared_ptr<RenderPassLight> lightPass_ = nullptr;
 	std::shared_ptr<RenderPassShadow> shadowPass_ = nullptr;

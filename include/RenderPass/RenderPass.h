@@ -16,7 +16,7 @@ private:
 protected:
 	std::shared_ptr<Shader> shaderProgram_;
 	Renderer& renderer_;
-	ShaderPass shaderPass_ = ShaderPass::Shader_Plain_Pass;
+	ShaderPass shaderPass_ = ShaderPass::Shader_ForwardShading_Pass;
 public:
 	RenderPass(Renderer& renderer) : renderer_(renderer) {}
 	virtual void render(Scene & scene) = 0;

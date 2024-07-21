@@ -23,6 +23,7 @@ public:
     virtual void disableForWriting() const = 0;
     virtual void diableForReading() const = 0;
     virtual void setReadBuffer(int colorAttachmentType) = 0;
+    virtual void setWriteBuffer(int colorAttachmentType) = 0;
 
     virtual void setColorAttachment(std::shared_ptr<Texture>& color, int level, int pos);
 

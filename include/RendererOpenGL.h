@@ -28,14 +28,13 @@ public:
 
 	// pipeline related
 	virtual void updateRenderStates(RenderStates& renderStates) override;
-	virtual RenderStates getRenderStates() override;
 	virtual void beginRenderPass(std::shared_ptr<FrameBuffer> frameBuffer, const ClearStates& states) override;
 	virtual void endRenderPass() override;
 	virtual void setRenderViewPort(int x, int y, int width, int height);
 	virtual void waitIdle() override;
 
 	// renderpasses
-	virtual void renderToScreen(UniformSampler& outTex, int screen_width, int screen_height, bool bFromColor) override;
+	virtual void dump(UniformSampler& srcTex, bool bFromColor, bool bBlend, std::shared_ptr<FrameBuffer> targetFrameBuffer, int dstColorBuffer) override;
 
 	virtual ~RendererOpenGL();
 	virtual void clearTexture(Texture& texture) override;

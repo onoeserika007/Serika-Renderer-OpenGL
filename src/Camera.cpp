@@ -57,7 +57,7 @@ void Camera::ProcessMouseMovement(float xoffset, float yoffset, GLboolean constr
 
     // update Front, Right and Up Vectors using the updated Euler angles
     updateCameraVectors();
-}
+};;
 
 void Camera::ProcessMouseScroll(float yoffset) {
     Zoom -= (float)yoffset;
