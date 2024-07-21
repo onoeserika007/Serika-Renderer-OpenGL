@@ -1,6 +1,6 @@
 #include "RenderPass/RenderPassLight.h"
 
-#include <glad.h>
+#include <glad/glad.h>
 
 #include "Uniform.h"
 #include "Texture.h"

@@ -16,13 +16,6 @@ UModel::UModel()
 	bDrawable = false;
 }
 
-//void Model::setupPipeline(Renderer& renderer)
-//{
-//	for (auto& mesh : meshes) {
-//		mesh->setupPipeline(renderer);
-//	}
-//}
-
 void UModel::loadModel(const std::string& path)
 {
 	Assimp::Importer importer;

@@ -330,6 +330,7 @@ void App::setupResource()
     auto nanosuit = UModel::makeModel();
     nanosuit->loadModel(nanosuitPath);
     nanosuit->setScale(0.1, 0.1, 0.1);
+    nanosuit->setPosition(glm::vec3(0.f, -0.5f, 0.f));
     // nanosuit->
 
     scene_->addModel(nanosuit);

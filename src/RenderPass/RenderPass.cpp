@@ -3,17 +3,16 @@
 #include "Renderer.h"
 
 void RenderPass::setupColorBuffer(std::shared_ptr<Texture>& colorBuffer, bool multiSample, bool force) {
-	int w = renderer_.width(), h = renderer_.height();
-	if (w != width_ || h != height_) {
-		force = true;
-		width_ = w;
-		height_ = h;
+	if (colorBuffer) {
+		const TextureInfo& texInfo = colorBuffer->getTextureInfo();
+		force = force || texInfo.width != renderer_.width() || texInfo.height != renderer_.height();
+		force = force || texInfo.target != TextureTarget_2D || texInfo.format != TextureFormat_RGBA8;
 	}
 
 	if (!colorBuffer || colorBuffer->multiSample() != multiSample || force) {
 		TextureInfo texInfo{};
-		texInfo.width = width_;
-		texInfo.height = height_;
+		texInfo.width = renderer_.width();
+		texInfo.height = renderer_.height();
 		texInfo.target = TextureTarget::TextureTarget_2D;
 		texInfo.format = TextureFormat::TextureFormat_RGBA8;
 		texInfo.usage = TextureUsage_AttachmentColor | TextureUsage_RendererOutput;
@@ -33,17 +32,16 @@ void RenderPass::setupColorBuffer(std::shared_ptr<Texture>& colorBuffer, bool mu
 }
 
 void RenderPass::setupDepthBuffer(std::shared_ptr<Texture>& depthBuffer, bool multiSample, bool force) {
-	int w = renderer_.width(), h = renderer_.height();
-	if (w != width_ || h != height_) {
-		force = true;
-		width_ = w;
-		height_ = h;
+	if (depthBuffer) {
+		const TextureInfo& texInfo = depthBuffer->getTextureInfo();
+		force = force || texInfo.width != renderer_.width() || texInfo.height != renderer_.height();
+		force = force || texInfo.target != TextureTarget_2D || texInfo.format != TextureFormat_FLOAT32;
 	}
 
 	if (!depthBuffer || depthBuffer->multiSample() != multiSample || force) {
 		TextureInfo texInfo{};
-		texInfo.width = width_;
-		texInfo.height = height_;
+		texInfo.width = renderer_.width();
+		texInfo.height = renderer_.height();
 		texInfo.target = TextureTarget::TextureTarget_2D;
 		texInfo.format = TextureFormat::TextureFormat_FLOAT32;
 		texInfo.usage = TextureUsage::TextureUsage_AttachmentDepth;

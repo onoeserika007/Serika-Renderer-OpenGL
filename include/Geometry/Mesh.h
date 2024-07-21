@@ -13,7 +13,7 @@ public:
 
     // getters
     std::shared_ptr<Geometry> getpGeometry();
-    std::shared_ptr<Material> getpMaterial();
+    std::shared_ptr<Material> getpMaterial();;
     unsigned getVAO() const;
     ShadingMode getShadingMode() const;
 

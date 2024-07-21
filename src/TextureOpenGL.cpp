@@ -93,7 +93,7 @@ void TextureOpenGL2D::copyDataTo(Texture &other) {
 	glBindFramebuffer(GL_READ_FRAMEBUFFER, fbo);
 	GLuint texureId = getId();
 	auto target = multiSample() ? GL_TEXTURE_2D_MULTISAMPLE : GL_TEXTURE_2D;
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texureId, 0);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, texureId, 0);
 	GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
 	if (status != GL_FRAMEBUFFER_COMPLETE) {
 		LOGE("glCheckFramebufferStatus: %x", status);

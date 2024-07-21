@@ -14,8 +14,6 @@ class UModel;
 class RenderPass {
 private:
 protected:
-	int width_ = 0;
-	int height_ = 0;
 	std::shared_ptr<Shader> shaderProgram_;
 	Renderer& renderer_;
 	ShaderPass shaderPass_ = ShaderPass::Shader_Plain_Pass;

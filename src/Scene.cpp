@@ -12,7 +12,7 @@ std::vector<std::shared_ptr<UModel>>& Scene::getModels()
 }
 
 void Scene::addLight(std::shared_ptr<ULight> light) {
-	lights_.emplace_back(std::move(light));
+	lights_.emplace_back(std::move(light));;
 }
 
 std::vector<std::shared_ptr<ULight>>& Scene::getLights() {

@@ -144,6 +144,45 @@ void Viewer::drawScene(std::shared_ptr<Scene> scene)
 	renderer_->endRenderPass();
 }
 
+void Viewer::drawScene_ShadowMapTest(std::shared_ptr<Scene> scene) {
+	/*
+	* ShadowPass
+	*/
+	ClearStates clearStatesPlainPass;
+	clearStatesPlainPass.clearColor = clearColor;
+	clearStatesPlainPass.colorFlag = true;
+	clearStatesPlainPass.depthFlag = true;
+
+	auto&& renderStates = renderer_->getRenderStates();
+	renderStates.blend = true;
+	renderStates.depthMask = true;
+	renderStates.depthTest = true;
+	renderer_->updateRenderStates(renderStates);
+
+	renderer_->beginRenderPass(shadowPass_->getFramebufferMain(), clearStatesPlainPass);
+	renderer_->executeRenderPass(shadowPass_, *scene);
+	renderer_->endRenderPass();
+
+
+	if (!scene->getLights().empty()) {
+		/*
+		* ToScreenPass
+		*/
+		ClearStates clearStatesToScreenPass;
+		clearStatesToScreenPass.clearColor = clearColor;
+		clearStatesToScreenPass.colorFlag = true;
+		clearStatesToScreenPass.depthFlag = true;
+
+		auto outTex = scene->getLights()[0]->getShadowMap(*shadowPass_)->getUniformSampler(*renderer_);
+		// auto outTex = shadowPass_->texTempDepth_->getUniformSampler(*renderer_);
+		renderer_->beginRenderPass(nullptr, clearStatesToScreenPass);
+		renderer_->renderToScreen(*outTex, width_, height_, false);
+		renderer_->endRenderPass();
+	}
+
+
+}
+
 void Viewer::drawScene_DefferedRendering(std::shared_ptr<Scene> scene) {
 	/*
 	 * GeometryPass
@@ -203,45 +242,6 @@ void Viewer::drawScene_DefferedRendering(std::shared_ptr<Scene> scene) {
 		renderer_->renderToScreen(*outTex, width_, height_, true);
 		renderer_->endRenderPass();
 	}
-}
-
-void Viewer::drawScene_ShadowMapTest(std::shared_ptr<Scene> scene) {
-	/*
-	* ShadowPass
-	*/
-	ClearStates clearStatesPlainPass;
-	clearStatesPlainPass.clearColor = clearColor;
-	clearStatesPlainPass.colorFlag = true;
-	clearStatesPlainPass.depthFlag = true;
-
-	auto&& renderStates = renderer_->getRenderStates();
-	renderStates.blend = false;
-	renderStates.depthMask = true;
-	renderStates.depthTest = true;
-	renderer_->updateRenderStates(renderStates);
-
-	renderer_->beginRenderPass(shadowPass_->getFramebufferMain(), clearStatesPlainPass);
-	renderer_->executeRenderPass(shadowPass_, *scene);
-	renderer_->endRenderPass();
-
-
-	if (!scene->getLights().empty()) {
-		/*
-		* ToScreenPass
-		*/
-		ClearStates clearStatesToScreenPass;
-		clearStatesToScreenPass.clearColor = clearColor;
-		clearStatesToScreenPass.colorFlag = true;
-		clearStatesToScreenPass.depthFlag = true;
-
-		auto shadowMap = scene->getLights()[0]->getShadowMap(*shadowPass_);
-		auto outTex = shadowMap->getUniformSampler(*renderer_);
-		renderer_->beginRenderPass(nullptr, clearStatesToScreenPass);
-		renderer_->renderToScreen(*outTex, width_, height_, true);
-		renderer_->endRenderPass();
-	}
-
-
 }
 
 void Viewer::drawModel(std::shared_ptr<UModel> model)

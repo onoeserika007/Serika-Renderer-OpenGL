@@ -233,7 +233,9 @@ void Texture::setMultiSample(bool flag)
 
 void Texture::copyDataTo(Texture &other) {
 	const auto& otherTexInfo = other.getTextureInfo();
-	assert(width() == other.width() && height() == other.height(), "Src and dist size not compatible, texture copy failed.");
+	if (!(width() == other.width() && height() == other.height())) {
+		throw std::exception("Src and dist size not compatible, texture copy failed.");
+	}
 	assert(textureInfo_.target == otherTexInfo.target && textureInfo_.format == otherTexInfo.format, "Src and dist format not compatible, texture copy failed.");
 
 	TextureData tmp;

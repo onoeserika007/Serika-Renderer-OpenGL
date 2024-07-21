@@ -14,10 +14,9 @@ set(THIRD_PARTY_DIR ${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty)
 include_directories(
         ${PROJECT_SOURCE_DIR}/include
         ${THIRD_PARTY_DIR}
-        ${THIRD_PARTY_DIR}/glad
+        ${THIRD_PARTY_DIR}/glad/include
         ${THIRD_PARTY_DIR}/glfw/include
         ${THIRD_PARTY_DIR}/glm
-        ${THIRD_PARTY_DIR}/KHR
         ${THIRD_PARTY_DIR}/stb
         ${THIRD_PARTY_DIR}/assimp/include
         ${THIRD_PARTY_DIR}/assimp/contrib
@@ -63,6 +62,7 @@ add_executable (
         ${TARGET_NAME}
         ${SOURCES}
         ${THIRD_PARTY_DIR}/json11/json11.cpp
+        ${THIRD_PARTY_DIR}/glad/src/glad.c
 )
 
 if (CMAKE_VERSION VERSION_GREATER 3.12)
