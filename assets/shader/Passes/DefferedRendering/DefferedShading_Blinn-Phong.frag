@@ -1,9 +1,6 @@
-// #version 330 core
+// #version 430 core
 
 in vec2 vTexCoord;
-in vec3 vWorldNormal;
-in vec3 vFragPos;
-in vec4 vPositionFromLight;
 
 layout(location = 0) out vec4 FragColor;
 
@@ -33,17 +30,12 @@ layout(std140) uniform Light {
     float uLightQuadratic;
 };
 
-#ifdef DIFFUSE_MAP
-    uniform sampler2D uDiffuseMap;
-#endif
+// GBuffers
+uniform sampler2D gPosition;
+uniform sampler2D gDiffuse;
+uniform sampler2D gNormal;
+uniform sampler2D gSpecular;
 
-#ifdef SPECULAR_MAP
-    uniform sampler2D uSpecularMap;
-#endif
-
-#ifdef HEIGHT_MAP
-    uniform sampler2D uHeightMap;
-#endif
 // ShadomMap
 uniform sampler2D uShadowMap;
 
@@ -75,7 +67,7 @@ float getDisturb() {
 float rand_1to1(float x) {
     // -1 -1
     return rand() * 2.f - 1.f;
-//    return fract(sin(x) * 10000.0);
+    //    return fract(sin(x) * 10000.0);
 }
 
 float rand_2to1(vec2 uv) {
@@ -85,22 +77,27 @@ float rand_2to1(vec2 uv) {
     return fract(sin(sn) * c);
 }
 
-vec3 calcPhong(vec3 normal, vec3 viewDir);
+vec3 calcPhong(vec3 normal, vec3 viewDir, vec3 fragPos);
 
 float calcStandardShadowMap(sampler2D shadowMap, vec3 shadowCoord);
 float PCSS(sampler2D shadowMap, vec4 coords);
 float PCF(sampler2D shadowMap, vec4 shadowCoord, float filterSize);
 
+/********* GLOBALS ********/
+vec3 vWorldNormal = vec3(texture(gNormal, vTexCoord));
+vec3 vFragPos = vec3(texture(gPosition, vTexCoord));
+
 /*********************** MAIN **************************/
 void main()
 {
-    vec3 norm = normalize(vWorldNormal);
     vec3 viewDir = normalize(uViewPos - vFragPos);
-    vec3 phongColor = calcPhong(norm, viewDir);
+
+    vec3 phongColor = calcPhong(vWorldNormal, viewDir, vFragPos);
     // shadow Map
     float visibility = 1.f;
-    vec3 shadowCoords = (vPositionFromLight.xyz / vPositionFromLight.w + 1.0f) / 2.0f;
     if (uUseShadowMap) {
+        vec4 posFromLight = uShadowMapMVP * vec4(vFragPos, 1.f);
+        vec3 shadowCoords = (posFromLight.xyz / posFromLight.w + 1.0f) / 2.0f;
         visibility = calcStandardShadowMap(uShadowMap, shadowCoords);
     }
 
@@ -109,7 +106,7 @@ void main()
 
 /*********************** PHONG SHADING **************************/
 
-vec3 calcPhong(vec3 normal, vec3 viewDir) {
+vec3 calcPhong(vec3 normal, vec3 viewDir, vec3 fragPos) {
     vec3 radiance = vec3(0.f);
     if (uLightType == 0) {
         FragColor = vec4(0.0f);
@@ -117,7 +114,7 @@ vec3 calcPhong(vec3 normal, vec3 viewDir) {
     // point light
     else if (uLightType == 1) {
         // vec3 emissive = vec3(texture(material.emissive, vTexCoord));
-        radiance = calcPointLight(normal, vFragPos, viewDir);
+        radiance = calcPointLight(normal, fragPos, viewDir);
         radiance = radiance + DISTURBANCE * getDisturb();
     }
     // directional light
@@ -127,7 +124,7 @@ vec3 calcPhong(vec3 normal, vec3 viewDir) {
     }
     // spot light
     else if (uLightType == 3) {
-        radiance = radiance * calcSpotLight(vFragPos);
+        radiance = radiance * calcSpotLight(fragPos);
     }
     else {
         radiance = vec3(1.0f);
@@ -143,15 +140,8 @@ vec3 calcPointLight(vec3 normal, vec3 fragPos, vec3 viewDir) {
     }
 
     vec3 lightDir = normalize(uLightPosition - fragPos);
-    vec3 baseColor = vec3(0.3f);
-    vec3 specCoef = vec3(0.f);
-#ifdef DIFFUSE_MAP
-    baseColor = vec3(texture(uDiffuseMap, vTexCoord));
-#endif
-
-#ifdef SPECULAR_MAP
-    specCoef = vec3(texture(uSpecularMap, vTexCoord));
-#endif
+    vec3 baseColor = vec3(texture(gDiffuse, vTexCoord));
+    vec3 specCoef = vec3(texture(gSpecular, vTexCoord));
 
     // 衰减
     float distance = length(uLightPosition - fragPos);
@@ -179,15 +169,8 @@ vec3 calcPointLight(vec3 normal, vec3 fragPos, vec3 viewDir) {
 vec3 calcDirLight(vec3 normal, vec3 viewDir) {
 
     vec3 lightDir = normalize(-uLightDirection);
-    vec3 baseColor = vec3(0.6f);
-    vec3 specCoef = vec3(0.5f);
-#ifdef DIFFUSE_MAP
-    baseColor = vec3(texture(uDiffuseMap, vTexCoord));
-#endif
-
-#ifdef SPECULAR_MAP
-    specCoef = vec3(texture(uSpecularMap, vTexCoord));
-#endif
+    vec3 baseColor = vec3(texture(gDiffuse, vTexCoord));
+    vec3 specCoef = vec3(texture(gSpecular, vTexCoord));
 
     // 漫反射着色
     float diff = max(dot(normal, lightDir), 0.0);

@@ -62,7 +62,9 @@ enum TextureTarget{
 enum TextureFormat {
     TextureFormat_RGBA8 = 0,      // RGBA8888
     TextureFormat_FLOAT32 = 1,    // Float32
-    TextureFormat_RGB8 = 3
+    TextureFormat_RGB8 = 3,
+    TextureFormat_RGB16F = 4,
+    TextureFormat_RGB32F = 5
 };
 
 enum TextureUsage {
@@ -85,6 +87,7 @@ struct TextureInfo {
     uint32_t target = TextureTarget_2D;
     uint32_t format = TextureFormat_RGBA8;
     uint32_t usage = TextureUsage_Sampler;
+    uint32_t border = 0; // border width
     bool useMipmaps = false;
     bool multiSample = false;
 };
@@ -98,7 +101,7 @@ protected:
     // name_ is trouble from a texture
     //std::string name_;
     bool pipelineReady_ = false;
-    std::shared_ptr<UniformSampler> sampler_;
+    mutable std::shared_ptr<UniformSampler> sampler_;
 
     // texture description
     TextureInfo textureInfo_;
@@ -123,17 +126,17 @@ public:
 
     //void setName(const std::string& name);
     void setTextureInfo(const TextureInfo& info);
-    const TextureInfo& getTextureInfo();
+    const TextureInfo& getTextureInfo() const;
     void setSamplerInfo(const SamplerInfo& info);
-    const SamplerInfo& getSamplerInfo();
+    const SamplerInfo& getSamplerInfo() const;
     //std::string getName();
-	TextureType getType();
+	TextureType getType() const;
     const TextureData& getTextureData() const;
-    int width();
-    int height();
-    bool useMipmaps();
-    bool multiSample();
-    bool ready();
+    int width() const;
+    int height() const;
+    bool useMipmaps() const;
+    bool multiSample() const;
+    bool ready() const;
     void setReady(bool flag);
 
     unsigned getId() const;
@@ -142,7 +145,7 @@ public:
     void setMultiSample(bool flag);
 
     virtual void copyDataTo(Texture& other);
-    virtual std::shared_ptr<UniformSampler> getUniformSampler(const Renderer &renderer) = 0;
+    virtual std::shared_ptr<UniformSampler> getUniformSampler(const Renderer &renderer) const = 0;
 };
 
 

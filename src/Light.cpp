@@ -141,6 +141,7 @@ std::shared_ptr<Camera> ULight::getLightCamera() const {
          else {
              camera_ = std::make_shared<PerspectiveCamera>(config.CameraFOV, config.CameraAspect, config.CameraNear, config.CameraFar);
              camera_->setPosition(getPosition());
+             camera_->lookAt(getPosition() + lightData_.uLightDirection);
              // TODO: PointLight | SpotLight ShadowCamera
          }
      }

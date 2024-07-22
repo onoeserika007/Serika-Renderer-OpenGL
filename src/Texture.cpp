@@ -37,17 +37,6 @@ const char* SamplerDefinesToTextureType[] = {
 
 #define CASE_ENUM_STR(type) case type: return #type
 
-// std::shared_ptr<Texture> Texture::createTexture2DDefault(int width, int height, TextureFormat format, TextureUsage usage)
-// {
-// 	TextureInfo info;
-// 	info.width = width;
-// 	info.height = height;
-// 	info.format = format;
-// 	info.usage = usage;
-// 	info.target = TextureTarget_2D;
-// 	return std::make_shared<Texture>(info);
-// }
-
 const char* Texture::materialTexTypeStr(TextureType usage)
 {
 	switch (usage)
@@ -97,7 +86,6 @@ const char* Texture::samplerName(TextureType usage)
 		case TEXTURE_SHADOW:			return "uShadowMap";
 		default: return "";
 	}
-
 	return nullptr;
 }
 
@@ -155,8 +143,7 @@ void Texture::setTextureInfo(const TextureInfo& info)
 	pipelineReady_ = false;
 }
 
-const TextureInfo& Texture::getTextureInfo()
-{
+const TextureInfo& Texture::getTextureInfo() const {
 	// TODO: 在此处插入 return 语句
 	return textureInfo_;
 }
@@ -166,14 +153,12 @@ void Texture::setSamplerInfo(const SamplerInfo& info)
 	samplerInfo_ = info;
 }
 
-const SamplerInfo& Texture::getSamplerInfo()
-{
+const SamplerInfo& Texture::getSamplerInfo() const {
 	// TODO: 在此处插入 return 语句
 	return samplerInfo_;
 }
 
-TextureType Texture::getType()
-{
+TextureType Texture::getType() const {
 	return static_cast<TextureType>(textureInfo_.type);
 }
 
@@ -182,28 +167,23 @@ const TextureData& Texture::getTextureData() const
 	return textureData_;
 }
 
-int Texture::width()
-{
+int Texture::width() const {
 	return textureInfo_.width;
 }
 
-int Texture::height()
-{
+int Texture::height() const {
 	return textureInfo_.height;
 }
 
-bool Texture::useMipmaps()
-{
+bool Texture::useMipmaps() const {
 	return textureInfo_.useMipmaps;
 }
 
-bool Texture::multiSample()
-{
+bool Texture::multiSample() const {
 	return textureInfo_.multiSample;
 }
 
-bool Texture::ready()
-{
+bool Texture::ready() const {
 	return pipelineReady_;
 }
 
@@ -233,9 +213,10 @@ void Texture::setMultiSample(bool flag)
 
 void Texture::copyDataTo(Texture &other) {
 	const auto& otherTexInfo = other.getTextureInfo();
-	if (!(width() == other.width() && height() == other.height())) {
-		throw std::exception("Src and dist size not compatible, texture copy failed.");
-	}
+	// 宽高可以不一样，只是会发生裁剪
+	// if (!(width() == other.width() && height() == other.height())) {
+	// 	throw std::exception("Src and dist size not compatible, texture copy failed.");
+	// }
 	assert(textureInfo_.target == otherTexInfo.target && textureInfo_.format == otherTexInfo.format, "Src and dist format not compatible, texture copy failed.");
 
 	TextureData tmp;

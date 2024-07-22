@@ -8,6 +8,7 @@
 #include "RenderPass/RenderPass.h"
 
 
+class RenderPassGeometry;
 class Texture;
 class FrameBuffer;
 class UniformSampler;
@@ -19,14 +20,16 @@ public:
     virtual void render(Scene & scene) override;
     virtual void setupBuffers() override;
     virtual void init() override;
-    std::shared_ptr<UniformSampler> getTexColorSampler();
+
+    std::shared_ptr<Texture> getOutTex();
     std::shared_ptr<FrameBuffer> getFramebufferMain();
-    void setGBuffer(std::shared_ptr<FrameBuffer> gBuffer) { gBuffer_ = gBuffer; }
+    void renderGBuffersToScreen(const std::shared_ptr<FrameBuffer>& gBuffer);
+    void injectGeometryPass(const std::shared_ptr<RenderPassGeometry>& geometryPass) { geometryPass_ = geometryPass; }
 private:
     std::shared_ptr<FrameBuffer> fboMain_ = nullptr;
-    std::shared_ptr<FrameBuffer> gBuffer_ = nullptr;
     std::shared_ptr<Texture> texColorMain_ = nullptr;
     std::shared_ptr<Texture> texDepthMain_ = nullptr;
+    std::weak_ptr<RenderPassGeometry> geometryPass_ {};
 };
 
 

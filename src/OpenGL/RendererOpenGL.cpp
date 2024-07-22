@@ -1,20 +1,22 @@
-#include "RendererOpenGL.h"
-#include "UniformOpenGL.h"
-#include "Base/GLMInc.h"
-#include "ShaderGLSL.h"
-#include "glad/glad.h"
-#include "BufferAttribute.h"
-#include "Geometry/Geometry.h"
-#include "TextureOpenGL.h"
-#include "OpenGL/EnumsOpenGL.h"
-#include "../include/Geometry/Object.h"
-#include "Camera.h"
-#include "FrameBufferOpenGL.h"
-#include "Utils/Logger.h"
-#include "Utils/OpenGLUtils.h"
-#include "Light.h"
-#include "Geometry/Mesh.h"
-#include <GLFW/glfw3.h>
+#include "../../include/OpenGL/RendererOpenGL.h"
+#include "../../include/OpenGL/UniformOpenGL.h"
+#include "../../include/Base/GLMInc.h"
+#include "../../include/OpenGL/ShaderGLSL.h"
+#include "../../ThirdParty/glad/include/glad/glad.h"
+#include "../../include/BufferAttribute.h"
+#include "../../include/Geometry/Geometry.h"
+#include "../../include/OpenGL/TextureOpenGL.h"
+#include "../../include/OpenGL/EnumsOpenGL.h"
+#include "../../include/Geometry/Object.h"
+#include "../../include/Camera.h"
+#include "../../include/OpenGL/FrameBufferOpenGL.h"
+#include "../../include/Utils/Logger.h"
+#include "../../include/Utils/OpenGLUtils.h"
+#include "../../include/Light.h"
+#include "../../include/Geometry/Mesh.h"
+#include <../../ThirdParty/glfw/include/GLFW/glfw3.h>
+
+#include "../../include/RenderPass/RenderPassGeometry.h"
 
 // set up vertex data (and buffer(s)) and configure vertex attributes
 constexpr float ToScreenRectangleVertices[] = {
@@ -73,14 +75,14 @@ std::shared_ptr<FrameBuffer> RendererOpenGL::createFrameBuffer(bool offScreen)
 	return std::make_shared<FrameBufferOpenGL>(offScreen);
 }
 
-void RendererOpenGL::setupColorBuffer(std::shared_ptr<Texture> &colorBuffer, bool multiSample, bool force) const {
-	if (colorBuffer) {
-		const TextureInfo& texInfo = colorBuffer->getTextureInfo();
+void RendererOpenGL::setupColorBuffer(std::shared_ptr<Texture> &outBuffer, bool multiSample, bool force) const {
+	if (outBuffer) {
+		const TextureInfo& texInfo = outBuffer->getTextureInfo();
 		force = force || texInfo.width != width() || texInfo.height != height();
 		force = force || texInfo.target != TextureTarget_2D || texInfo.format != TextureFormat_RGBA8;
 	}
 
-	if (!colorBuffer || colorBuffer->multiSample() != multiSample || force) {
+	if (!outBuffer || outBuffer->multiSample() != multiSample || force) {
 		TextureInfo texInfo{};
 		texInfo.width = width();
 		texInfo.height = height();
@@ -94,22 +96,18 @@ void RendererOpenGL::setupColorBuffer(std::shared_ptr<Texture> &colorBuffer, boo
 		smInfo.filterMag = Filter_LINEAR;
 		smInfo.filterMin = Filter_LINEAR;
 
-		colorBuffer = createTexture(texInfo, smInfo, {});
-
-		// now loading is handled in constructor, manual loading is nolonger needed.
-		// load to pipeline
-		//colorBuffer->setupPipeline(renderer_);
+		outBuffer = createTexture(texInfo, smInfo, {});
 	}
 }
 
-void RendererOpenGL::setupDepthBuffer(std::shared_ptr<Texture> &depthBuffer, bool multiSample, bool force) const {
-	if (depthBuffer) {
-		const TextureInfo& texInfo = depthBuffer->getTextureInfo();
+void RendererOpenGL::setupDepthBuffer(std::shared_ptr<Texture> &outBuffer, bool multiSample, bool force) const {
+	if (outBuffer) {
+		const TextureInfo& texInfo = outBuffer->getTextureInfo();
 		force = force || texInfo.width != width() || texInfo.height != height();
 		force = force || texInfo.target != TextureTarget_2D || texInfo.format != TextureFormat_FLOAT32;
 	}
 
-	if (!depthBuffer || depthBuffer->multiSample() != multiSample || force) {
+	if (!outBuffer || outBuffer->multiSample() != multiSample || force) {
 		TextureInfo texInfo{};
 		texInfo.width = width();
 		texInfo.height = height();
@@ -123,36 +121,71 @@ void RendererOpenGL::setupDepthBuffer(std::shared_ptr<Texture> &depthBuffer, boo
 		smInfo.filterMag = Filter_NEAREST;
 		smInfo.filterMin = Filter_NEAREST;
 
-		depthBuffer = createTexture(texInfo, smInfo, {});
+		outBuffer = createTexture(texInfo, smInfo, {});
 	}
 }
 
-void RendererOpenGL::setupShadowMapBuffer(std::shared_ptr<Texture> &depthBuffer, int width, int height,
-	bool multiSample, bool force) const {
-	if (depthBuffer) {
-		const TextureInfo& texInfo = depthBuffer->getTextureInfo();
+void RendererOpenGL::setupShadowMapBuffer(std::shared_ptr<Texture> &outBuffer, int width, int height,
+                                          bool multiSample, bool force) const {
+	if (outBuffer) {
+		const TextureInfo& texInfo = outBuffer->getTextureInfo();
 		force = force || texInfo.width != width || texInfo.height != height;
 		force = force || texInfo.target != TextureTarget_2D || texInfo.format != TextureFormat_FLOAT32;
 	}
 
-	if (!depthBuffer || depthBuffer->multiSample() != multiSample || force) {
+	if (!outBuffer || outBuffer->multiSample() != multiSample || force) {
 		TextureInfo texInfo{};
-		texInfo.width = width;
-		texInfo.height = height;
+		texInfo.width = width + 2;
+		texInfo.height = height + 2;
 		texInfo.target = TextureTarget::TextureTarget_2D;
 		texInfo.format = TextureFormat::TextureFormat_FLOAT32;
 		texInfo.usage = TextureUsage::TextureUsage_AttachmentColor | TextureUsage::TextureUsage_Sampler;
 		texInfo.type = TextureType::TEXTURE_SHADOW;
 		texInfo.multiSample = multiSample;
 		texInfo.useMipmaps = false;
+		// texInfo.border = 1;
 
 		SamplerInfo smInfo{};
-		smInfo.filterMag = Filter_NEAREST;
-		smInfo.filterMin = Filter_NEAREST;
-		smInfo.wrapS = Wrap_CLAMP_TO_EDGE;
-		smInfo.wrapT = Wrap_CLAMP_TO_EDGE;
+		smInfo.filterMag = Filter_LINEAR;
+		smInfo.filterMin = Filter_LINEAR;
+		// smInfo.wrapS = Wrap_CLAMP_TO_EDGE;
+		// smInfo.wrapT = Wrap_CLAMP_TO_EDGE;
+		smInfo.wrapS = Wrap_CLAMP_TO_BORDER;
+		smInfo.wrapT = Wrap_CLAMP_TO_BORDER;
+		smInfo.wrapR = Wrap_CLAMP_TO_BORDER;
+		smInfo.borderColor = BorderColor::Border_WHITE;
 
-		depthBuffer = createTexture(texInfo, smInfo, {});
+		outBuffer = createTexture(texInfo, smInfo, {});
+	}
+}
+
+void RendererOpenGL::setupGBuffer(std::shared_ptr<Texture> &outBuffer, bool multiSample, bool highp, bool force) const {
+	if (outBuffer) {
+		const TextureInfo& texInfo = outBuffer->getTextureInfo();
+		force = force || texInfo.width != width() || texInfo.height != height()
+		|| texInfo.target != TextureTarget_2D
+		|| (texInfo.format != TextureFormat_RGB16F && texInfo.format != TextureFormat_RGB32F);
+	}
+
+	if (!outBuffer || outBuffer->multiSample() != multiSample || force) {
+		TextureInfo texInfo{};
+		texInfo.width = width();
+		texInfo.height = height();
+		texInfo.target = TextureTarget::TextureTarget_2D;
+		texInfo.format = highp ? TextureFormat::TextureFormat_RGB32F : TextureFormat::TextureFormat_RGB16F;
+		texInfo.usage = TextureUsage_AttachmentColor | TextureUsage_RendererOutput | TextureUsage_Sampler;
+		texInfo.multiSample = multiSample;
+		texInfo.useMipmaps = false;
+
+		SamplerInfo smInfo{};
+		smInfo.filterMag = Filter_LINEAR;
+		smInfo.filterMin = Filter_LINEAR;
+
+		outBuffer = createTexture(texInfo, smInfo, {});
+
+		// now loading is handled in constructor, manual loading is nolonger needed.
+		// load to pipeline
+		//colorBuffer->setupPipeline(renderer_);
 	}
 }
 
@@ -255,7 +288,7 @@ void RendererOpenGL::setupMaterial(Material& material)
 			const auto& samplerName = Texture::samplerName(static_cast<TextureType>(type));
 			auto sampler = std::make_shared<UniformSamplerOpenGL>(samplerName, (TextureTarget)texInfo.target, (TextureFormat)texInfo.format);
 			sampler->setTexture(*texture);
-			material.setUniform(sampler->name(), sampler);
+			material.setUniformSampler(sampler->name(), sampler);
 		}
 
 		material.setTexturesReady(true);
@@ -334,6 +367,7 @@ void RendererOpenGL::setupMesh(UMesh &mesh, ShaderPass shaderPass)
 
 }
 
+// main render
 void RendererOpenGL::draw(UMesh &mesh, const ShaderPass pass, const std::shared_ptr<ULight> &shadowLight)
 {
 	if (mesh.drawable()) {
@@ -341,12 +375,12 @@ void RendererOpenGL::draw(UMesh &mesh, const ShaderPass pass, const std::shared_
 		mesh.updateFrame(*this);
 
 		updateModelUniformBlock(mesh, *mainCamera_, shadowLight);
-		loadUniformBlocks(mesh);
+		loadGlobalUniforms(mesh);
 
-		auto pmaterial = mesh.getpMaterial();
+		const auto pmaterial = mesh.getpMaterial();
 		pmaterial->use(pass);
 
-		auto VAO = mesh.getVAO();
+		const auto VAO = mesh.getVAO();
 		auto pgeometry = mesh.getpGeometry();
 		GL_CHECK(glBindVertexArray(VAO));
 		if (pgeometry->isMesh()) {
@@ -370,7 +404,7 @@ void RendererOpenGL::draw(UMesh &mesh, const ShaderPass pass, const std::shared_
 }
 
 #define GL_STATE_SET(var, gl_state) if (var) GL_CHECK(glEnable(gl_state)); else GL_CHECK(glDisable(gl_state));
-#define GL_COLOR_SET(color) GL_CHECK(color.x, color.y, coloy.z, color.w);
+#define GL_COLOR_SET(color) GL_CHECK(glBlendColor(color.x, color.y, color.z, color.w));
 
 void RendererOpenGL::updateRenderStates(RenderStates &renderStates) {
 
@@ -442,21 +476,12 @@ void RendererOpenGL::waitIdle()
 	GL_CHECK(glFinish());
 }
 
-void RendererOpenGL::dump(UniformSampler& srcTex, bool bFromColor, bool bBlend, std::shared_ptr<FrameBuffer> targetFrameBuffer, int dstColorBuffer)
+void RendererOpenGL::dump(const std::shared_ptr<Texture> &srcTex, bool bFromColor, bool bBlend, std::shared_ptr<FrameBuffer> targetFrameBuffer, int dstColorBuffer, bool
+                          bDefferedShading, const std::vector<std::shared_ptr<Texture>> &defferedShadingPayloads)
 {
-	srcTex.setName("uTexture");
-
 	static GLuint VAO = 0;
 	static GLuint VBO = 0;
 	static GLuint EBO = 0;
-
-	std::shared_ptr<ShaderGLSL> program;
-	if (bFromColor) {
-		program = getToScreenColorProgram(srcTex);
-	}
-	else {
-		program = getToScreenDepthProgram(srcTex);
-	}
 
 	if (0 == VAO) {
 		GL_CHECK(glGenVertexArrays(1, &VAO));
@@ -483,11 +508,14 @@ void RendererOpenGL::dump(UniformSampler& srcTex, bool bFromColor, bool bBlend, 
 	}
 
 	if (VAO && EBO && VBO ) {
-		// GL_CHECK(glDisable(GL_BLEND));
+
 		if (targetFrameBuffer) {
 			// blend ni kita no
 			targetFrameBuffer->bind();
 			targetFrameBuffer->setWriteBuffer(dstColorBuffer, false);
+		}
+		else if (bDefferedShading) {
+			// 除了直接输出最终结果的用途外，我希望其他的用法都是无状态的
 		}
 		else {
 			GL_CHECK(glBindFramebuffer(GL_FRAMEBUFFER, 0));
@@ -497,17 +525,32 @@ void RendererOpenGL::dump(UniformSampler& srcTex, bool bFromColor, bool bBlend, 
 			GL_CHECK(glDisable(GL_CULL_FACE));
 			GL_CHECK(glPolygonMode(GL_FRONT_AND_BACK, GL_FILL));
 		}
-		// GL_CHECK(glDisable(GL_CULL_FACE));
-		// GL_CHECK(glPolygonMode(GL_FRONT_AND_BACK, GL_FILL));
 
-		if (!bBlend) {
+		if (bBlend) {
+			// blend的状态由caller控制，这里也是无状态的
+		}
+		else {
 			GL_CHECK(glClearColor(0.f, 0.f, 0.f, 0.0f));
 			GL_CHECK(glClear(GL_COLOR_BUFFER_BIT));
 		}
 
-		// name of outTex here should be corresponding to that in shader.
-		program->use();
-		program->bindUniform(srcTex);
+
+		// load shader
+		std::shared_ptr<ShaderGLSL> program;
+		if (bDefferedShading) {
+			program = getDefferedShadingProgram(defferedShadingPayloads);
+		}
+		else {
+			if (bFromColor) {
+				program = getToScreenColorProgram(srcTex);
+			}
+			else {
+				program = getToScreenDepthProgram(srcTex);
+			}
+		}
+
+		loadUniformBlocks(*program);
+		program->bindHoldingResources(); // where really 'use()'
 
 		GL_CHECK(glBindVertexArray(VAO));
 		GL_CHECK(glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr));
@@ -517,8 +560,9 @@ void RendererOpenGL::dump(UniformSampler& srcTex, bool bFromColor, bool bBlend, 
 	}
 }
 
-std::shared_ptr<ShaderGLSL> RendererOpenGL::getToScreenColorProgram(UniformSampler& outTex) {
-	outTex.setName("uTexture");
+std::shared_ptr<ShaderGLSL> RendererOpenGL::getToScreenColorProgram(const std::shared_ptr<Texture> &srcTex) const {
+	auto&& sampler = srcTex->getUniformSampler(*this);
+	sampler->setName("uTexture");
 
 	static const char* VS = R"(
 	layout (location = 0) in vec3 aPos;
@@ -546,17 +590,29 @@ std::shared_ptr<ShaderGLSL> RendererOpenGL::getToScreenColorProgram(UniformSampl
 	)";
 
 	static std::shared_ptr<ShaderGLSL> program;
+	static Serika::UUID<ShaderResources> resourceUUID;
 
 	if (!program) {
 		program = ShaderGLSL::loadFromRawSource(VS, FS);
 		program->compileAndLink();
+
+		auto&& resources = noObjectContextShaderResources[resourceUUID.get()];
+		if (!resources) {
+			resources = std::make_shared<ShaderResources>();
+			program->setResources(resources);
+		}
 	}
+
+	program->setUniformSampler(sampler->name(), sampler); // this target will change frequently, bind every time.
+
+	// name of outTex here should be corresponding to that in shader.
 
 	return program;
 }
 
-std::shared_ptr<ShaderGLSL> RendererOpenGL::getToScreenDepthProgram(UniformSampler& outTex) {
-	outTex.setName("uTexture");
+std::shared_ptr<ShaderGLSL> RendererOpenGL::getToScreenDepthProgram(const std::shared_ptr<Texture> &srcTex) const {
+	auto&& sampler = srcTex->getUniformSampler(*this);
+	sampler->setName("uTexture");
 
 	static const char* VS = R"(
 	layout (location = 0) in vec3 aPos;
@@ -585,10 +641,46 @@ std::shared_ptr<ShaderGLSL> RendererOpenGL::getToScreenDepthProgram(UniformSampl
 	)";
 
 	static std::shared_ptr<ShaderGLSL> program;
+	static Serika::UUID<ShaderResources> resourceUUID;
 
 	if (!program) {
 		program = ShaderGLSL::loadFromRawSource(VS, FS);
 		program->compileAndLink();
+
+		auto&& resources = noObjectContextShaderResources[resourceUUID.get()];
+		if (!resources) {
+			resources = std::make_shared<ShaderResources>();
+			program->setResources(resources);
+		}
+	}
+
+	program->setUniformSampler(sampler->name(), sampler);
+
+	return program;
+}
+
+std::shared_ptr<ShaderGLSL> RendererOpenGL::getDefferedShadingProgram(const std::vector<std::shared_ptr<Texture>> &gBuffers) const {
+
+	static std::shared_ptr<ShaderGLSL> program;
+	static Serika::UUID<ShaderResources> resourceUUID;
+
+	if (!program) {
+		program = ShaderGLSL::loadDefferedBlinnPhongShader();
+		program->compileAndLink();
+
+		auto&& resources = noObjectContextShaderResources[resourceUUID.get()];
+		if (!resources) {
+			resources = std::make_shared<ShaderResources>();
+			program->setResources(resources);
+		}
+	}
+
+	// bind gbuffers
+	for(int i = 0; i < gBuffers.size(); i++) {
+		const auto& gbuffer = gBuffers[i];
+		auto&& sampler = gbuffer->getUniformSampler(*this);
+		sampler->setName(RenderPassGeometry::GBUFFER_NAMES[i]);
+		program->setUniformSampler(sampler->name(), sampler);
 	}
 
 	return program;

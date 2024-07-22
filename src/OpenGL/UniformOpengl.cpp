@@ -1,15 +1,14 @@
-#include "UniformOpenGL.h"
-#include "Texture.h"
-#include "Shader.h"
-#include "Utils/OpenGLUtils.h"
+#include "../../include/OpenGL/UniformOpenGL.h"
+#include "../../include/Texture.h"
+#include "../../include/Shader.h"
+#include "../../include/Utils/OpenGLUtils.h"
 
-int UniformSamplerOpenGL::getLocation(Shader& program) {
-	GL_CHECK(;);
+int UniformSamplerOpenGL::getLocation(const Shader &program) {
 	return glGetUniformLocation(program.getId(), name_.c_str());
 }
 
 // the location is from getLocation func above
-void UniformSamplerOpenGL::bindProgram(Shader& program, int location) {
+void UniformSamplerOpenGL::bindProgram(const Shader &program, int location) const {
 	// call this will reset binding counter, do not use it.
 	// program.use();
 	// reseting should be ensured before call bindProgram
@@ -30,17 +29,18 @@ UniformBlockOpenGL::UniformBlockOpenGL(const std::string& name, int size) : Unif
 }
 
 UniformBlockOpenGL::~UniformBlockOpenGL() {
+	// static局部变量 有个生命周期的问题，当viewer析构掉后，static仍然会持有uniform，这就造成了问题
 	std::cout << "UniformOpenGL here!" << std::endl;
 	GL_CHECK(glDeleteBuffers(1, &ubo_));
 }
 
 // location是从shader中计算出来的，这和block binding无关
-int UniformBlockOpenGL::getLocation(Shader& program) {
+int UniformBlockOpenGL::getLocation(const Shader &program) {
 	return glGetUniformBlockIndex(program.getId(), name_.c_str());
 }
 
 // binding Point只用作通信用，它是0还是100无关紧要，当数据传输到gpu后它的使命就完成了
-void UniformBlockOpenGL::bindProgram(Shader& program, int location) {
+void UniformBlockOpenGL::bindProgram(const Shader &program, int location) const {
 	if (location < 0) {
 		return;
 	}

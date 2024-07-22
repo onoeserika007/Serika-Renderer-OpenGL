@@ -1,4 +1,4 @@
-#include "Texture.h"
+#include "../Texture.h"
 
 class TextureOpenGL:public Texture {
 public:
@@ -7,7 +7,7 @@ public:
     TextureOpenGL(const TextureInfo& texInfo, const SamplerInfo& smInfo, const TextureData& texData);
 
     virtual ~TextureOpenGL();
-    virtual std::shared_ptr<UniformSampler> getUniformSampler(const Renderer &renderer) override;
+    virtual std::shared_ptr<UniformSampler> getUniformSampler(const Renderer &renderer) const override;
 };
 
 class TextureOpenGL2D : public TextureOpenGL {

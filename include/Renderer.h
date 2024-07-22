@@ -3,7 +3,7 @@
 #include <memory>
 #include <RenderPass/RenderPass.h>
 
-#include "ShaderGLSL.h"
+#include "OpenGL/ShaderGLSL.h"
 #include "Base/RenderStates.h"
 #include "Texture.h"
 #include "Base/Config.h"
@@ -49,9 +49,10 @@ public:
 	virtual std::shared_ptr<Shader> createShader(const std::string& vsPath = "", const std::string& fsPsth = "") = 0;
 	virtual std::shared_ptr<Texture> createTexture(const TextureInfo& texInfo, const SamplerInfo& smInfo, const TextureData& texData = TextureData()) const = 0;
 	virtual std::shared_ptr<FrameBuffer> createFrameBuffer(bool offScreen) = 0;
-	virtual void setupColorBuffer(std::shared_ptr<Texture>& colorBuffer, bool multiSample, bool force = false) const = 0;
-	virtual void setupDepthBuffer(std::shared_ptr<Texture>& depthBuffer, bool multiSample, bool force = false) const = 0;
-	virtual void setupShadowMapBuffer(std::shared_ptr<Texture>& depthBuffer, int width, int height, bool multiSample, bool force = false) const  = 0;
+	virtual void setupColorBuffer(std::shared_ptr<Texture>& outBuffer, bool multiSample, bool force = false) const = 0;
+	virtual void setupDepthBuffer(std::shared_ptr<Texture>& outBuffer, bool multiSample, bool force = false) const = 0;
+	virtual void setupShadowMapBuffer(std::shared_ptr<Texture>& outBuffer, int width, int height, bool multiSample, bool force = false) const  = 0;
+	virtual void setupGBuffer(std::shared_ptr<Texture>& outBuffer, bool multiSample, bool highp, bool force = false) const = 0;
 
 	virtual void setupVertexAttribute(BufferAttribute& vertexAttribute) = 0;
 	virtual void setupGeometry(Geometry& geometry) = 0;
@@ -62,9 +63,11 @@ public:
 
 	virtual void draw(UMesh &mesh, ShaderPass pass, const std::shared_ptr<ULight> &shadowLight) = 0;
 
-	void loadUniformBlocks(UMesh& mesh);
+	void loadGlobalUniforms(UMesh& mesh);
+	void loadUniformBlocks(Shader& program);
+
 	void updateModelUniformBlock(UMesh & mesh, Camera& camera, const std::shared_ptr<ULight> &shadowLight = nullptr) const;
-	void updateLightUniformBlock(Shader& shader, const std::shared_ptr<ULight>& light) const;
+	void updateShadowCameraParamsToModelUniformBlock(const std::shared_ptr<Camera>& camera, const std::shared_ptr<ULight> &shadowLight) const;
 	void updateLightUniformBlock(const std::shared_ptr<ULight>& light) const;
 
 	// pipeline related
@@ -81,15 +84,19 @@ public:
 	// renderpasses
 	template <typename ...Args>
 	void executeRenderPass(std::shared_ptr<RenderPass> renderPass, Args&&... args);
-	virtual void dump(UniformSampler& srcTex, bool bFromColor, bool bBlend, std::shared_ptr<FrameBuffer> targetFrameBuffer, int dstColorBuffer) = 0;
+	virtual void dump(const std::shared_ptr<Texture> &srcTex, bool bFromColor, bool bBlend, std::shared_ptr<FrameBuffer> targetFrameBuffer, int dstColorBuffer, bool
+	                  bDefferedShading, const std::vector<std::shared_ptr<Texture>> &defferedShadingPayloads) = 0;
+	virtual std::shared_ptr<ShaderGLSL> getDefferedShadingProgram(const std::vector<std::shared_ptr<Texture>> & gBuffers) const = 0;
 
 	virtual ~Renderer();
 	virtual void clearTexture(Texture& texture) = 0;
 
-	std::shared_ptr<Camera> getCamera();
+	std::shared_ptr<Camera> getCamera() const;
+	std::shared_ptr<Camera> getViewCamera() const;
+
 	void setCamera(const std::shared_ptr<Camera>& camera);
 	void setBackToViewCamera();
-	int width() const const;
+	int width() const;
 	int height() const;
 
 	ERenderMode render_mode;
@@ -106,9 +113,12 @@ protected:
 	std::shared_ptr<Camera> mainCamera_;
 	std::shared_ptr<Camera> viewCamera_;
 
+	// global unniforms
 	std::shared_ptr<UniformBlock> modelUniformBlock_;
 	std::shared_ptr<UniformBlock> lightUniformBlock_;
-	std::shared_ptr<Texture> shadowPlaceholder_ = nullptr;
+	mutable std::weak_ptr<UniformSampler> shadowMapUniformSampler_;
+
+	mutable std::unordered_map<int, std::shared_ptr<ShaderResources>> noObjectContextShaderResources;
 };
 
 template<typename ... Args>

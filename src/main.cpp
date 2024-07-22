@@ -8,7 +8,7 @@
 #include <memory>
 #include "Utils/utils.h"
 #include "Shader.h"
-#include "ShaderGLSL.h"
+#include "../include/OpenGL/ShaderGLSL.h"
 #include "Camera.h"
 #include "Geometry/Geometry.h"
 #include "BufferAttribute.h"
@@ -16,7 +16,7 @@
 #include "Material.h"
 #include "Light.h"
 #include "../include/Geometry/Model.h"
-#include "ViewerOpenGL.h"
+#include "../include/OpenGL/ViewerOpenGL.h"
 #include "Utils/OpenGLUtils.h"
 #include "Base/Config.h"
 #include "Scene.h"
@@ -322,7 +322,7 @@ void App::setupScene()
     {
         auto dirLight = ULight::makeLight(cubeGeometry, plightMaterial);
         glm::vec3 dirLightPos {1, 1, 1};
-        dirLight->setAsDirectionalLight(floor->getPosition() - dirLightPos, glm::vec3(0.1f), glm::vec3(1.f), glm::vec3(0.5f));
+        dirLight->setAsDirectionalLight(nanosuit->getPosition() - dirLightPos, glm::vec3(0.1f), glm::vec3(0.5f), glm::vec3(0.5f));
         dirLight->setScale({ 0.1, 0.1, 0.1 });
         dirLight->setPosition(dirLightPos);
         scene_->addLight(dirLight);
@@ -331,16 +331,16 @@ void App::setupScene()
     // auto light2 = ULight::makeLight(cubeGeometry, plightMaterial);
     // light2->setAsPointLight(glm::vec3(0, 0, 0), glm::vec3(0.f), glm::vec3(0.5f, 0.5f, 0.5f), glm::vec3(0.5f), 1.0, 0.045, 0.0075);
     // light2->setScale({ 0.1, 0.1, 0.1 });
-    // light2->setPosition({3, 3, -3});
+    // light2->setPosition({1, 2, -1});
     // scene_->addLight(light2);
 
     {
-        auto dirLight2 = ULight::makeLight(cubeGeometry, plightMaterial);
-        glm::vec3 dirLightPos {1, 1, -1};
-        dirLight2->setAsDirectionalLight(floor->getPosition() - dirLightPos, glm::vec3(0.1f), glm::vec3(1.f), glm::vec3(0.5f));
-        dirLight2->setScale({ 0.1, 0.1, 0.1 });
-        dirLight2->setPosition(dirLightPos);
-        scene_->addLight(dirLight2);
+        // auto dirLight2 = ULight::makeLight(cubeGeometry, plightMaterial);
+        // glm::vec3 dirLightPos {1, 1, -1};
+        // dirLight2->setAsDirectionalLight(floor->getPosition() - dirLightPos, glm::vec3(0.1f), glm::vec3(0.5f), glm::vec3(0.5f));
+        // dirLight2->setScale({ 0.1, 0.1, 0.1 });
+        // dirLight2->setPosition(dirLightPos);
+        // scene_->addLight(dirLight2);
     }
 
     // spotlight

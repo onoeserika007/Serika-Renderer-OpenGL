@@ -25,8 +25,8 @@ public:
         return uuid_.get();
     }
 
-    virtual int getLocation(Shader& program) = 0;
-    virtual void bindProgram(Shader& program, int location) = 0;
+    virtual int getLocation(const Shader &program) = 0;
+    virtual void bindProgram(const Shader &program, int location) const = 0;
 
     virtual ~Uniform() = default;
 
@@ -86,6 +86,6 @@ protected:
 
 class ShaderResources {
 public:
-    std::unordered_map<int, std::shared_ptr<UniformBlock>> blocks;
-    std::unordered_map<int, std::shared_ptr<UniformSampler>> samplers;
+    std::unordered_map<std::string, std::shared_ptr<UniformBlock>> blocks;
+    std::unordered_map<std::string, std::shared_ptr<UniformSampler>> samplers;
 };

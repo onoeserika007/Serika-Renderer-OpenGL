@@ -1,10 +1,10 @@
-#include "TextureOpenGL.h"
-#include <glad/glad.h>
+#include "../../include/OpenGL/TextureOpenGL.h"
+#include <../../ThirdParty/glad/include/glad/glad.h>
 
-#include "Renderer.h"
-#include "Uniform.h"
-#include "OpenGL/EnumsOpenGL.h"
-#include "Utils//OpenGLUtils.h"
+#include "../../include/Renderer.h"
+#include "../../include/Uniform.h"
+#include "../../include/OpenGL/EnumsOpenGL.h"
+#include "../../include/Utils/OpenGLUtils.h"
 
 TextureOpenGL::TextureOpenGL(const TextureInfo& texInfo, const SamplerInfo& smInfo): Texture(texInfo, smInfo)
 {
@@ -18,7 +18,7 @@ TextureOpenGL::~TextureOpenGL()
 {
 }
 
-std::shared_ptr<UniformSampler> TextureOpenGL::getUniformSampler(const Renderer &renderer) {
+std::shared_ptr<UniformSampler> TextureOpenGL::getUniformSampler(const Renderer &renderer) const {
 	if (!sampler_) {
 		auto&& texInfo = getTextureInfo();
 		sampler_ = renderer.createUniformSampler(texInfo);
@@ -63,6 +63,9 @@ void TextureOpenGL2D::setupPipeline()
 	GL_CHECK(glTexParameteri(target, GL_TEXTURE_MIN_FILTER, OpenGL::cvtFilter(samplerInfo.filterMin)));
 	GL_CHECK(glTexParameteri(target, GL_TEXTURE_MAG_FILTER, OpenGL::cvtFilter(samplerInfo.filterMag)));
 
+	// set borader sampler in case savalue_ptr(mpvalue_ptrvalue_ptr((ling out of bound
+	GL_CHECK(glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, glm::value_ptr(OpenGL::cvtBorderColor(samplerInfo.borderColor))));
+
 	auto textureData_ = getTextureData();
 	if (textureData_.dataArray.empty()) {
 		// 第一个参数指定了纹理目标(Target)。设置为GL_TEXTURE_2D意味着会生成与当前绑定的纹理对象在同一个目标上的纹理（任何绑定到GL_TEXTURE_1D和GL_TEXTURE_3D的纹理不会受到影响）。
@@ -72,10 +75,10 @@ void TextureOpenGL2D::setupPipeline()
 		// 下个参数应该总是被设为0（历史遗留的问题）。
 		// 第七第八个参数定义了源图的格式和数据类型。我们使用RGB值加载这个图像，并把它们储存为char(byte)数组，我们将会传入对应值。
 		// 最后一个参数是真正的图像数据。
-		GL_CHECK(glTexImage2D(target, 0, openglTextureInfo.internalformat, textureInfo.width, textureInfo.height, 0, openglTextureInfo.format, openglTextureInfo.type, nullptr));
+		GL_CHECK(glTexImage2D(target, 0, openglTextureInfo.internalformat, textureInfo.width, textureInfo.height, textureInfo.border, openglTextureInfo.format, openglTextureInfo.type, nullptr));
 	}
 	else {
-		GL_CHECK(glTexImage2D(target, 0, openglTextureInfo.internalformat, textureInfo.width, textureInfo.height, 0, openglTextureInfo.format, openglTextureInfo.type, textureData_.dataArray[0]->rawData()));
+		GL_CHECK(glTexImage2D(target, 0, openglTextureInfo.internalformat, textureInfo.width, textureInfo.height, textureInfo.border, openglTextureInfo.format, openglTextureInfo.type, textureData_.dataArray[0]->rawData()));
 	}
 }
 

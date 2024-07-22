@@ -1,5 +1,5 @@
-#include "ViewerOpenGL.h"
-#include "RendererOpenGL.h"
+#include "../../include/OpenGL/ViewerOpenGL.h"
+#include "../../include/OpenGL/RendererOpenGL.h"
 
 ViewerOpenGL::ViewerOpenGL(const std::shared_ptr<Camera>& camera) : Viewer(camera) {}
 

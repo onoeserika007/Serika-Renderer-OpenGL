@@ -6,34 +6,10 @@
 #include "Utils/utils.h"
 #include "Renderer.h"
 
- Material::Material() :pshader_(nullptr), shaderStructName_("material") {
+ Material::Material() {
 
  }
 
- Material::Material(std::string name, std::shared_ptr<Shader> pshader) : Material() {
-	shaderStructName_ = name;
-	pshader_ = pshader;
-}
-
-// void Material::loadShader(const std::string& vertexPath, const std::string& fragmentPath) {
-//	pshader_ = Shader::loadShader(vertexPath, fragmentPath);
-//}
-
- void Material::setpShader(std::shared_ptr<Shader> pshader) {
-	 //resetShader();
-	pshader_ = pshader;
-	setShaderReady(false);
-	//init();
-}
-
- void Material::resetShader()
- {
-
- }
-
- std::shared_ptr<Shader> Material::getpshader() {
-	return pshader_;
-}
 
  void Material::setShader(ShaderPass pass, std::shared_ptr<Shader> pshader)
  {
@@ -75,15 +51,25 @@
 	 texturesReady_ = ready;
  }
 
- void Material::setUniform(const std::string& name, std::shared_ptr<Uniform> uniform)
- {
-	 uniforms_[name] = std::move(uniform);
- }
+void Material::setUniformSampler(const std::string &name, const std::shared_ptr<UniformSampler> &uniform) {
+ 	getShaderResources()->samplers[name] = uniform;
+}
 
- std::shared_ptr<Uniform> Material::getUniform(const std::string& name)
- {
-	 return uniforms_[name];
- }
+void Material::setUniformBlock(const std::string &name, const std::shared_ptr<UniformBlock> &uniform) {
+ 	getShaderResources()->blocks[name] = uniform;
+}
+
+std::shared_ptr<ShaderResources> Material::getShaderResources() const {
+ 	if (!shaderResources_) {
+ 		shaderResources_ = std::make_shared<ShaderResources>();
+ 	}
+ 	return shaderResources_;
+}
+
+void Material::setShaderResources(const std::shared_ptr<ShaderResources> &shader_resources) {
+ 	shaderResources_ = shader_resources;
+}
+
 
  void Material::addDefine(const std::string& define)
  {
@@ -93,12 +79,6 @@
  std::vector<std::string>& Material::getDefines()
  {
 	 return defines_;
- }
-
- std::unordered_map<std::string, std::shared_ptr<Uniform>>& Material::getUniforms()
- {
-	 // TODO: 在此处插入 return 语句
-	 return uniforms_;
  }
 
 void Material::setTextureData(int textureType, TextureData ptex) {
@@ -130,33 +110,16 @@ void Material::setTextureData(int textureType, TextureData ptex) {
 	 shadingMode_ = mode;
  }
 
- std::string Material::getName() {
-	return shaderStructName_;
-}
-
- void Material::use()
- {
- }
-
  void Material::use(ShaderPass pass)
  {
 	 if (!shaders_.contains(pass)) {
 		 LOGE("Rendering pass missing corresponding shader - %d", pass);
+	 	throw std::exception("missing corresponding shader");
 	 }
 	 else {
-		 shaders_[pass]->use();
-		 for (auto& [_, puniform] : uniforms_) {
-			 shaders_[pass]->bindUniform(*puniform);
-		 }
+	 	// these will be called each rendering loop
+	 	shaders_[pass]->bindResources(getShaderResources());
 	 }
- }
-
- void Material::setName(const std::string& name) {
-	shaderStructName_ = name;
-}
-
- void Material::init()
- {
  }
 
 void Material::setupPipeline(Renderer &renderer) {

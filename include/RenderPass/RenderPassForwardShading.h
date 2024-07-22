@@ -13,7 +13,8 @@ public:
 	virtual void render(Scene & scene) override;
 	virtual void setupBuffers() override;
 	virtual void init() override;
-	std::shared_ptr<UniformSampler> getTexColorSampler();
+
+	std::shared_ptr<Texture> getOutTex();
 	std::shared_ptr<FrameBuffer> getFramebufferMain() override;
 
 	std::shared_ptr<Texture> tempDepthBuffer_ = nullptr;

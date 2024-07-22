@@ -6,6 +6,13 @@
 #include "Renderer.h"
 #include "FrameBuffer.h"
 
+const char* RenderPassGeometry::GBUFFER_NAMES[] = {
+	"gPosition",
+	"gDiffuse",
+	"gNormal",
+	"gSpecular"
+};
+
 RenderPassGeometry::RenderPassGeometry(Renderer& renderer): RenderPass(renderer)
 {
 	shaderPass_ = ShaderPass::Shader_Geometry_Pass;
@@ -33,10 +40,14 @@ std::shared_ptr<FrameBuffer> RenderPassGeometry::getFramebufferMain() {
 	return fboGbuffer_;
 }
 
+const std::vector<std::shared_ptr<Texture>> & RenderPassGeometry::getGBuffers() const {
+	return gbufferTextures_;
+}
+
 void RenderPassGeometry::setupBuffers()
 {
 	for (auto& colorAttachment : gbufferTextures_) {
-		renderer_.setupColorBuffer(colorAttachment, false, true);
+		renderer_.setupGBuffer(colorAttachment, false, false);
 	}
 	renderer_.setupDepthBuffer(depthTexture_, false, true);
 }

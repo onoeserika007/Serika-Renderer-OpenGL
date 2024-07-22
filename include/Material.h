@@ -1,4 +1,5 @@
 #pragma once
+#include <complex.h>
 #include <memory>
 #include <string>
 #include <vector>
@@ -6,6 +7,9 @@
 #include <unordered_map>
 #include "Base/GLMInc.h"
 #include "Texture.h"
+#include "Uniform.h"
+
+class ShaderResources;
 
 enum AlphaMode {
 	Alpha_Opaque,
@@ -42,39 +46,9 @@ class Renderer;
 // shader还是现在在外部手动加载的，所以需要引入shadingMode
 // shadowMapTexture 就在Material setup时加载
 class Material {
-protected:
-	std::string shaderStructName_;
-	std::shared_ptr<Shader> pshader_;
-	EShadingMode shadingMode_;
-
-	// unifroms包括uniform block和sampler，每次渲染的时候都需要重新绑定到对应的shader
-	std::unordered_map<std::string, std::shared_ptr<Uniform>> uniforms_; // name -> Uniform
-
-	std::unordered_map<int, TextureData> textureData_; // TextureType(int) -> textureData
-	// just find a place to throw textures in
-	std::vector<std::shared_ptr<Texture>> texturesRuntime_;
-
-	// shaders
-	std::unordered_map<ShaderPass, std::shared_ptr<Shader>> shaders_;
-	std::vector<std::string> defines_;
-	bool shaderReady_ = false; // shader setupPipeline or not
-	bool texturesReady_ = false; // have textures been loaded to piepleine?
-
-	//std::unordered_map<std::string, 
-
 public:
 	Material();
 	Material(std::string name, std::shared_ptr<Shader> pshader);
-
-	static const char* shadingModelStr(EShadingMode model);
-
-	//void loadShader(const std::string& vertexPath, const std::string& fragmentPath);
-
-	void setpShader(std::shared_ptr<Shader> pshader);
-
-	void resetShader();
-
-	std::shared_ptr<Shader> getpshader();
 
 	void setShader(ShaderPass pass, std::shared_ptr<Shader> pshader);
 
@@ -90,11 +64,11 @@ public:
 
 	void setTexturesReady(bool ready);
 
-	void setUniform(const std::string& name, std::shared_ptr<Uniform> uniform);
+	void setUniformSampler(const std::string& name, const std::shared_ptr<UniformSampler>& uniform);
+	void setUniformBlock(const std::string& name, const std::shared_ptr<UniformBlock> &uniform);
 
-	std::shared_ptr<Uniform> getUniform(const std::string& name);
-
-	std::unordered_map<std::string, std::shared_ptr<Uniform>>& getUniforms();
+	std::shared_ptr<ShaderResources> getShaderResources() const;
+	void setShaderResources(const std::shared_ptr<ShaderResources>& shader_resources);
 
 	/**
 	 * Textures
@@ -117,15 +91,29 @@ public:
 
 	std::string getName();
 
-	void use();
-
 	void use(ShaderPass pass);
 
 	virtual ~Material() {}
 
 	void setName(const std::string& name);
 
-	void init();
-
 	void setupPipeline(Renderer& renderer) ;
+
+protected:
+
+private:
+	EShadingMode shadingMode_;
+
+	// unifroms包括uniform block和sampler，每次渲染的时候都需要重新绑定到对应的shader
+	mutable std::shared_ptr<ShaderResources> shaderResources_;
+
+	std::unordered_map<int, TextureData> textureData_; // TextureType(int) -> textureData
+	// just find a place to throw textures in, managing its life-cycle
+	std::vector<std::shared_ptr<Texture>> texturesRuntime_;
+
+	// shaders
+	std::unordered_map<ShaderPass, std::shared_ptr<Shader>> shaders_;
+	std::vector<std::string> defines_;
+	bool shaderReady_ = false; // shader setupPipeline or not
+	bool texturesReady_ = false; // have textures been loaded to piepleine?
 };

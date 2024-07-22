@@ -1,4 +1,4 @@
-#include "FrameBufferOpenGL.h"
+#include "../include/OpenGL/FrameBufferOpenGL.h"
 #include "Utils/Logger.h"
 
 FrameBufferOpenGL::FrameBufferOpenGL(bool offscreen) : FrameBuffer(offscreen) {

@@ -17,48 +17,64 @@ Renderer::Renderer(const std::shared_ptr<Camera> &camera) {
 	viewCamera_ = camera;
 }
 
-void Renderer::loadUniformBlocks(UMesh &mesh) {
+void Renderer::loadGlobalUniforms(UMesh &mesh) {
 	const auto pmat = mesh.getpMaterial();
 	// uniforms will be loaded to shader when Material::use(ShaderPass) is called.
-	pmat->setUniform(modelUniformBlock_->name(), modelUniformBlock_);
-	pmat->setUniform(lightUniformBlock_->name(), lightUniformBlock_);
+	pmat->setUniformBlock(modelUniformBlock_->name(), modelUniformBlock_);
+	pmat->setUniformBlock(lightUniformBlock_->name(), lightUniformBlock_);
+	if (auto&& shadowMap = shadowMapUniformSampler_.lock()) {
+		pmat->setUniformSampler(shadowMap->name(), shadowMap);
+	}
+}
+
+void Renderer::loadUniformBlocks(Shader &program) {
+	program.setUniformBlock(modelUniformBlock_->name(), modelUniformBlock_);
+	program.setUniformBlock(lightUniformBlock_->name(), lightUniformBlock_);
+	if (auto&& shadowMap = shadowMapUniformSampler_.lock()) {
+		program.setUniformSampler(shadowMap->name(), shadowMap);
+	}
 }
 
 void Renderer::updateModelUniformBlock(UMesh & mesh, Camera &camera, const std::shared_ptr<ULight> &shadowLight) const {
+	auto&& config = Config::getInstance();
+
 	ModelUniformBlock tmp{};
 	tmp.uModel = mesh.getWorldMatrix();
 	tmp.uNormalToWorld = mesh.getNormalToWorld();
 	tmp.uProjection = camera.GetProjectionMatrix();
 	tmp.uView = camera.GetViewMatrix();
 	tmp.uViewPos = camera.position();
-	if (shadowLight && mesh.castShadow()) {
+	if (shadowLight && mesh.castShadow() && config.bShadowMap) {
 		auto&& shadowCamera = shadowLight->getLightCamera();
 		auto&& shadowMapSampler = shadowLight->getShadowMap(*this)->getUniformSampler(*this);
 		tmp.uShadowMapMVP = shadowCamera->GetProjectionMatrix() * shadowCamera->GetViewMatrix() * tmp.uModel;
 		tmp.uUseShadowMap = true;
-
-		const auto pmat = mesh.getpMaterial();
-		pmat->setUniform(shadowMapSampler->name(), shadowMapSampler);
+		// set ShadowMap
+		shadowMapUniformSampler_ = shadowMapSampler;
 	}
 	else {
 		tmp.uUseShadowMap = false;
 	}
-
 	modelUniformBlock_->setData(&tmp, sizeof(ModelUniformBlock));
-
 }
 
-void Renderer::updateLightUniformBlock(Shader &shader, const std::shared_ptr<ULight>& light) const {
-	LightDataUniformBlock tmp;
-	if (light) {
-		tmp = light->serialize();
+void Renderer::updateShadowCameraParamsToModelUniformBlock(
+	const std::shared_ptr<Camera> &camera, const std::shared_ptr<ULight> &shadowLight) const {
+	ModelUniformBlock tmp{};
+	auto&& config = Config::getInstance();
+	tmp.uViewPos = camera->position();
+	if (shadowLight && config.bShadowMap) {
+		auto&& shadowCamera = shadowLight->getLightCamera();
+		auto&& shadowMapSampler = shadowLight->getShadowMap(*this)->getUniformSampler(*this);
+		tmp.uShadowMapMVP = shadowCamera->GetProjectionMatrix() * shadowCamera->GetViewMatrix(); // vFragPos已经含有model信息了，所以乘单位矩阵或者不乘，反正不能乘tmp.model的零矩阵
+		tmp.uUseShadowMap = true;
+		// set ShadowMap
+		shadowMapUniformSampler_ = shadowMapSampler;
 	}
 	else {
-		tmp.uLightType = LightType_NoLight;
+		tmp.uUseShadowMap = false;
 	}
-	lightUniformBlock_->setData(&tmp, sizeof(LightDataUniformBlock));
-	shader.use();
-	shader.bindUniform(*lightUniformBlock_);
+	modelUniformBlock_->setData(&tmp, sizeof(ModelUniformBlock));
 }
 
 void Renderer::updateLightUniformBlock(const std::shared_ptr<ULight>& light) const {
@@ -90,9 +106,12 @@ Renderer::~Renderer()
 	std::cout << "Base renderer here!" << std::endl;
 }
 
-std::shared_ptr<Camera> Renderer::getCamera()
-{
+std::shared_ptr<Camera> Renderer::getCamera() const {
 	return mainCamera_;
+}
+
+std::shared_ptr<Camera> Renderer::getViewCamera() const {
+	return viewCamera_;
 }
 
 void Renderer::setCamera(const std::shared_ptr<Camera> &camera) {

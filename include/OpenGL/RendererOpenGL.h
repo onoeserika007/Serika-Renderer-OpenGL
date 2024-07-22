@@ -1,5 +1,5 @@
 #pragma once
-#include "Renderer.h"
+#include "../Renderer.h"
 
 class ShaderGLSL;
 
@@ -14,9 +14,10 @@ public:
 	virtual std::shared_ptr<Shader> createShader(const std::string& vsPath = "", const std::string& fsPsth = "") override;
 	virtual std::shared_ptr<Texture> createTexture(const TextureInfo& texInfo, const SamplerInfo& smInfo, const TextureData& texData) const override;
 	virtual std::shared_ptr<FrameBuffer> createFrameBuffer(bool offScreen) override;
-	virtual void setupColorBuffer(std::shared_ptr<Texture>& colorBuffer, bool multiSample, bool force = false) const override;
-	virtual void setupDepthBuffer(std::shared_ptr<Texture>& depthBuffer, bool multiSample, bool force = false) const override;
-	virtual void setupShadowMapBuffer(std::shared_ptr<Texture>& depthBuffer, int width, int height, bool multiSample, bool force = false) const override;
+	virtual void setupColorBuffer(std::shared_ptr<Texture>& outBuffer, bool multiSample, bool force = false) const override;
+	virtual void setupDepthBuffer(std::shared_ptr<Texture>& outBuffer, bool multiSample, bool force = false) const override;
+	virtual void setupShadowMapBuffer(std::shared_ptr<Texture>& outBuffer, int width, int height, bool multiSample, bool force = false) const override;
+	virtual void setupGBuffer(std::shared_ptr<Texture>& outBuffer, bool multiSample, bool highp, bool force = false) const;
 
 	virtual void setupVertexAttribute(BufferAttribute& vertexAttribute) override;
 	virtual void setupGeometry(Geometry& geometry) override;
@@ -35,12 +36,14 @@ public:
 	virtual void waitIdle() override;
 
 	// renderpasses
-	virtual void dump(UniformSampler& srcTex, bool bFromColor, bool bBlend, std::shared_ptr<FrameBuffer> targetFrameBuffer, int dstColorBuffer) override;
+	virtual void dump(const std::shared_ptr<Texture> &srcTex, bool bFromColor, bool bBlend, std::shared_ptr<FrameBuffer> targetFrameBuffer, int dstColorBuffer, bool
+	                  bDefferedShading, const std::vector<std::shared_ptr<Texture>> &defferedShadingPayloads) override;
+	virtual std::shared_ptr<ShaderGLSL> getDefferedShadingProgram(const std::vector<std::shared_ptr<Texture>> & gBuffers) const override;
 
 	virtual ~RendererOpenGL();
 	virtual void clearTexture(Texture& texture) override;
 
 private:
-	std::shared_ptr<ShaderGLSL> getToScreenColorProgram(UniformSampler& outTex);
-	std::shared_ptr<ShaderGLSL> getToScreenDepthProgram(UniformSampler& outTex);
+	std::shared_ptr<ShaderGLSL> getToScreenColorProgram(const std::shared_ptr<Texture> &srcTex) const;
+	std::shared_ptr<ShaderGLSL> getToScreenDepthProgram(const std::shared_ptr<Texture> &srcTex) const;
 };

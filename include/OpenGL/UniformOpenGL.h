@@ -1,5 +1,5 @@
-#include "Uniform.h"
-#include "glad/glad.h"
+#include "../Uniform.h"
+#include "../../ThirdParty/glad/include/glad/glad.h"
 
 class Texture;
 class Shader;
@@ -10,8 +10,8 @@ public:
 	UniformSamplerOpenGL(const std::string& name, TextureTarget target, TextureFormat format) 
         : UniformSampler(name, target, format) {}
     UniformSamplerOpenGL(const TextureInfo& info): UniformSampler(info) {}
-	int getLocation(Shader& program) override;
-	virtual void bindProgram(Shader& program, int location) override;
+	int getLocation(const Shader &program) override;
+	virtual void bindProgram(const Shader &program, int location) const override;
 	virtual void setTexture(const Texture &tex) override;
 };
 
@@ -21,9 +21,9 @@ public:
 
     virtual ~UniformBlockOpenGL();
 
-    int getLocation(Shader& program) override;
+    int getLocation(const Shader &program) override;
 
-    void bindProgram(Shader& program, int location) override;
+    void bindProgram(const Shader &program, int location) const override;
 
     void setSubData(void* data, int len, int offset) override;
 

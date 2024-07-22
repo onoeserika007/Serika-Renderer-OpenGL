@@ -36,15 +36,15 @@ public:
 
     const std::unordered_map<int, FrameBufferAttachment>& getColorAttachments() const;
 
-    inline const FrameBufferAttachment& getDepthAttachment() const;
+    const FrameBufferAttachment& getDepthAttachment() const;
 
-    inline bool isColorReady() const;
+    bool isColorReady() const;
 
-    inline bool isDepthReady() const;
+    bool isDepthReady() const;
 
-    inline bool isMultiSample() const;
+    bool isMultiSample() const;
 
-    inline bool isOffscreen() const;
+    bool isOffscreen() const;
 
     inline void setOffscreen(bool offscreen);
 

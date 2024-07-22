@@ -3,8 +3,6 @@
 in vec2 TexCoord;
 in vec3 worldNormal;
 in vec3 fragPos;
-in vec3 viewFragPos;
-in vec3 localNormal;
 
 layout (location = 0) out vec3 WorldPosOut;
 layout (location = 1) out vec3 DiffuseOut;
@@ -16,23 +14,9 @@ layout(std140) uniform Model {
     mat4 uView;
     mat4 uProjection;
     mat4 uNormalToWorld;
-    vec3 viewPos;
-};
-
-layout(std140) uniform Light {
-    uint lightType;
-
-    vec3 position;
-    vec3 direction;
-    vec3 ambient;
-    vec3 diffuse;
-    vec3 specular;
-
-    float cutoff;
-    float outerCutoff;
-    float constant;
-    float linear;
-    float quadratic;
+    mat4 uShadowMapMVP;
+    vec3 uViewPos;
+    bool uUseShadowMap;
 };
 
 #ifdef DIFFUSE_MAP
@@ -53,12 +37,23 @@ layout(std140) uniform Light {
 
 void main()
 {
+    // pos
     WorldPosOut = fragPos;
+
+    // diffuse
 #ifdef DIFFUSE_MAP
     DiffuseOut = texture(uDiffuseMap, TexCoord).xyz;
+#else
+    DiffuseOut = vec3(0.5f);
 #endif
+
+    // normal
     NormalOut = normalize(worldNormal);
+
+    // spec
 #ifdef SPECULAR_MAP
     SpecularOut = texture(uSpecularMap, TexCoord).xyz;
+#else
+    SpecularOut = vec3(0.5f);
 #endif
 }

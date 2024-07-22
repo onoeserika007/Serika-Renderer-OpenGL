@@ -51,7 +51,6 @@ void RenderPassForwardShading::render(Scene & scene)
 	// setAttachment后会绑定到0 fbo，所以记得绑定回来
 	for (const auto& light: scene.getLights()) {
 		renderer_.updateLightUniformBlock(light);
-		std::shared_ptr<Camera> shadowCamera {};
 
 		// 关闭混合
 		setupComputeLight();
@@ -69,8 +68,7 @@ void RenderPassForwardShading::render(Scene & scene)
 
 		// 混合光照结果时打开混合
 		setupToScreen();
-		auto outTex = texColorMain_->getUniformSampler(renderer_);
-		renderer_.dump(*outTex, true, true, fboMain_, 1); // to blend target
+		renderer_.dump(texColorMain_, true, true, fboMain_, 1, false, {}); // to blend target
 	}
 
 	// 画光源时关闭混合
@@ -107,9 +105,9 @@ void RenderPassForwardShading::init()
 	setupBuffers();
 }
 
-std::shared_ptr<UniformSampler> RenderPassForwardShading::getTexColorSampler()
+std::shared_ptr<Texture> RenderPassForwardShading::getOutTex()
 {
-	return texBlendResult_->getUniformSampler(renderer_);
+	return texBlendResult_;
 }
 
 std::shared_ptr<FrameBuffer> RenderPassForwardShading::getFramebufferMain()

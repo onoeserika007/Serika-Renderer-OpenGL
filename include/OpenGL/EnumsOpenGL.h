@@ -18,24 +18,36 @@ namespace OpenGL {
         TextureOpenGLDesc ret{};
 
         switch (format) {
-        case TextureFormat_RGBA8: {
-            ret.internalformat = GL_RGBA;
-            ret.format = GL_RGBA;
-            ret.type = GL_UNSIGNED_BYTE;
-            break;
-        }
-        case TextureFormat_FLOAT32: {
-            ret.internalformat = GL_DEPTH_COMPONENT;
-            ret.format = GL_DEPTH_COMPONENT;
-            ret.type = GL_FLOAT;
-            break;
-        }
-        case TextureFormat_RGB8: {
-            ret.internalformat = GL_RGB;
-            ret.format = GL_RGB;
-            ret.type = GL_UNSIGNED_BYTE;
-            break;
-        }
+            case TextureFormat_RGBA8: {
+                ret.internalformat = GL_RGBA;
+                ret.format = GL_RGBA;
+                ret.type = GL_UNSIGNED_BYTE;
+                break;
+            }
+            case TextureFormat_FLOAT32: {
+                ret.internalformat = GL_DEPTH_COMPONENT;
+                ret.format = GL_DEPTH_COMPONENT;
+                ret.type = GL_FLOAT;
+                break;
+            }
+            case TextureFormat_RGB8: {
+                ret.internalformat = GL_RGB;
+                ret.format = GL_RGB;
+                ret.type = GL_UNSIGNED_BYTE;
+                break;
+            }
+            case TextureFormat_RGB16F: {
+                ret.internalformat = GL_RGB16F; // targetFormat
+                ret.format = GL_RGB;    // srcFormat
+                ret.type = GL_FLOAT;
+                break;
+            }
+            case TextureFormat_RGB32F: {
+                ret.internalformat = GL_RGB32F; // targetFormat
+                ret.format = GL_RGB;    // srcFormat
+                ret.type = GL_FLOAT;
+                break;
+            }
         }
 
         return ret;

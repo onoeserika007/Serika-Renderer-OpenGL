@@ -1,4 +1,4 @@
-#include "ShaderGLSL.h"
+#include "../include/OpenGL/ShaderGLSL.h"
 #include "Base/GLMInc.h"
 #include "Utils/utils.h"
 #include "Utils/OpenGLUtils.h"
@@ -79,6 +79,10 @@ std::shared_ptr<ShaderGLSL> ShaderGLSL::loadStandardMaterialShader()
 std::shared_ptr<ShaderGLSL> ShaderGLSL::loadShadowPassShader()
 {
     return loadShader("./assets/shader/Passes/ShadowPass/ShadowPass.vert", "./assets/shader/Passes/ShadowPass/ShadowPass.frag");
+}
+
+std::shared_ptr<ShaderGLSL> ShaderGLSL::loadDefferedBlinnPhongShader() {
+    return loadShader("assets/shader/Passes/DefferedRendering/DefferedShading_Blinn-Phong.vert", "assets/shader/Passes/DefferedRendering/DefferedShading_Blinn-Phong.frag");
 }
 
 std::shared_ptr<ShaderGLSL> ShaderGLSL::loadFromRawSource(const std::string& VS, const std::string& FS)
@@ -181,7 +185,7 @@ void ShaderGLSL::setupPipeline(Material& material)
 }
 
 // 使用/激活程序
-void ShaderGLSL::use() {
+void ShaderGLSL::use() const {
     GL_CHECK(glUseProgram(ID));
     samplerBinding_ = 0;
     uniformBlockBinding_ = 0;
@@ -219,13 +223,11 @@ GLint ShaderGLSL::getAttributeLocation(const std::string& name) const {
     return glGetAttribLocation(ID, name.data());
 }
 
-unsigned ShaderGLSL::getSamplerBinding()
-{
+unsigned ShaderGLSL::getSamplerBinding() const {
     return samplerBinding_++;
 }
 
-unsigned ShaderGLSL::getUniformBlockBinding()
-{
+unsigned ShaderGLSL::getUniformBlockBinding() const {
     return uniformBlockBinding_++;
 }
 

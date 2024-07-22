@@ -68,10 +68,9 @@ json Config::to_json() const {
         {"CaptureRadius_ShadowMap", json(CaptureRadius_ShadowMap)},
         {"CameraAspect", json(CameraAspect)},
         {"CameraFOV", json(CameraFOV)},
-        {"ShadingMode", json(ShadingMode)},
         {"WindowWidth", json(WindowWidth)},
         {"WindowHeight", json(WindowHeight)},
-    };
+    };;;;;;;;;;;;;;;;;
 }
 
 Config & Config::from_json(const json &j) {
@@ -88,8 +87,7 @@ Config & Config::from_json(const json &j) {
     CaptureRadius_ShadowMap = j["CaptureRadius_ShadowMap"].number_value();
     CameraAspect = j["CameraAspect"].number_value();
     CameraFOV = j["CameraFOV"].number_value();
-    ShadingMode = static_cast<EShadingMode>(j["ShadingMode"].int_value());
     WindowWidth = j["WindowWidth"].int_value();
     WindowHeight = j["WindowHeight"].int_value();
-    return *this;
+    return *this;;;;;;;;;;;;
 }

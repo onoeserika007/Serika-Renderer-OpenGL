@@ -2,9 +2,11 @@
 
 #include <glad/glad.h>
 
-#include "Uniform.h"
+#include "Light.h"
 #include "Texture.h"
 #include "Renderer.h"
+#include "Scene.h"
+#include "FrameBuffer.h"
 #include "RenderPass/RenderPassGeometry.h"
 
 RenderPassLight::RenderPassLight(Renderer &renderer): RenderPass(renderer) {
@@ -12,29 +14,41 @@ RenderPassLight::RenderPassLight(Renderer &renderer): RenderPass(renderer) {
 }
 
 void RenderPassLight::render(Scene & scene) {
-    setupBuffers();
-    assert(gBuffer_, "Please check GeometryBuffer not null in Light RenderPass!");
-    // fboMain_->bindForWriting();
-    // glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    gBuffer_->bindForReading();
-    const int windowWidth = renderer_.width();
-    const int windowHeight = renderer_.height();
-    const GLsizei HalfWidth = (GLsizei)(windowWidth / 2.0f);
-    const GLsizei HalfHeight = (GLsizei)(windowHeight / 2.0f);
+    if (auto&& geometryPass = geometryPass_.lock()) {
 
-    // copy textureBuffers to lightPass
-    gBuffer_->setReadBuffer(RenderPassGeometry::GBUFFER_TEXTURE_TYPE_POSITION);
-    glBlitFramebuffer(0, 0, windowWidth, windowHeight,
-                    0, 0, HalfWidth, HalfHeight, GL_COLOR_BUFFER_BIT, GL_LINEAR);
-    gBuffer_->setReadBuffer(RenderPassGeometry::GBUFFER_TEXTURE_TYPE_DIFFUSE);
-    glBlitFramebuffer(0, 0, windowWidth, windowHeight,
-                    0, HalfHeight, HalfWidth, windowHeight, GL_COLOR_BUFFER_BIT, GL_LINEAR);
-    gBuffer_->setReadBuffer(RenderPassGeometry::GBUFFER_TEXTURE_TYPE_NORMAL);
-    glBlitFramebuffer(0, 0, windowWidth, windowHeight,
-                    HalfWidth, HalfHeight, windowWidth, windowHeight, GL_COLOR_BUFFER_BIT, GL_LINEAR);
-    gBuffer_->setReadBuffer(RenderPassGeometry::GBUFFER_TEXTURE_TYPE_TEXCOORD);
-    glBlitFramebuffer(0, 0, windowWidth, windowHeight,
-                    HalfWidth, 0, windowWidth, HalfHeight, GL_COLOR_BUFFER_BIT, GL_LINEAR);
+        RenderStates& renderStates = renderer_.renderStates;
+
+        BlendParameters blendParams;
+        blendParams.SetBlendFactor(BlendFactor_ONE, BlendFactor_ONE);
+        blendParams.SetBlendFunc(BlendFunc_ADD);
+        renderStates.blendParams = blendParams;
+
+        auto enableBlending = [&renderStates, this](const bool bEnabled) {
+            renderStates.blend = bEnabled;
+            renderStates.depthTest = !bEnabled;
+            renderStates.depthMask = !bEnabled;
+            renderStates.cullFace = !bEnabled;
+            renderer_.updateRenderStates(renderStates);
+        };
+
+        // deffred shading
+        for (auto&& light: scene.getLights()) {
+            renderer_.updateLightUniformBlock(light);
+            renderer_.updateShadowCameraParamsToModelUniformBlock(renderer_.getViewCamera(), light);
+            enableBlending(true);
+            renderer_.dump({}, false, true, fboMain_, 0, true, geometryPass->getGBuffers());
+        }
+
+        // draw Lights
+        // first copy depth buffer from geometryPass_
+        auto&& depthBuffer = geometryPass->getFramebufferMain()->getDepthAttachment().tex;
+        depthBuffer->copyDataTo(*texDepthMain_);
+        enableBlending(false); // disable blending
+        for (auto&& light: scene.getLights()) {
+            renderer_.updateLightUniformBlock(nullptr);
+            renderer_.draw(*light, ShaderPass::Shader_ForwardShading_Pass, nullptr);
+        }
+    }
 }
 
 void RenderPassLight::setupBuffers() {
@@ -55,13 +69,36 @@ void RenderPassLight::init() {
     fboMain_->setColorAttachment(texColorMain_, 0, 0);
 }
 
-std::shared_ptr<UniformSampler> RenderPassLight::getTexColorSampler() {
-    if (texColorMain_) {
-        return texColorMain_->getUniformSampler(renderer_);
-    }
-    return {};
+std::shared_ptr<Texture> RenderPassLight::getOutTex() {
+    return texColorMain_;
 }
 
 std::shared_ptr<FrameBuffer> RenderPassLight::getFramebufferMain() {
     return fboMain_;
+}
+
+void RenderPassLight::renderGBuffersToScreen(const std::shared_ptr<FrameBuffer> &gBuffer) {
+    setupBuffers();
+    assert(gBuffer, "Please check GeometryBuffer not null in Light RenderPass!");
+    // fboMain_->bindForWriting();
+    // glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    gBuffer->bindForReading();
+    const int windowWidth = renderer_.width();
+    const int windowHeight = renderer_.height();
+    const GLsizei HalfWidth = (GLsizei)(windowWidth / 2.0f);
+    const GLsizei HalfHeight = (GLsizei)(windowHeight / 2.0f);
+
+    // copy textureBuffers to lightPass
+    gBuffer->setReadBuffer(RenderPassGeometry::GBUFFER_TEXTURE_TYPE_POSITION);
+    glBlitFramebuffer(0, 0, windowWidth, windowHeight,
+                    0, 0, HalfWidth, HalfHeight, GL_COLOR_BUFFER_BIT, GL_LINEAR);
+    gBuffer->setReadBuffer(RenderPassGeometry::GBUFFER_TEXTURE_TYPE_DIFFUSE);
+    glBlitFramebuffer(0, 0, windowWidth, windowHeight,
+                    0, HalfHeight, HalfWidth, windowHeight, GL_COLOR_BUFFER_BIT, GL_LINEAR);
+    gBuffer->setReadBuffer(RenderPassGeometry::GBUFFER_TEXTURE_TYPE_NORMAL);
+    glBlitFramebuffer(0, 0, windowWidth, windowHeight,
+                    HalfWidth, HalfHeight, windowWidth, windowHeight, GL_COLOR_BUFFER_BIT, GL_LINEAR);
+    gBuffer->setReadBuffer(RenderPassGeometry::GBUFFER_TEXTURE_TYPE_SPECULAR);
+    glBlitFramebuffer(0, 0, windowWidth, windowHeight,
+                    HalfWidth, 0, windowWidth, HalfHeight, GL_COLOR_BUFFER_BIT, GL_LINEAR);
 }

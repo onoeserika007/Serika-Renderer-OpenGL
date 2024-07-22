@@ -1,6 +1,6 @@
 #include "RenderPass/RenderPassShadow.h"
 #include "Renderer.h"
-#include "FrameBufferOpenGL.h"
+#include "../../include/OpenGL/FrameBufferOpenGL.h"
 #include "Light.h"
 #include "../../include/Geometry/Model.h"
 #include "Scene.h"

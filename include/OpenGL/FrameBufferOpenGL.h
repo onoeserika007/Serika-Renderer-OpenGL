@@ -1,8 +1,8 @@
-#include "FrameBuffer.h"
-#include <glad/glad.h>
-#include "Utils/OpenGLUtils.h"
-#include "Utils/Logger.h"
-#include "OpenGL/EnumsOpenGL.h"
+#include "../FrameBuffer.h"
+#include <../../ThirdParty/glad/include/glad/glad.h>
+#include "../Utils/OpenGLUtils.h"
+#include "../Utils/Logger.h"
+#include "EnumsOpenGL.h"
 #include <vector>
 
 

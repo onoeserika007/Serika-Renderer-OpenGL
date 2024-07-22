@@ -20,7 +20,6 @@ struct Config {
 	int WindowHeight = 1080;
 	bool bShadowMap = false;
 	ERenderMode RenderMode = ERenderMode::RenderMode_ForwardRendering;
-	EShadingMode ShadingMode = EShadingMode::Shading_BlinnPhong;
 
 	// Default camera values
 	float CameraYaw = -90.0f;

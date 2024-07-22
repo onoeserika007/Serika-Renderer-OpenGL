@@ -1,10 +1,10 @@
 #pragma once
-#include <glad/glad.h> // 包含glad来获取所有的必须OpenGL头文件
+#include <../../ThirdParty/glad/include/glad/glad.h>
 #include <string>
 #include <vector>
 #include <memory>
-#include "Base/GLMInc.h"
-#include "Shader.h"
+#include "../Base/GLMInc.h"
+#include "../Shader.h"
 
 enum ShaderType{
     ShaderType_VertexShader,
@@ -19,8 +19,8 @@ class ShaderGLSL: public Shader
     //static std::unordered_map<std::string, std::shared_ptr<ShaderGLSL>> shader_map_;
     // 程序ID
     unsigned ID;
-    unsigned samplerBinding_ = 0;
-    unsigned uniformBlockBinding_ = 0;
+    mutable unsigned samplerBinding_ = 0;
+    mutable unsigned uniformBlockBinding_ = 0;
 
     std::string headers_;
     std::string defines_;
@@ -42,6 +42,7 @@ public:
     static std::shared_ptr<ShaderGLSL> loadLightMapMaterialShader();
     static std::shared_ptr<ShaderGLSL> loadStandardMaterialShader();
     static std::shared_ptr<ShaderGLSL> loadShadowPassShader();
+    static std::shared_ptr<ShaderGLSL> loadDefferedBlinnPhongShader();
     static std::shared_ptr<ShaderGLSL> loadFromRawSource(const std::string& VS, const std::string& FS);
 
     // compile
@@ -59,11 +60,11 @@ public:
     void setVec3(const std::string& name, float x, float y, float z) const;
 
     GLint getAttributeLocation(const std::string& name) const override;
-    virtual unsigned getSamplerBinding() override;
-    virtual unsigned getUniformBlockBinding() override;
+    virtual unsigned getSamplerBinding() const override;
+    virtual unsigned getUniformBlockBinding() const override;
     // 使用/激活程序
     virtual void setupPipeline(Material& material) override;
-    virtual void use() override;
+    virtual void use() const override;
     virtual int getId() const override;
     virtual std::shared_ptr<Shader> clone() const override;
 };
