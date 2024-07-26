@@ -70,7 +70,9 @@ json Config::to_json() const {
         {"CameraFOV", json(CameraFOV)},
         {"WindowWidth", json(WindowWidth)},
         {"WindowHeight", json(WindowHeight)},
-    };;;;;;;;;;;;;;;;;
+        {"bSkybox", json(bSkybox)},
+        {"bUseBVH", json(bUseBVH)}
+    };;;;
 }
 
 Config & Config::from_json(const json &j) {
@@ -89,5 +91,7 @@ Config & Config::from_json(const json &j) {
     CameraFOV = j["CameraFOV"].number_value();
     WindowWidth = j["WindowWidth"].int_value();
     WindowHeight = j["WindowHeight"].int_value();
-    return *this;;;;;;;;;;;;
+    bSkybox = j["bSkybox"].bool_value();
+    bUseBVH = j["bUseBVH"].bool_value();
+    return *this;;;;;;;;
 }

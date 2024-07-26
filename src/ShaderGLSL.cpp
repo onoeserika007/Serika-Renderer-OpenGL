@@ -1,22 +1,45 @@
-#include "../include/OpenGL/ShaderGLSL.h"
-#include "Base/GLMInc.h"
-#include "Utils/utils.h"
+#include "OpenGL/ShaderGLSL.h"
+
+#include <sstream>
+
+#include "Base/Globals.h"
+#include "Utils/UniversalUtils.h"
 #include "Utils/OpenGLUtils.h"
-#include <vector>
-#include "../include/Base/ResourceLoader.h"
-#include "Material.h"
+#include "Base/ResourceLoader.h"
+#include "Material/FMaterial.h"
 
 //std::unordered_map<std::string, std::shared_ptr<ShaderGLSL>> ShaderGLSL::shader_map_;
 const std::string OPENGL_VERSION_HEADER = "#version 430 core";
 
+bool ShaderGLSL::checkSourceVersionHeader(const std::string &code) {
+    std::stringstream ss(code);;
+    std::string token, firstLine, ans;
+    while (std::getline(ss, firstLine)) {
+        if (!firstLine.empty()) break;
+    }
+    std::stringstream firstLineStringStream(firstLine);
+    while (firstLineStringStream >> token) {
+        if (token.size() == 1 && token[0] == '#') {
+            ans += token;
+        } else {
+            ans += token + " ";
+        }
+    }
+    if (!ans.empty()) ans.pop_back();
+    return ans == OPENGL_VERSION_HEADER;
+}
+
 // 构造器读取并构建着色器
-ShaderGLSL::ShaderGLSL(const std::string& vertexPath, const std::string& fragmentPath) {
+ShaderGLSL::ShaderGLSL(const std::string& vertexPath, const std::string& fragmentPath, const std::string& geometryPath) {
+    auto&& loader = ResourceLoader::getInstance();
     // 1. 从文件路径中获取顶点/片段着色器
-    vertexCode_ = ResourceLoader::loadShader(vertexPath);
-    fragmentCode_ = ResourceLoader::loadShader(fragmentPath);
+    vertexCode_ = loader.loadShader(vertexPath);
+    fragmentCode_ = loader.loadShader(fragmentPath);
+    geometryCode_ = loader.loadShader(geometryPath);
 
     vsPath_ = vertexPath;
     fsPath_ = fragmentPath;
+    gsPath_ = geometryPath;
 
     addHeader(OPENGL_VERSION_HEADER);
 }
@@ -26,7 +49,7 @@ ShaderGLSL::ShaderGLSL()
     addHeader(OPENGL_VERSION_HEADER);
 }
 
-std::shared_ptr<ShaderGLSL> ShaderGLSL::loadShader(const std::string& vertexPath, const std::string& fragmentPath) {
+std::shared_ptr<ShaderGLSL> ShaderGLSL::loadShader(const std::string& vertexPath, const std::string& fragmentPath, const std::string& geometryPath) {
     // 更高的异常安全级别，防止构造 shared_ptr 之前就调用 new ，抛出异常;
     // 仅分配1次内存来保存引用对象和控制块(两者内存分布是连续的);
     // 原因是 make_shared 函数模板并非 Widget 类的友元函数，其访问了私有构造函数。而静态成员函数可以访问类的私有成员(比如这里的私有构造函数)，因此可以在 create 内部调用 new (两步：分配内存、调用构造函数)。
@@ -35,7 +58,7 @@ std::shared_ptr<ShaderGLSL> ShaderGLSL::loadShader(const std::string& vertexPath
     // return shader_map_[key] = std::shared_ptr<ShaderGLSL>(new ShaderGLSL(vertexPath, fragmentPath));
 
     // 或者采用PassKey方法
-    return std::make_shared<ShaderGLSL>(PassKey(), vertexPath, fragmentPath);
+    return std::make_shared<ShaderGLSL>(PassKey(), vertexPath, fragmentPath, geometryPath);
 }
 
 // 用这个shader规定顶点输入的布局
@@ -62,37 +85,37 @@ std::shared_ptr<ShaderGLSL> ShaderGLSL::loadGeometryShader() {
     return loadShader("./assets/shader/Passes/DefferedRendering/Geometry.vert", "./assets/shader/Passes/DefferedRendering/Geometry.frag");
 }
 
-std::shared_ptr<ShaderGLSL> ShaderGLSL::loadPhongMaterialShader() {
-    return loadShader("./assets/shader/PhongMaterial.vert", "./assets/shader/PhongMaterial.frag");
-}
-
-std::shared_ptr<ShaderGLSL> ShaderGLSL::loadLightMapMaterialShader()
-{
-    return loadShader("./assets/shader/LightMap/lightMap.vert", "./assets/shader/LightMap/lightMap.frag");
-}
-
-std::shared_ptr<ShaderGLSL> ShaderGLSL::loadStandardMaterialShader()
-{
-    return loadShader("./assets/shader/Standard.vert", "./assets/shader/Standard.frag");
-}
-
 std::shared_ptr<ShaderGLSL> ShaderGLSL::loadShadowPassShader()
 {
     return loadShader("./assets/shader/Passes/ShadowPass/ShadowPass.vert", "./assets/shader/Passes/ShadowPass/ShadowPass.frag");
+}
+
+std::shared_ptr<ShaderGLSL> ShaderGLSL::loadShadowCubePassShader() {
+    return loadShader(
+        "assets/shader/Passes/ShadowPass/ShadowPassCube.vert",
+        "assets/shader/Passes/ShadowPass/ShadowPassCube.frag",
+        "assets/shader/Passes/ShadowPass/ShadowPassCube.geom"
+    );
 }
 
 std::shared_ptr<ShaderGLSL> ShaderGLSL::loadDefferedBlinnPhongShader() {
     return loadShader("assets/shader/Passes/DefferedRendering/DefferedShading_Blinn-Phong.vert", "assets/shader/Passes/DefferedRendering/DefferedShading_Blinn-Phong.frag");
 }
 
-std::shared_ptr<ShaderGLSL> ShaderGLSL::loadFromRawSource(const std::string& VS, const std::string& FS)
+std::shared_ptr<ShaderGLSL> ShaderGLSL::loadSkyBoxShader() {
+    return loadShader("assets/shader/Passes/PlainPass/SkyBox.vert", "assets/shader/Passes/PlainPass/SkyBox.frag");
+}
+
+std::shared_ptr<ShaderGLSL> ShaderGLSL::loadFromRawSource(const std::string& VS, const std::string& FS, const std::string &GS)
 {
     auto ret = std::shared_ptr<ShaderGLSL>(new ShaderGLSL());
     ret->vertexCode_ = VS;
     ret->fragmentCode_ = FS;
+    ret->geometryCode_ = GS;
 
     ret->vsPath_ = "";
     ret->fsPath_ = "";
+    ret->gsPath_ = "";
     return ret;
 }
 
@@ -101,44 +124,57 @@ void ShaderGLSL::addHeader(const std::string& header)
     headers_ += header + "\n";
 }
 
-void ShaderGLSL::addDefines(const std::vector<std::string>& defines)
-{
-    for (const auto& def : defines) {
-        addDefine(def);
-    }
-}
-
 void ShaderGLSL::addDefine(const std::string& define)
 {
-    defines_ += "#define " + define + "\n";
+    defines_ += "#define " + define + "\n";;
 }
 
 void ShaderGLSL::compileAndLink()
 {
-    auto vertexCode = headers_ + defines_ + vertexCode_;
+    auto jointShaderSource = [this](const std::string& code) -> std::string {
+        auto ret = code;
+        if (checkSourceVersionHeader(code)) {
+            ret = code;
+            auto place = ret.find_first_of('\n');
+            ++place;
+            ret.insert(place, defines_);
+        }
+        else {
+            ret = headers_ + defines_ + code;
+        }
+        return ret;
+    };
+
+    std::string vertexCode = jointShaderSource(vertexCode_);
     const char* vShaderSource = vertexCode.data();
 
-    auto fragmentCode = headers_ + defines_ + fragmentCode_;
+    std::string fragmentCode = jointShaderSource(fragmentCode_);
     const char* fShaderSource = fragmentCode.data();
 
+    std::string geometryCode = jointShaderSource(geometryCode_);
+    const char* gShaderSource = geometryCode.data();
+
+    // optional shader
+    const bool bUseGeometryShader = !geometryCode_.empty();
+
     // 2. 编译着色器
-    unsigned int vertex, fragment;
+    unsigned int vertex, fragment, geomerty;
     int success;
     char infoLog[512];
 
     // 顶点着色器
     GL_CHECK(vertex = glCreateShader(GL_VERTEX_SHADER));
-    GL_CHECK(glShaderSource(vertex, 1, &vShaderSource, NULL));
+    GL_CHECK(glShaderSource(vertex, 1, &vShaderSource, nullptr));
     GL_CHECK(glCompileShader(vertex));
     // 打印编译错误（如果有的话）
     glGetShaderiv(vertex, GL_COMPILE_STATUS, &success);
     if (!success)
     {
-        glGetShaderInfoLog(vertex, 512, NULL, infoLog);
+        glGetShaderInfoLog(vertex, 512, nullptr, infoLog);
         std::cout << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n" << infoLog << std::endl;
         std::cout << "VertexShader Path: " + vsPath_ << std::endl;
-        std::cout << vertexCode << std::endl;
-        exit(-1);
+        std::cout << vShaderSource << std::endl;
+        // throw std::exception();
     };
 
     // 片段着色器
@@ -153,28 +189,50 @@ void ShaderGLSL::compileAndLink()
         std::cout << "ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n" << infoLog << std::endl;
         std::cout << "FragmentShader Path: " + fsPath_ << std::endl;
         std::cout << fShaderSource << std::endl;
-        exit(-1);
+        // throw std::exception();
     };
+
+    // 顶点着色器
+    GL_CHECK(geomerty = glCreateShader(GL_GEOMETRY_SHADER));
+    if (bUseGeometryShader) {
+        GL_CHECK(glShaderSource(geomerty, 1, &gShaderSource, nullptr));
+        GL_CHECK(glCompileShader(geomerty));
+        // 打印编译错误（如果有的话）
+        glGetShaderiv(geomerty, GL_COMPILE_STATUS, &success);
+        if (!success)
+        {
+            glGetShaderInfoLog(vertex, 512, nullptr, infoLog);
+            std::cout << "ERROR::SHADER::GEOMETRY::COMPILATION_FAILED\n" << infoLog << std::endl;
+            std::cout << "GeometryShader Path: " + gsPath_ << std::endl;
+            std::cout << gShaderSource << std::endl;
+            // throw std::exception();
+        };
+    }
 
     // 着色器程序
     ID = glCreateProgram();
     glAttachShader(ID, vertex);
     glAttachShader(ID, fragment);
+    if (bUseGeometryShader) glAttachShader(ID, geomerty);
     glLinkProgram(ID);
     // 打印连接错误（如果有的话）
     glGetProgramiv(ID, GL_LINK_STATUS, &success);
     if (!success)
     {
-        glGetProgramInfoLog(ID, 512, NULL, infoLog);
+        glGetProgramInfoLog(ID, 512, nullptr, infoLog);
         std::cout << "ERROR::SHADER::PROGRAM::LINKING_FAILED\n" << infoLog << std::endl;
+        std::cout << "VertexShader Path: " + vsPath_ << std::endl;
+        std::cout << "FragmentShader Path: " + fsPath_ << std::endl;
+        std::cout << "GeometryShader Path: " + gsPath_ << std::endl;
     }
 
     // 删除着色器，它们已经链接到我们的程序中了，已经不再需要了
     glDeleteShader(vertex);
     glDeleteShader(fragment);
+    glDeleteShader(geomerty);
 }
 
-void ShaderGLSL::setupPipeline(Material& material)
+void ShaderGLSL::setupPipeline(FMaterial& material)
 {
     if (!ready()) {
         addDefines(material.getDefines());
@@ -231,7 +289,7 @@ unsigned ShaderGLSL::getUniformBlockBinding() const {
     return uniformBlockBinding_++;
 }
 
-int ShaderGLSL::getId() const 
+GLuint ShaderGLSL::getId() const
 {
     return ID;
 }

@@ -1,4 +1,4 @@
-// #version 430 core
+#version 430 core
 
 in vec2 vTexCoord;
 
@@ -12,6 +12,8 @@ layout(std140) uniform Model {
     mat4 uShadowMapMVP;
     vec3 uViewPos;
     bool uUseShadowMap;
+    bool uUseShadowMapCube;
+    bool uUseEnvMap;
 };
 
 layout(std140) uniform Light {
@@ -36,21 +38,25 @@ uniform sampler2D gDiffuse;
 uniform sampler2D gNormal;
 uniform sampler2D gSpecular;
 
+uniform sampler2D uAmbientMap;  // use abient map as reflection map
+
 // ShadomMap
 uniform sampler2D uShadowMap;
 
+// Skybox
+uniform samplerCube uCubeMap;
+
+/************* CONSTANTS **************/
 #define MAX_LIGHT_NUM 4
 #define MAX_TEXTURE_NUM 16
 #define EPSILON 1e-3
 #define DISTURBANCE 3e-3
 #define PI 3.141592653589793
 #define PI2 6.283185307179586
-
-// Shadow map related variables
-#define NUM_SAMPLES 10
-#define BLOCKER_SEARCH_NUM_SAMPLES NUM_SAMPLES
-#define PCF_NUM_SAMPLES NUM_SAMPLES
 #define NUM_RINGS 10
+#define NUM_SAMPLES 10
+#define LIGHT_WIDTH 10.f
+#define RESOLUTION 1024.f
 
 vec3 calcDirLight(vec3 normal, vec3 viewDir);
 vec3 calcPointLight(vec3 normal, vec3 fragPos, vec3 viewDir);
@@ -61,13 +67,13 @@ float rand() {
 }
 
 float getDisturb() {
-    return rand() * 2.f - 1.f;
+    return rand() * 2. - 1.;
 }
 
 float rand_1to1(float x) {
     // -1 -1
-    return rand() * 2.f - 1.f;
-    //    return fract(sin(x) * 10000.0);
+    // return rand() * 2. - 1.;
+    return fract(sin(x) * 10000.0);
 }
 
 float rand_2to1(vec2 uv) {
@@ -80,54 +86,63 @@ float rand_2to1(vec2 uv) {
 vec3 calcPhong(vec3 normal, vec3 viewDir, vec3 fragPos);
 
 float calcStandardShadowMap(sampler2D shadowMap, vec3 shadowCoord);
-float PCSS(sampler2D shadowMap, vec4 coords);
-float PCF(sampler2D shadowMap, vec4 shadowCoord, float filterSize);
+float PCSS(sampler2D shadowMap, vec3 coords);
+float PCF(sampler2D shadowMap, vec3 shadowCoord, float filterSize);
 
 /********* GLOBALS ********/
 vec3 vWorldNormal = vec3(texture(gNormal, vTexCoord));
 vec3 vFragPos = vec3(texture(gPosition, vTexCoord));
 
 /*********************** MAIN **************************/
-void main()
-{
+void main() {
     vec3 viewDir = normalize(uViewPos - vFragPos);
 
     vec3 phongColor = calcPhong(vWorldNormal, viewDir, vFragPos);
-    // shadow Map
-    float visibility = 1.f;
-    if (uUseShadowMap) {
-        vec4 posFromLight = uShadowMapMVP * vec4(vFragPos, 1.f);
-        vec3 shadowCoords = (posFromLight.xyz / posFromLight.w + 1.0f) / 2.0f;
-        visibility = calcStandardShadowMap(uShadowMap, shadowCoords);
+
+    // env mapping
+    if(uUseEnvMap) {
+        vec3 reflectDir = reflect(-viewDir, vWorldNormal);
+        vec3 mappingColor = vec3(texture(uCubeMap, reflectDir));
+        vec3 specCoef = vec3(texture(gSpecular, vTexCoord));
+        phongColor += mappingColor * specCoef;
     }
 
-    FragColor = vec4(phongColor * visibility, 1.f);
+    // shadow Map
+    float visibility = 1.;
+    if(uUseShadowMap) {
+        vec4 posFromLight = uShadowMapMVP * vec4(vFragPos, 1.);
+        vec3 shadowCoords = (posFromLight.xyz / posFromLight.w + 1.0) / 2.0;
+//        visibility = calcStandardShadowMap(uShadowMap, shadowCoords);
+//        visibility = PCF(uShadowMap, shadowCoords, 1. / RESOLUTION);
+        visibility = PCSS(uShadowMap, shadowCoords);
+    }
+
+    FragColor = vec4(phongColor * visibility, 1.);
 }
 
 /*********************** PHONG SHADING **************************/
 
 vec3 calcPhong(vec3 normal, vec3 viewDir, vec3 fragPos) {
-    vec3 radiance = vec3(0.f);
-    if (uLightType == 0) {
-        FragColor = vec4(0.0f);
+    vec3 radiance = vec3(0.);
+    if(uLightType == 0) {
+        FragColor = vec4(0.0);
     }
     // point light
-    else if (uLightType == 1) {
+    else if(uLightType == 1) {
         // vec3 emissive = vec3(texture(material.emissive, vTexCoord));
         radiance = calcPointLight(normal, fragPos, viewDir);
         radiance = radiance + DISTURBANCE * getDisturb();
     }
     // directional light
-    else if (uLightType == 2) {
+    else if(uLightType == 2) {
         radiance = calcDirLight(normal, viewDir);
         radiance = radiance + DISTURBANCE * getDisturb();
     }
     // spot light
-    else if (uLightType == 3) {
+    else if(uLightType == 3) {
         radiance = radiance * calcSpotLight(fragPos);
-    }
-    else {
-        radiance = vec3(1.0f);
+    } else {
+        radiance = vec3(1.0);
     }
     return radiance;
 }
@@ -136,7 +151,7 @@ vec3 calcPointLight(vec3 normal, vec3 fragPos, vec3 viewDir) {
 
     float constant = uLightConstant; // cannot modify a uniform
     if(abs(constant) < EPSILON) {
-        constant = 1.0f;
+        constant = 1.0;
     }
 
     vec3 lightDir = normalize(uLightPosition - fragPos);
@@ -146,7 +161,7 @@ vec3 calcPointLight(vec3 normal, vec3 fragPos, vec3 viewDir) {
     // 衰减
     float distance = length(uLightPosition - fragPos);
     // division by zero problem here!
-    float attenuation = 1.0f / (constant + uLightLinear * distance + uLightQuadratic * (distance * distance));
+    float attenuation = 1.0 / (constant + uLightLinear * distance + uLightQuadratic * (distance * distance));
 
     // 漫反射着色
     float diff = max(dot(normal, lightDir), 0.0);
@@ -154,11 +169,11 @@ vec3 calcPointLight(vec3 normal, vec3 fragPos, vec3 viewDir) {
     // 镜面光着色
     vec3 reflectDir = reflect(-lightDir, normal); // here I gets in, O gets out;
     vec3 halfVector = normalize(lightDir + viewDir);
-    float spec = pow(max(dot(halfVector, normal), 0.0), 16.f);
+    float spec = pow(max(dot(halfVector, normal), 0.0), 16.);
 
     // 合并结果
-    vec3 ambient  = uLightAmbient  * baseColor;
-    vec3 diffuse  = uLightDiffuse  * diff * baseColor;
+    vec3 ambient = uLightAmbient * baseColor;
+    vec3 diffuse = uLightDiffuse * diff * baseColor;
     vec3 specular = uLightSpecular * spec * specCoef;
 
     vec3 result = ambient + diffuse + specular;
@@ -178,11 +193,11 @@ vec3 calcDirLight(vec3 normal, vec3 viewDir) {
     // 镜面光着色
     vec3 reflectDir = reflect(-lightDir, normal);
     vec3 halfVector = normalize(lightDir + viewDir);
-    float spec = pow(max(dot(halfVector, normal), 0.0), 16.f);
+    float spec = pow(max(dot(halfVector, normal), 0.0), 16.);
 
     // 合并结果
-    vec3 ambient  = uLightAmbient  * vec3(baseColor);
-    vec3 diffuse  = uLightDiffuse  * diff * vec3(baseColor);
+    vec3 ambient = uLightAmbient * vec3(baseColor);
+    vec3 diffuse = uLightDiffuse * diff * vec3(baseColor);
     vec3 specular = uLightSpecular * spec * specCoef;
 
     vec3 result = ambient + diffuse + specular;
@@ -197,9 +212,9 @@ float calcSpotLight(vec3 fragPos) {
 
     // zero division
     if(abs(epsilon) < EPSILON) {
-        epsilon = 1.0f;
+        epsilon = 1.0;
     }
-    float intensity = clamp((theta - uLightOuterCutoff) / epsilon, 0.0f, 1.0f);
+    float intensity = clamp((theta - uLightOuterCutoff) / epsilon, 0.0, 1.0);
     return intensity;
 }
 
@@ -216,7 +231,7 @@ void poissonDiskSamples(const in vec2 randomSeed) {
     float radius = INV_NUM_SAMPLES;
     float radiusStep = radius;
 
-    for (int i = 0; i < NUM_SAMPLES; i++) {
+    for(int i = 0; i < NUM_SAMPLES; i++) {
         poissonDisk[i] = vec2(cos(angle), sin(angle)) * pow(radius, 0.75);
         radius += radiusStep;
         angle += ANGLE_STEP;
@@ -232,7 +247,7 @@ void uniformDiskSamples(const in vec2 randomSeed) {
     float angle = sampleX * PI2;
     float radius = sqrt(sampleY);
 
-    for (int i = 0; i < NUM_SAMPLES; i++) {
+    for(int i = 0; i < NUM_SAMPLES; i++) {
         poissonDisk[i] = vec2(radius * cos(angle), radius * sin(angle));
 
         sampleX = rand_1to1(sampleY);
@@ -243,12 +258,10 @@ void uniformDiskSamples(const in vec2 randomSeed) {
     }
 }
 
-#define LIGHT_WIDTH 70.0
-#define RESOLUTION 2048.0
 float getBias() {
     vec3 LightDir = normalize(uLightPosition - vFragPos);
     vec3 Normal = normalize(vWorldNormal);
-    return max(EPSILON, EPSILON * (1.0 - dot(LightDir, Normal)));
+    return max(0., EPSILON * (1.0 - dot(LightDir, Normal)));
 }
 
 float findBlocker(sampler2D shadowMap, vec2 uv, float zReceiver) {
@@ -256,40 +269,46 @@ float findBlocker(sampler2D shadowMap, vec2 uv, float zReceiver) {
     float blockerNUM = 0.0;
     float blockerSearchRange = 5.0 / RESOLUTION;
     poissonDiskSamples(uv);
-    for(int i=0; i<BLOCKER_SEARCH_NUM_SAMPLES; i++) {
+    for(int i = 0; i < NUM_SAMPLES; i++) {
         float blockerDepth = texture(shadowMap, uv + blockerSearchRange * poissonDisk[i]).x;
         if(blockerDepth + EPSILON <= zReceiver) {
             avgBlockerDepth += blockerDepth;
             blockerNUM += 1.0;
         }
     }
-    if(blockerNUM == 0.0) return 1.0;
-    else return avgBlockerDepth / blockerNUM;
+    if(blockerNUM == 0.0)
+        return 1.0;
+    else
+        return avgBlockerDepth / blockerNUM;
 }
 
-float PCF(sampler2D shadowMap, vec4 shadowCoord, float filterSize) {
-    if(filterSize == 0.0) return 1.0f;
+// percentage-closer filtering
+float PCF(sampler2D shadowMap, vec3 shadowCoord, float filterSize) {
+    if(filterSize == 0.0)
+        return 1.0;
     float visibility = 0.0;
-    float num = float(NUM_SAMPLES);
+    float num_samples = float(NUM_SAMPLES);
     vec2 randomSeed = shadowCoord.xy;
-    //  uniformDiskSamples(randomSeed);
-    poissonDiskSamples(randomSeed);
+    uniformDiskSamples(randomSeed);
+    // poissonDiskSamples(randomSeed);
     float FragDepth = shadowCoord.z;
-    for (int i = 0; i < NUM_SAMPLES; i++) {
+    for(int i = 0; i < NUM_SAMPLES; i++) {
         float LightDepth = texture(shadowMap, shadowCoord.xy + poissonDisk[i] * filterSize).x;
         visibility += (LightDepth + EPSILON <= FragDepth - getBias() ? 0.0 : 1.0);
     }
-    return visibility / num;
+    return visibility / num_samples;
 }
 
-float PCSS(sampler2D shadowMap, vec4 coords) {
+float PCSS(sampler2D shadowMap, vec3 coords) {
     float zReceiver = coords.z;
     // STEP 1: avgblocker depth
     float avgBlockerDepth = findBlocker(shadowMap, coords.xy, coords.z);
     // STEP 2: penumbra size
     float penumbraSize;
-    if(avgBlockerDepth == 1.0) penumbraSize = 0.0;
-    else penumbraSize = (zReceiver - avgBlockerDepth) * LIGHT_WIDTH / avgBlockerDepth;
+    if(avgBlockerDepth == 1.0)
+        penumbraSize = 0.0;
+    else
+        penumbraSize = (zReceiver - avgBlockerDepth) * LIGHT_WIDTH / avgBlockerDepth;
     // STEP 3: filtering
     float visibility = PCF(shadowMap, coords, penumbraSize / RESOLUTION);
     return visibility;
@@ -298,5 +317,7 @@ float PCSS(sampler2D shadowMap, vec4 coords) {
 float calcStandardShadowMap(sampler2D shadowMap, vec3 shadowCoord) {
     float LightDepth = texture(uShadowMap, shadowCoord.xy).x;
     float FragDepth = shadowCoord.z;
+    if(FragDepth > 1.)
+        FragDepth = 0.;
     return LightDepth + EPSILON <= FragDepth - getBias() ? 0.0 : 1.0;
 }

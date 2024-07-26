@@ -1,7 +1,7 @@
 #pragma once
 #include "Buffer.h"
 #include <memory>
-#include "Base/GLMInc.h"
+#include "Base/Globals.h"
 
 class ImageUtils {
 public:

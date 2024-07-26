@@ -178,7 +178,7 @@ protected:
     /** Scene to be filled */
     aiScene* pcScene;
 
-    /** Config options: Recompute the normals in every case - WA
+    /** configs options: Recompute the normals in every case - WA
         for 3DS Max broken ASE normal export */
     bool configRecomputeNormals;
     bool noSkeletonMesh;

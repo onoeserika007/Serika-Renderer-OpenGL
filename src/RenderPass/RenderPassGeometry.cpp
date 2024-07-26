@@ -1,7 +1,7 @@
 #include "RenderPass/RenderPassGeometry.h"
 
 #include <../../include/Geometry/Model.h>
-#include <Scene.h>
+#include <FScene.h>
 
 #include "Renderer.h"
 #include "FrameBuffer.h"
@@ -47,15 +47,15 @@ const std::vector<std::shared_ptr<Texture>> & RenderPassGeometry::getGBuffers() 
 void RenderPassGeometry::setupBuffers()
 {
 	for (auto& colorAttachment : gbufferTextures_) {
-		renderer_.setupGBuffer(colorAttachment, false, false);
+		renderer_.setupColorBuffer(colorAttachment, renderer_.width(), renderer_.height(), false, false, TextureTarget_TEXTURE_2D);
 	}
 	renderer_.setupDepthBuffer(depthTexture_, false, true);
 }
 
-void RenderPassGeometry::render(Scene & scene) {
+void RenderPassGeometry::render(FScene & scene) {
 	setupBuffers();
 	for (auto& model : scene.getModels()) {
-		renderer_.draw(*model, shaderPass_, nullptr);
+		renderer_.draw(model, shaderPass_, nullptr);
 	}
 }
 

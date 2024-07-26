@@ -1,7 +1,7 @@
 #pragma once
 #include "Base/RenderStates.h"
 #include <glad/glad.h>
-#include "Texture.h"
+#include "../Material/Texture.h"
 #include "Utils/Logger.h"
 
 namespace OpenGL {
@@ -9,7 +9,7 @@ namespace OpenGL {
     struct TextureOpenGLDesc {
         GLint internalformat;
         GLenum format;
-        GLenum type;
+        GLenum elemtype;
     };
 ;
 #define CASE_CVT_GL(PRE, TOKEN) case PRE##TOKEN: return GL_##TOKEN
@@ -21,36 +21,47 @@ namespace OpenGL {
             case TextureFormat_RGBA8: {
                 ret.internalformat = GL_RGBA;
                 ret.format = GL_RGBA;
-                ret.type = GL_UNSIGNED_BYTE;
+                ret.elemtype = GL_UNSIGNED_BYTE;
                 break;
             }
             case TextureFormat_FLOAT32: {
                 ret.internalformat = GL_DEPTH_COMPONENT;
                 ret.format = GL_DEPTH_COMPONENT;
-                ret.type = GL_FLOAT;
+                ret.elemtype = GL_FLOAT;
                 break;
             }
             case TextureFormat_RGB8: {
                 ret.internalformat = GL_RGB;
                 ret.format = GL_RGB;
-                ret.type = GL_UNSIGNED_BYTE;
+                ret.elemtype = GL_UNSIGNED_BYTE;
                 break;
             }
             case TextureFormat_RGB16F: {
                 ret.internalformat = GL_RGB16F; // targetFormat
                 ret.format = GL_RGB;    // srcFormat
-                ret.type = GL_FLOAT;
+                ret.elemtype = GL_FLOAT;
                 break;
             }
             case TextureFormat_RGB32F: {
                 ret.internalformat = GL_RGB32F; // targetFormat
                 ret.format = GL_RGB;    // srcFormat
-                ret.type = GL_FLOAT;
+                ret.elemtype = GL_FLOAT;
                 break;
             }
         }
 
         return ret;
+    }
+
+    static inline GLuint cvtTextureTarget(TextureTarget target) {
+        switch (target) {
+            CASE_CVT_GL(TextureTarget_, TEXTURE_2D);
+            CASE_CVT_GL(TextureTarget_, TEXTURE_2D_MULTISAMPLE);
+            CASE_CVT_GL(TextureTarget_, TEXTURE_CUBE_MAP);
+            default:
+                break;
+        }
+        return GL_TEXTURE_2D;
     }
 
     static inline GLint cvtWrap(WrapMode mode) {
@@ -65,7 +76,7 @@ namespace OpenGL {
         return GL_REPEAT;
     }
 
-    static inline GLint cvtFilter(FilterMode mode) {
+    static inline GLint cvtFilter(const FilterMode mode) {
         switch (mode) {
             CASE_CVT_GL(Filter_, LINEAR);
             CASE_CVT_GL(Filter_, NEAREST);
@@ -79,7 +90,7 @@ namespace OpenGL {
         return GL_NEAREST;
     }
 
-    static inline GLint cvtCubeFace(CubeMapFace face) {
+    static inline GLint cvtCubeFace(ECubeMapFace face) {
         switch (face) {
             CASE_CVT_GL(, TEXTURE_CUBE_MAP_POSITIVE_X);
             CASE_CVT_GL(, TEXTURE_CUBE_MAP_NEGATIVE_X);
@@ -138,6 +149,17 @@ namespace OpenGL {
         case BlendFunc_MAX:               return GL_MAX;
         default:
             break;
+        }
+        return 0;
+    }
+
+    static inline GLuint cvtCullMode(ECullMode mode) {
+        switch (mode) {
+            CASE_CVT_GL(CullMode_, BACK);
+            CASE_CVT_GL(CullMode_, FRONT);
+            CASE_CVT_GL(CullMode_, FRONT_AND_BACK);
+            default:
+                break;
         }
         return 0;
     }

@@ -1,23 +1,21 @@
 #include "RenderPass/RenderPassForwardShading.h"
 
 #include <../../include/Geometry/Model.h>
-#include <Scene.h>
+#include <FScene.h>
 #include "Light.h"
 
 #include "FrameBuffer.h"
 #include "Renderer.h"
-#include "Uniform.h"
+#include "../../include/Material/Uniform.h"
 #include "Base/Config.h"
 
 RenderPassForwardShading::RenderPassForwardShading(Renderer& renderer): RenderPass(renderer)
 {
 }
 
-void RenderPassForwardShading::render(Scene & scene)
+void RenderPassForwardShading::render(FScene & scene)
 {
 	auto&& config = Config::getInstance();
-	// renderer_.setRenderViewPort(0, 0, config.Resolution_ShadowMap, config.Resolution_ShadowMap);
-
 	// 更新新Buffer后还要记得重新绑定到fbo
 	// 为何这里的texture没有被回收？？ 懂了！！Frambuffer中的Attachment还保存有一份引用
 	setupBuffers();
@@ -58,17 +56,12 @@ void RenderPassForwardShading::render(Scene & scene)
 		fboMain_->clearDepthBuffer();
 		// 渲染所有mesh时关闭混合，保证深度测试
 		for (const auto& model : scene.getModels()) {
-			if (config.bShadowMap) {
-				renderer_.draw(*model, shaderPass_, light);
-			}
-			else {
-				renderer_.draw(*model, shaderPass_, nullptr);
-			}
+			renderer_.draw(model, shaderPass_, light); // may set shadow cast in updateModelUniformBlock called in draw()
 		}
 
 		// 混合光照结果时打开混合
 		setupToScreen();
-		renderer_.dump(texColorMain_, true, true, fboMain_, 1, false, {}); // to blend target
+		renderer_.dump(renderer_.getToScreenColorProgram(texColorMain_), true, fboMain_, 1); // to blend target
 	}
 
 	// 画光源时关闭混合
@@ -76,7 +69,10 @@ void RenderPassForwardShading::render(Scene & scene)
 	fboMain_->setWriteBuffer(1, false); // to blend target
 	for (const auto& light: scene.getLights()) {
 		renderer_.updateLightUniformBlock(nullptr);
-		renderer_.draw(*light, shaderPass_, nullptr);
+		renderer_.draw(light, ShaderPass::Shader_ForwardShading_Pass, nullptr);
+	}
+	if (scene.skybox_) {
+		renderer_.draw(scene.skybox_, ShaderPass::Shader_ForwardShading_Pass, nullptr);
 	}
 
 }
@@ -84,8 +80,8 @@ void RenderPassForwardShading::render(Scene & scene)
 void RenderPassForwardShading::setupBuffers()
 {
 
-	renderer_.setupColorBuffer(texColorMain_, false, false);
-	renderer_.setupColorBuffer(texBlendResult_, false, false);
+	renderer_.setupColorBuffer(texColorMain_, renderer_.width(), renderer_.height(), false);
+	renderer_.setupColorBuffer(texBlendResult_, renderer_.width(), renderer_.height(), false);
 	renderer_.setupDepthBuffer(texDepthMain_, false, false);
 
 	// create fbo

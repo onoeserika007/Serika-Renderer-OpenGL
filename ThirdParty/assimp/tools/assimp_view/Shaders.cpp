@@ -125,7 +125,7 @@ std::string g_szNormalsShader = std::string(
 // ------------------------------------------------------------------------------------------------
 std::string g_szSkyboxShader = std::string(
 
-        // Sampler and texture for the skybox
+        // Sampler and texture for the skybox_default
         "textureCUBE lw_tex_envmap;\n"
         "samplerCUBE EnvironmentMapSampler = sampler_state\n"
         "{\n"
@@ -176,11 +176,11 @@ std::string g_szSkyboxShader = std::string(
         // Pixel shader
         "float4 RenderSkyBoxPS(float3 Texture0 : TEXCOORD0) : COLOR\n"
         "{\n"
-        // Lookup the skybox texture
+        // Lookup the skybox_default texture
         "return texCUBE(EnvironmentMapSampler,Texture0) ;\n"
         "}\n"
 
-        // Technique for the skybox shader (ps_2_0)
+        // Technique for the skybox_default shader (ps_2_0)
         "technique RenderSkyBox\n"
         "{\n"
         "pass p0\n"

@@ -1,8 +1,7 @@
 #pragma once
-#include <iostream>
-#include "Material.h"
+#include "Material/FMaterial.h"
 
-class Scene;
+class FScene;
 class FrameBuffer;
 class Renderer;
 class Shader;
@@ -19,7 +18,7 @@ protected:
 	ShaderPass shaderPass_ = ShaderPass::Shader_ForwardShading_Pass;
 public:
 	RenderPass(Renderer& renderer) : renderer_(renderer) {}
-	virtual void render(Scene & scene) = 0;
+	virtual void render(FScene & scene) = 0;
 	virtual void setupBuffers() = 0;
 	virtual void init() = 0;
 	virtual std::shared_ptr<FrameBuffer> getFramebufferMain() = 0;

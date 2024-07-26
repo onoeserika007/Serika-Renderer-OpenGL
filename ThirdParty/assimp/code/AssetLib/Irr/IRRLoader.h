@@ -191,7 +191,7 @@ private:
         std::list<Animator> animators;
     };
 
-    /** Data structure for a vertex in an IRR skybox
+    /** Data structure for a vertex in an IRR skybox_default
      */
     struct SkyboxVertex {
         SkyboxVertex() = default;

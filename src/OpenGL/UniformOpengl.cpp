@@ -1,7 +1,8 @@
-#include "../../include/OpenGL/UniformOpenGL.h"
-#include "../../include/Texture.h"
-#include "../../include/Shader.h"
-#include "../../include/Utils/OpenGLUtils.h"
+#include "OpenGL/UniformOpenGL.h"
+#include "Material/Texture.h"
+#include "Material/Shader.h"
+#include "Utils/OpenGLUtils.h"
+#include "OpenGL/EnumsOpenGL.h"
 
 int UniformSamplerOpenGL::getLocation(const Shader &program) {
 	return glGetUniformLocation(program.getId(), name_.c_str());
@@ -14,11 +15,13 @@ void UniformSamplerOpenGL::bindProgram(const Shader &program, int location) cons
 	// reseting should be ensured before call bindProgram
 	auto binding = program.getSamplerBinding();
 	GL_CHECK(glActiveTexture(GL_TEXTURE0 + binding));
-	GL_CHECK(glBindTexture(GL_TEXTURE_2D, textureId_));
+	GL_CHECK(glBindTexture(texTarget_, textureId_));
 	GL_CHECK(glUniform1i(location, binding));
 }
 
 void UniformSamplerOpenGL::setTexture(const Texture &tex) {
+	auto texInfo = tex.getTextureInfo();
+	texTarget_ = OpenGL::cvtTextureTarget(static_cast<TextureTarget>(texInfo.target));
 	textureId_ = tex.getId();
 }
 
@@ -30,7 +33,7 @@ UniformBlockOpenGL::UniformBlockOpenGL(const std::string& name, int size) : Unif
 
 UniformBlockOpenGL::~UniformBlockOpenGL() {
 	// static局部变量 有个生命周期的问题，当viewer析构掉后，static仍然会持有uniform，这就造成了问题
-	std::cout << "UniformOpenGL here!" << std::endl;
+	// std::cout << "UniformOpenGL here!" << std::endl;
 	GL_CHECK(glDeleteBuffers(1, &ubo_));
 }
 

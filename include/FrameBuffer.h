@@ -1,6 +1,6 @@
 #pragma once
 #include <memory>
-#include "Texture.h"
+#include "Material/Texture.h"
 #include <unordered_map>
 
 class Renderer;
@@ -13,7 +13,9 @@ struct FrameBufferAttachment {
 
 class FrameBuffer {
 public:
-    explicit FrameBuffer(bool offscreen) : offscreen_(offscreen) {}
+    virtual ~FrameBuffer() = default;
+
+    explicit FrameBuffer(const bool offscreen) : offscreen_(offscreen) {}
 
     virtual int getId() const = 0;
     virtual bool isValid() const = 0;
@@ -21,18 +23,17 @@ public:
     virtual void bindForReading() const = 0;
     virtual void bindForWriting() const = 0;
     virtual void disableForColorWriting() const = 0;
-    virtual void diableForColorReading() const = 0;
+    virtual void disableForColorReading() const = 0;
+    virtual void unbindAllColorAttachments() const = 0;
     virtual void setReadBuffer(int colorAttachmentType) = 0;
     virtual void setWriteBuffer(int colorAttachmentType, bool bClear) = 0;
     virtual void clearDepthBuffer() = 0;
 
     virtual void setColorAttachment(std::shared_ptr<Texture>& color, int level, int pos);
-
-    virtual void setColorAttachment(std::shared_ptr<Texture>& color, CubeMapFace face, int level, int pos);
-
+    virtual void setColorAttachment(std::shared_ptr<Texture>& color, ECubeMapFace face, int level, int pos);
     virtual void setDepthAttachment(std::shared_ptr<Texture>& depth);;
 
-    inline const FrameBufferAttachment& getColorAttachment(int pos);
+    inline const FrameBufferAttachment& getColorAttachment(int pos) const;
 
     const std::unordered_map<int, FrameBufferAttachment>& getColorAttachments() const;
 
@@ -54,6 +55,6 @@ protected:
     bool depthReady_ = false;
 
     // TODO MTR
-    std::unordered_map<int, FrameBufferAttachment> colorAttachments_{}; // layout->colorAttachment
+    mutable std::unordered_map<int, FrameBufferAttachment> colorAttachments_{}; // layout->colorAttachment
     FrameBufferAttachment depthAttachment_{};
 };

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Base/GLMInc.h"
+#include "Base/Globals.h"
 
 enum DepthFunction {
     DepthFunc_NEVER,
@@ -40,6 +40,12 @@ enum PolygonMode {
     PolygonMode_POINT,
     PolygonMode_LINE,
     PolygonMode_FILL,
+};
+
+enum ECullMode {
+    CullMode_BACK,
+    CullMode_FRONT,
+    CullMode_FRONT_AND_BACK
 };
 
 struct BlendParameters {
@@ -82,6 +88,7 @@ struct RenderStates {
     DepthFunction depthFunc = DepthFunc_LESS;
 
     bool cullFace = false;
+    ECullMode faceToCull = CullMode_BACK;
     PrimitiveType primitiveType = Primitive_TRIANGLE;
     PolygonMode polygonMode = PolygonMode_FILL;
 

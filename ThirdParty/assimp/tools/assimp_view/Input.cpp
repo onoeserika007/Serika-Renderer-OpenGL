@@ -146,9 +146,9 @@ void HandleMouseInputLightRotate( void )
 
 
 //-------------------------------------------------------------------------------
-// Handle mouse input for movements of the skybox
+// Handle mouse input for movements of the skybox_default
 //
-// The skybox can be moved by holding both the left and the right mouse button
+// The skybox_default can be moved by holding both the left and the right mouse button
 // pressed. Rotation is possible in x and y direction.
 //-------------------------------------------------------------------------------
 void HandleMouseInputSkyBox( void )

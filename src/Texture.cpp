@@ -1,12 +1,8 @@
 #include "stb/stb_image.h"
-#include "Utils//utils.h"
 #include "Utils/ImageUtils.h"
-#include "glad/glad.h"
-#include "Texture.h"
-#include "Shader.h"
-#include <iostream>
-#include "Base/GLMInc.h"
-#include "../include/Base/ResourceLoader.h"
+#include "Material/Texture.h"
+#include "Base/Globals.h"
+#include "Base/ResourceLoader.h"
 #include "Renderer.h"
 
 const char* SamplerDefinesToTextureType[] = {
@@ -32,7 +28,10 @@ const char* SamplerDefinesToTextureType[] = {
 	"SHEEN_MAP",
 	"CLEARCOAT_MAP",
 	"TRANSMISSION_MAP",
-	"SHADOW_MAP"
+	"SHADOW_MAP",
+	"SHADOW_MAP_CUBE",
+	"CUBE_MAP",
+	"EQUIRECTANGULAR_MAP"
 };
 
 #define CASE_ENUM_STR(type) case type: return #type
@@ -61,29 +60,32 @@ const char* Texture::samplerDefine(TextureType usage)
 const char* Texture::samplerName(TextureType usage)
 {
 	switch (usage) {
-		case TEXTURE_NONE:				return "uNoneMap";
-		case TEXTURE_DIFFUSE:			return "uDiffuseMap";
-		case TEXTURE_SPECULAR:			return "uSpecularMap";
-		case TEXTURE_AMBIENT:			return "uAmbientMap";
-		case TEXTURE_EMISSIVE:			return "uEmissiveMap";
-		case TEXTURE_HEIGHT:			return "uHeightMap";
-		case TEXTURE_NORMALS:			return "uNormalsMap";
-		case TEXTURE_SHININESS:			return "uShininessMap";
-		case TEXTURE_OPACITY:			return "uOpacityMap";
-		case TEXTURE_DISPLACEMENT:		return "uDisplacementMap";
-		case TEXTURE_LIGHTMAP:			return "uLightmapMap";
-		case TEXTURE_REFLECTION:		return "uReflectionMap";
-		case TEXTURE_BASE_COLOR:		return "uBaseColorMap";
-		case TEXTURE_NORMAL_CAMERA:		return "uNormalCameraMap";
-		case TEXTURE_EMISSION_COLOR:	return "uEmissionColorMap";
-		case TEXTURE_METALNESS:			return "uMetalnessMap";
-		case TEXTURE_DIFFUSE_ROUGHNESS: return "uDiffuseRoughnessMap";
-		case TEXTURE_AMBIENT_OCCLUSION: return "uAmbientOcclusionMap";
-		case TEXTURE_UNKNOWN:			return "uUnknownMap";
-		case TEXTURE_SHEEN:				return "uSheenMap";
-		case TEXTURE_CLEARCOAT:			return "uClearcoatMap";
-		case TEXTURE_TRANSMISSION:		return "uTransmissionMap";
-		case TEXTURE_SHADOW:			return "uShadowMap";
+		case TEXTURE_TYPE_NONE:					return "uNoneMap";
+		case TEXTURE_TYPE_DIFFUSE:				return "uDiffuseMap";
+		case TEXTURE_TYPE_SPECULAR:				return "uSpecularMap";
+		case TEXTURE_TYPE_AMBIENT:				return "uAmbientMap";
+		case TEXTURE_TYPE_EMISSIVE:				return "uEmissiveMap";
+		case TEXTURE_TYPE_HEIGHT:				return "uHeightMap";
+		case TEXTURE_TYPE_NORMALS:				return "uNormalsMap";
+		case TEXTURE_TYPE_SHININESS:			return "uShininessMap";
+		case TEXTURE_TYPE_OPACITY:				return "uOpacityMap";
+		case TEXTURE_TYPE_DISPLACEMENT:			return "uDisplacementMap";
+		case TEXTURE_TYPE_LIGHTMAP:				return "uLightmapMap";
+		case TEXTURE_TYPE_REFLECTION:			return "uReflectionMap";
+		case TEXTURE_TYPE_BASE_COLOR:			return "uBaseColorMap";
+		case TEXTURE_TYPE_NORMAL_CAMERA:		return "uNormalCameraMap";
+		case TEXTURE_TYPE_EMISSION_COLOR:		return "uEmissionColorMap";
+		case TEXTURE_TYPE_METALNESS:			return "uMetalnessMap";
+		case TEXTURE_TYPE_DIFFUSE_ROUGHNESS:	return "uDiffuseRoughnessMap";
+		case TEXTURE_TYPE_AMBIENT_OCCLUSION:	return "uAmbientOcclusionMap";
+		case TEXTURE_TYPE_UNKNOWN:				return "uUnknownMap";
+		case TEXTURE_TYPE_SHEEN:				return "uSheenMap";
+		case TEXTURE_TYPE_CLEARCOAT:			return "uClearcoatMap";
+		case TEXTURE_TYPE_TRANSMISSION:			return "uTransmissionMap";
+		case TEXTURE_TYPE_SHADOWMAP:			return "uShadowMap";
+		case TEXTURE_TYPE_SHADOWMAP_CUBE:		return "uShadowMapCube";
+		case TEXTURE_TYPE_CUBE:					return "uCubeMap";
+		case TEXTURE_TYPE_EQUIRECTANGULAR:		return "uEquiRectangular";
 		default: return "";
 	}
 	return nullptr;
@@ -118,7 +120,7 @@ Texture::Texture(const TextureInfo& texInfo, const SamplerInfo& smInfo, const Te
 
 void Texture::loadTextureData(const std::string& picture)
 {
-	auto bufferData = ResourceLoader::loadTexture(picture);
+	auto bufferData = ResourceLoader::getInstance().loadTexture(picture);
 	TextureData texData;
 	texData.dataArray = { bufferData };
 	texData.path = picture;

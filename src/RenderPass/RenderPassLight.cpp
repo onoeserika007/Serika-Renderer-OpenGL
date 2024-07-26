@@ -3,9 +3,9 @@
 #include <glad/glad.h>
 
 #include "Light.h"
-#include "Texture.h"
+#include "../../include/Material/Texture.h"
 #include "Renderer.h"
-#include "Scene.h"
+#include "FScene.h"
 #include "FrameBuffer.h"
 #include "RenderPass/RenderPassGeometry.h"
 
@@ -13,7 +13,7 @@ RenderPassLight::RenderPassLight(Renderer &renderer): RenderPass(renderer) {
     shaderPass_ = ShaderPass::Shader_Light_Pass;
 }
 
-void RenderPassLight::render(Scene & scene) {
+void RenderPassLight::render(FScene & scene) {
     if (auto&& geometryPass = geometryPass_.lock()) {
 
         RenderStates& renderStates = renderer_.renderStates;
@@ -34,9 +34,9 @@ void RenderPassLight::render(Scene & scene) {
         // deffred shading
         for (auto&& light: scene.getLights()) {
             renderer_.updateLightUniformBlock(light);
-            renderer_.updateShadowCameraParamsToModelUniformBlock(renderer_.getViewCamera(), light);
+            renderer_.updateModelUniformBlock({}, renderer_.getViewCamera(), light);
             enableBlending(true);
-            renderer_.dump({}, false, true, fboMain_, 0, true, geometryPass->getGBuffers());
+            renderer_.dump(renderer_.getDefferedShadingProgram(geometryPass->getGBuffers()), true, fboMain_, 0);
         }
 
         // draw Lights
@@ -46,13 +46,16 @@ void RenderPassLight::render(Scene & scene) {
         enableBlending(false); // disable blending
         for (auto&& light: scene.getLights()) {
             renderer_.updateLightUniformBlock(nullptr);
-            renderer_.draw(*light, ShaderPass::Shader_ForwardShading_Pass, nullptr);
+            renderer_.draw(light, ShaderPass::Shader_ForwardShading_Pass, nullptr);
+        }
+        if (scene.skybox_) {
+            renderer_.draw(scene.skybox_, ShaderPass::Shader_ForwardShading_Pass, nullptr);
         }
     }
 }
 
 void RenderPassLight::setupBuffers() {
-    renderer_.setupColorBuffer(texColorMain_, false, false);
+    renderer_.setupColorBuffer(texColorMain_, renderer_.width(), renderer_.height(), false);
     renderer_.setupDepthBuffer(texDepthMain_, false, false);
 }
 

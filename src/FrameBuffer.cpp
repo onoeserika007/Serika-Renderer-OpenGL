@@ -8,12 +8,12 @@ void FrameBuffer::setColorAttachment(std::shared_ptr<Texture>& color, int level,
     colorReady_ = true;
 }
 
-void FrameBuffer::setColorAttachment(std::shared_ptr<Texture>& color, CubeMapFace face, int level, int pos) {
+void FrameBuffer::setColorAttachment(std::shared_ptr<Texture>& color, ECubeMapFace face, int level, int pos) {
     auto& colorAttachment = colorAttachments_[pos];
     colorAttachment.tex = color;
     colorAttachment.layer = 0;
     colorAttachment.level = level;
-    colorReady_ = true;
+    colorReady_ = true;;
 }
 
 void FrameBuffer::setDepthAttachment(std::shared_ptr<Texture>& depth) {
@@ -23,9 +23,13 @@ void FrameBuffer::setDepthAttachment(std::shared_ptr<Texture>& depth) {
     depthReady_ = true;
 }
 
-const FrameBufferAttachment& FrameBuffer::getColorAttachment(int pos) {
+const FrameBufferAttachment& FrameBuffer::getColorAttachment(const int pos) const {
     // 查询会改变map，所以这个函数不能声明为const
-    return colorAttachments_[pos];
+    static FrameBufferAttachment nullAttachment {}; // 标准保证了右值传入const ref时生命期得到延长，但是返回时却没有这样的保证
+    if (colorAttachments_.contains(pos)) {
+        return colorAttachments_[pos];
+    }
+    return nullAttachment;
 }
 
 const std::unordered_map<int, FrameBufferAttachment>& FrameBuffer::getColorAttachments() const {

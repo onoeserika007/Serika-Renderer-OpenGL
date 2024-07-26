@@ -1,4 +1,4 @@
-// #version 330 core
+#version 430 core
 
 in vec2 vTexCoord;
 in vec3 vWorldNormal;
@@ -15,6 +15,8 @@ layout(std140) uniform Model {
     mat4 uShadowMapMVP;
     vec3 uViewPos;
     bool uUseShadowMap;
+    bool uUseShadowMapCube;
+    bool uUseEnvMap;
 };
 
 layout(std140) uniform Light {
@@ -33,6 +35,11 @@ layout(std140) uniform Light {
     float uLightQuadratic;
 };
 
+layout(std140) uniform ShadowCube {
+    mat4 uShadowVPs[6];
+    float uFarPlane;
+};
+
 #ifdef DIFFUSE_MAP
     uniform sampler2D uDiffuseMap;
 #endif
@@ -44,21 +51,38 @@ layout(std140) uniform Light {
 #ifdef HEIGHT_MAP
     uniform sampler2D uHeightMap;
 #endif
-// ShadomMap
+
+#ifdef AMBIENT_MAP
+    uniform sampler2D uAmbientMap;  // use abient map as reflection map
+#endif
+
+// ShadowMap
 uniform sampler2D uShadowMap;
 
+// CubeShadowMap
+uniform samplerCube uShadowMapCube;
+
+// Skybox
+uniform samplerCube uCubeMap;
+
+#define NUM_RINGS 10
 #define MAX_LIGHT_NUM 4
 #define MAX_TEXTURE_NUM 16
 #define EPSILON 1e-3
-#define DISTURBANCE 3e-3
+#define DISTURBANCE 1e-3
 #define PI 3.141592653589793
 #define PI2 6.283185307179586
 
-// Shadow map related variables
-#define NUM_SAMPLES 10
-#define BLOCKER_SEARCH_NUM_SAMPLES NUM_SAMPLES
-#define PCF_NUM_SAMPLES NUM_SAMPLES
-#define NUM_RINGS 10
+#define NUM_SAMPLES 20
+
+vec3 storedDisk[20] = vec3[]
+(
+   vec3( 1,  1,  1), vec3( 1, -1,  1), vec3(-1, -1,  1), vec3(-1,  1,  1), 
+   vec3( 1,  1, -1), vec3( 1, -1, -1), vec3(-1, -1, -1), vec3(-1,  1, -1),
+   vec3( 1,  1,  0), vec3( 1, -1,  0), vec3(-1, -1,  0), vec3(-1,  1,  0),
+   vec3( 1,  0,  1), vec3(-1,  0,  1), vec3( 1,  0, -1), vec3(-1,  0, -1),
+   vec3( 0,  1,  1), vec3( 0, -1,  1), vec3( 0, -1, -1), vec3( 0,  1, -1)
+);
 
 vec3 calcDirLight(vec3 normal, vec3 viewDir);
 vec3 calcPointLight(vec3 normal, vec3 fragPos, vec3 viewDir);
@@ -87,9 +111,9 @@ float rand_2to1(vec2 uv) {
 
 vec3 calcPhong(vec3 normal, vec3 viewDir);
 
-float calcStandardShadowMap(sampler2D shadowMap, vec3 shadowCoord);
-float PCSS(sampler2D shadowMap, vec4 coords);
-float PCF(sampler2D shadowMap, vec4 shadowCoord, float filterSize);
+float calcStandardShadowMap(vec3 shadowCoord);
+float PCSS(vec3 coords);
+float PCF(vec3 shadowCoord, float filterSize);
 
 /*********************** MAIN **************************/
 void main()
@@ -97,11 +121,27 @@ void main()
     vec3 norm = normalize(vWorldNormal);
     vec3 viewDir = normalize(uViewPos - vFragPos);
     vec3 phongColor = calcPhong(norm, viewDir);
+
     // shadow Map
     float visibility = 1.f;
     vec3 shadowCoords = (vPositionFromLight.xyz / vPositionFromLight.w + 1.0f) / 2.0f;
-    if (uUseShadowMap) {
-        visibility = calcStandardShadowMap(uShadowMap, shadowCoords);
+    if (uUseShadowMap || uUseShadowMapCube) {
+        // visibility = calcStandardShadowMap(shadowCoords);
+        if (uUseShadowMap) visibility = PCF(shadowCoords, 1.f / 1024.f);
+        else visibility = PCF(shadowCoords, 0.05f);
+        phongColor *= visibility;
+    }
+
+    // evironment mapping
+    if (uUseEnvMap) {
+        vec3 reflectDir = reflect(-viewDir, vWorldNormal);
+        vec3 mappingColor = vec3(texture(uCubeMap, reflectDir));
+#ifdef AMBIENT_MAP
+        vec3 reflCoef = vec3(texture(uAmbientMap, vTexCoord));
+#else
+        vec3 reflCoef = vec3(0.02);
+#endif
+        phongColor += mappingColor * reflCoef;
     }
 
     FragColor = vec4(phongColor * visibility, 1.f);
@@ -143,7 +183,7 @@ vec3 calcPointLight(vec3 normal, vec3 fragPos, vec3 viewDir) {
     }
 
     vec3 lightDir = normalize(uLightPosition - fragPos);
-    vec3 baseColor = vec3(0.3f);
+    vec3 baseColor = vec3(1.0f);
     vec3 specCoef = vec3(0.f);
 #ifdef DIFFUSE_MAP
     baseColor = vec3(texture(uDiffuseMap, vTexCoord));
@@ -179,8 +219,8 @@ vec3 calcPointLight(vec3 normal, vec3 fragPos, vec3 viewDir) {
 vec3 calcDirLight(vec3 normal, vec3 viewDir) {
 
     vec3 lightDir = normalize(-uLightDirection);
-    vec3 baseColor = vec3(0.6f);
-    vec3 specCoef = vec3(0.5f);
+    vec3 baseColor = vec3(1.0f);
+    vec3 specCoef = vec3(0.2f);
 #ifdef DIFFUSE_MAP
     baseColor = vec3(texture(uDiffuseMap, vTexCoord));
 #endif
@@ -268,13 +308,22 @@ float getBias() {
     return max(EPSILON, EPSILON * (1.0 - dot(LightDir, Normal)));
 }
 
-float findBlocker(sampler2D shadowMap, vec2 uv, float zReceiver) {
+float sampleShadowMap2D(vec2 shadowCoords) {
+    return texture(uShadowMap, shadowCoords.xy).x;
+}
+
+float smapleShadowMapCube(vec3 fragPos) {
+    vec3 lightDir = uLightPosition - fragPos;
+    return texture(uShadowMapCube, -lightDir).x;
+}
+    
+float findBlocker(vec2 uv, float zReceiver) {
     float avgBlockerDepth = 0.0;
     float blockerNUM = 0.0;
     float blockerSearchRange = 5.0 / RESOLUTION;
-    poissonDiskSamples(uv);
-    for(int i=0; i<BLOCKER_SEARCH_NUM_SAMPLES; i++) {
-        float blockerDepth = texture(shadowMap, uv + blockerSearchRange * poissonDisk[i]).x;
+    // poissonDiskSamples(uv);
+    for(int i=0; i<NUM_SAMPLES; i++) {
+        float blockerDepth = texture(uShadowMap, uv + blockerSearchRange * storedDisk[i].xy).x;
         if(blockerDepth + EPSILON <= zReceiver) {
             avgBlockerDepth += blockerDepth;
             blockerNUM += 1.0;
@@ -284,36 +333,50 @@ float findBlocker(sampler2D shadowMap, vec2 uv, float zReceiver) {
     else return avgBlockerDepth / blockerNUM;
 }
 
-float PCF(sampler2D shadowMap, vec4 shadowCoord, float filterSize) {
+float PCF(vec3 shadowCoord, float filterSize) {
     if(filterSize == 0.0) return 1.0f;
     float visibility = 0.0;
     float num = float(NUM_SAMPLES);
-    vec2 randomSeed = shadowCoord.xy;
+    // vec2 randomSeed = shadowCoord.xy;
     //  uniformDiskSamples(randomSeed);
-    poissonDiskSamples(randomSeed);
-    float FragDepth = shadowCoord.z;
+    // poissonDiskSamples(randomSeed);
+
+    float FragDepth = 0.f;
+    if (uUseShadowMap) FragDepth = shadowCoord.z;
+    else FragDepth = length(uLightPosition - vFragPos) / uFarPlane;
+
     for (int i = 0; i < NUM_SAMPLES; i++) {
-        float LightDepth = texture(shadowMap, shadowCoord.xy + poissonDisk[i] * filterSize).x;
+        float LightDepth = 0.f;
+        if (uUseShadowMap) LightDepth = sampleShadowMap2D(shadowCoord.xy + storedDisk[i].xy * filterSize);
+        else LightDepth = smapleShadowMapCube(vFragPos + + storedDisk[i] * filterSize);
         visibility += (LightDepth + EPSILON <= FragDepth - getBias() ? 0.0 : 1.0);
     }
     return visibility / num;
 }
 
-float PCSS(sampler2D shadowMap, vec4 coords) {
+float PCSS(vec3 coords) {
     float zReceiver = coords.z;
     // STEP 1: avgblocker depth
-    float avgBlockerDepth = findBlocker(shadowMap, coords.xy, coords.z);
+    float avgBlockerDepth = findBlocker(coords.xy, coords.z);
     // STEP 2: penumbra size
     float penumbraSize;
     if(avgBlockerDepth == 1.0) penumbraSize = 0.0;
     else penumbraSize = (zReceiver - avgBlockerDepth) * LIGHT_WIDTH / avgBlockerDepth;
     // STEP 3: filtering
-    float visibility = PCF(shadowMap, coords, penumbraSize / RESOLUTION);
+    float visibility = PCF(coords, penumbraSize / RESOLUTION);
     return visibility;
 }
 
-float calcStandardShadowMap(sampler2D shadowMap, vec3 shadowCoord) {
-    float LightDepth = texture(uShadowMap, shadowCoord.xy).x;
-    float FragDepth = shadowCoord.z;
+float calcStandardShadowMap(vec3 shadowCoord) {
+    
+    float LightDepth = 0.f;
+    if (uUseShadowMap) LightDepth = sampleShadowMap2D(shadowCoord.xy);
+    else LightDepth = smapleShadowMapCube(vFragPos);
+
+    float FragDepth = 0.f;
+    if (uUseShadowMap) FragDepth = shadowCoord.z;
+    else FragDepth = length(uLightPosition - vFragPos) / uFarPlane;
+
+    if (FragDepth > 1.f) FragDepth = 0.f;
     return LightDepth + EPSILON <= FragDepth - getBias() ? 0.0 : 1.0;
 }

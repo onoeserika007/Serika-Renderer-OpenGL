@@ -116,7 +116,7 @@ void IRRImporter::SetupProperties(const Importer *pImp) {
 }
 
 // ------------------------------------------------------------------------------------------------
-// Build a mesh that consists of a single squad (a side of a skybox)
+// Build a mesh that consists of a single squad (a side of a skybox_default)
 aiMesh *IRRImporter::BuildSingleQuadMesh(const SkyboxVertex &v1,
         const SkyboxVertex &v2,
         const SkyboxVertex &v3,
@@ -163,7 +163,7 @@ aiMesh *IRRImporter::BuildSingleQuadMesh(const SkyboxVertex &v1,
 
 // ------------------------------------------------------------------------------------------------
 void IRRImporter::BuildSkybox(std::vector<aiMesh *> &meshes, std::vector<aiMaterial *> materials) {
-    // Update the material of the skybox - replace the name and disable shading for skyboxes.
+    // Update the material of the skybox_default - replace the name and disable shading for skyboxes.
     for (unsigned int i = 0; i < 6; ++i) {
         aiMaterial *out = (aiMaterial *)(*(materials.end() - (6 - i)));
 
@@ -748,7 +748,7 @@ void IRRImporter::GenerateGraph(Node *root, aiNode *rootOut, aiScene *scene,
     case Node::SKYBOX: {
         // A sky-box is defined by six materials
         if (root->materials.size() < 6) {
-            ASSIMP_LOG_ERROR("IRR: There should be six materials for a skybox");
+            ASSIMP_LOG_ERROR("IRR: There should be six materials for a skybox_default");
             break;
         }
 
@@ -765,7 +765,7 @@ void IRRImporter::GenerateGraph(Node *root, aiNode *rootOut, aiScene *scene,
         // for IRR skyboxes. We add a 'IRR.SkyBox_' prefix to the node.
         // *************************************************************
         root->name = "IRR.SkyBox_" + root->name;
-        ASSIMP_LOG_INFO("IRR: Loading skybox, this will "
+        ASSIMP_LOG_INFO("IRR: Loading skybox_default, this will "
                         "require special handling to be displayed correctly");
     } break;
 
@@ -1095,7 +1095,7 @@ IRRImporter::Node *IRRImporter::ParseNode(pugi::xml_node &node, BatchLoader &bat
      *
      *  "mesh" - Load a mesh from an external file
      *  "cube" - Generate a cube
-     *  "skybox" - Generate a skybox
+     *  "skybox_default" - Generate a skybox_default
      *  "light" - A light source
      *  "sphere" - Generate a sphere mesh
      *  "animatedMesh" - Load an animated mesh from an external file
@@ -1118,7 +1118,7 @@ IRRImporter::Node *IRRImporter::ParseNode(pugi::xml_node &node, BatchLoader &bat
     } else if (!ASSIMP_stricmp(nodeTypeAttrib.value(), "cube")) {
         nd = new Node(Node::CUBE);
         guessedMeshCnt += 1; // Cube is only one mesh
-    } else if (!ASSIMP_stricmp(nodeTypeAttrib.value(), "skybox")) {
+    } else if (!ASSIMP_stricmp(nodeTypeAttrib.value(), "skybox_default")) {
         nd = new Node(Node::SKYBOX);
         guessedMeshCnt += 6; // Skybox is a box, with 6 meshes?
     } else if (!ASSIMP_stricmp(nodeTypeAttrib.value(), "camera")) {

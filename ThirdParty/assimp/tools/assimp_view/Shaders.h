@@ -42,7 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #if (!defined AV_SHADERS_H_INCLUDED)
 #define AV_SHADERS_H_INCLUDED
 
-// Shader used for rendering a skybox background
+// Shader used for rendering a skybox_default background
 extern std::string  g_szSkyboxShader;
 
 // Shader used for visualizing normal vectors

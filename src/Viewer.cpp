@@ -5,16 +5,17 @@
 #include "RenderPass/RenderPassGeometry.h"
 #include "RenderPass/RenderPassLight.h"
 
-#include "Camera.h"
+#include "FCamera.h"
 #include "Light.h"
 #include "Utils/Logger.h"
 #include "Renderer.h"
 #include "RenderPass/RenderPassForwardShading.h"
 #include "../include/Geometry/Model.h"
-#include "Scene.h"
+#include "FScene.h"
+#include "OpenGL/RendererOpenGL.h"
 #include "RenderPass/RenderPassShadow.h"
 
-Viewer::Viewer(const std::shared_ptr<Camera>& camera) : cameraMain_(camera) {
+Viewer::Viewer(const std::shared_ptr<FCamera>& camera) : cameraMain_(camera) {
 }
 
 Viewer::~Viewer() {
@@ -81,28 +82,30 @@ void Viewer::cleanup()
 	}
 }
 
-void Viewer::render(std::shared_ptr<Scene> scene) {
+void Viewer::render(const std::shared_ptr<FScene> &scene) {
 	auto&& config = Config::getInstance();
 	renderer_->render_mode = config.RenderMode;
+	renderer_->setRenderingScene(scene);
+
 	if (config.RenderMode == ERenderMode::RenderMode_ForwardRendering) {
-		if (config.bShadowMap) {
-			LOGW("ShadowMap enabled, but selecting Forward Rendering, changing to pipeline with shadowMap instead.");
-			drawScene_ShadowMapTest(scene);
-		}
-		else {
-			drawScene(scene);
-		}
+		drawScene_ForwardRendering(scene);
 	}
 	else if (config.RenderMode == ERenderMode::RenderMode_DefferedRendering) {
 		drawScene_DefferedRendering(scene);
 	}
-	else if (config.RenderMode == ERenderMode::RenderMode_TestRendering) {
-		drawScene_ShadowMapTest(scene);
+	else if (config.RenderMode == ERenderMode::RenderMode_TestRendering_OffScreen) {
+		drawScene_TestPipeline(scene);
+	}
+	else if (config.RenderMode == ERenderMode::RenderMode_TestRendering_OnScreen) {
+		drawScene_OnScreen(scene);
+	}
+	else {
+		drawScene_ForwardRendering(scene);
 	}
 }
 
 
-std::shared_ptr<Camera> Viewer::createCamera(CameraType type)
+std::shared_ptr<FCamera> Viewer::createCamera(CameraType type)
 {
 	if (type == CameraType::PERSPECTIVE) {
 		return std::make_shared<PerspectiveCamera>();
@@ -113,39 +116,32 @@ std::shared_ptr<Camera> Viewer::createCamera(CameraType type)
 	return nullptr;
 }
 
-
-void Viewer::drawScene(std::shared_ptr<Scene> scene)
-{
-	/*
-	* PlainPass
-	*/
-	ClearStates clearStatesPlainPass;
-	clearStatesPlainPass.clearColor = BLACK_COLOR;
-	clearStatesPlainPass.colorFlag = true;
-	clearStatesPlainPass.depthFlag = true;
-
-	auto&& renderStates = renderer_->renderStates;
-	renderStates.blend = true;
-	renderStates.depthMask = true;
-	renderStates.depthTest = true;
-	renderStates.cullFace = true;
-	renderer_->updateRenderStates(renderStates);
-
-	renderer_->beginRenderPass(plainPass_->getFramebufferMain(), clearStatesPlainPass);
-	renderer_->executeRenderPass(plainPass_, *scene);
-	renderer_->endRenderPass();
-
-	/*
-	* ToScreenPass
-	*/
-	renderer_->dump(plainPass_->getOutTex(), true, false, nullptr, 0, false, {});
-	renderer_->endRenderPass();
+std::shared_ptr<Renderer> Viewer::createRenderer() {
+	auto&& config = Config::getInstance();
+	std::shared_ptr<Renderer> renderer;
+	switch (config.RendererType) {
+		case RendererType_SOFT: {
+			break;
+		}
+		case RendererType_OPENGL: {
+			renderer = std::make_shared<RendererOpenGL>(cameraMain_);
+			renderer->init();
+			break;
+		}
+		case RendererType_Vulkan: {
+			break;
+		}
+		default: break;
+	}
+	return renderer;
 }
 
-void Viewer::drawScene_ShadowMapTest(std::shared_ptr<Scene> scene) {
+
+void Viewer::drawScene_ForwardRendering(const std::shared_ptr<FScene> &scene) const {
 	/*
-	* ShadowPass
-	*/
+	 * ShadowPass
+	 */
+	if (Config::getInstance().bShadowMap)
 	{
 		ClearStates ClearStatsShadowPass;
 		ClearStatsShadowPass.clearColor = clearColor;
@@ -188,11 +184,93 @@ void Viewer::drawScene_ShadowMapTest(std::shared_ptr<Scene> scene) {
 	/*
 	* ToScreenPass
 	*/
-	renderer_->dump(plainPass_->getOutTex(), true, false, nullptr, 0, false, {});
+	auto&& toScreenProgram = renderer_->getToScreenColorProgram(plainPass_->getOutTex());
+	renderer_->dump(toScreenProgram, false, nullptr, 0);
 	renderer_->endRenderPass();
 }
 
-void Viewer::drawScene_DefferedRendering(std::shared_ptr<Scene> scene) {
+void Viewer::drawScene_TestPipeline(const std::shared_ptr<FScene> &scene) const {
+	/*
+	* ShadowPass
+	*/
+	{
+		ClearStates ClearStatsShadowPass;
+		ClearStatsShadowPass.clearColor = clearColor;
+		ClearStatsShadowPass.colorFlag = true;
+		ClearStatsShadowPass.depthFlag = true;
+
+		auto&& renderStates = renderer_->renderStates;
+		renderStates.blend = false;
+		renderStates.depthMask = true;
+		renderStates.depthTest = true;
+		renderer_->updateRenderStates(renderStates);
+
+		renderer_->beginRenderPass(shadowPass_->getFramebufferMain(), ClearStatsShadowPass);
+		renderer_->executeRenderPass(shadowPass_, *scene);
+		renderer_->endRenderPass();
+	}
+
+	// /*
+	//  * Forwarding Pass
+	//  */
+	//
+	// {
+	// 	ClearStates clearStatesForwardingPass;
+	// 	clearStatesForwardingPass.clearColor = BLACK_COLOR;
+	// 	clearStatesForwardingPass.colorFlag = true;
+	// 	clearStatesForwardingPass.depthFlag = true;
+	//
+	// 	auto&& renderStates = renderer_->renderStates;
+	// 	renderStates.blend = true;
+	// 	renderStates.depthMask = true;
+	// 	renderStates.depthTest = true;
+	// 	renderStates.cullFace = true;
+	// 	renderer_->updateRenderStates(renderStates); // 有可能上一帧关闭了DepthMask，所以每个renderPass开始前一定要检查状态
+	//
+	// 	renderer_->beginRenderPass(plainPass_->getFramebufferMain(), clearStatesForwardingPass);
+	// 	renderer_->executeRenderPass(plainPass_, *scene);
+	// 	renderer_->endRenderPass();
+	// }
+	if (!scene->getLights().empty()) {
+		ClearStates ClearStatsShadowPass;
+		ClearStatsShadowPass.clearColor = clearColor;
+		ClearStatsShadowPass.colorFlag = true;
+		ClearStatsShadowPass.depthFlag = true;
+
+		auto&& renderStates = renderer_->renderStates;
+		renderStates.blend = false;
+		renderStates.depthMask = true;
+		renderStates.depthTest = true;
+		renderer_->updateRenderStates(renderStates);
+
+		// to screen
+		renderer_->beginRenderPass(nullptr, ClearStatsShadowPass);
+		auto&& srcTex = scene->getLights()[0]->getShadowMap(*renderer_);
+		auto&& cubeShadowProgram = renderer_->getToScreenCubeDepthProgram(srcTex);
+		for (auto&& model: scene->getModels()) {
+			renderer_->draw(model, {}, {}, cubeShadowProgram);
+		}
+		if (scene->skybox_) {
+			renderer_->draw(scene->skybox_, {}, {}, cubeShadowProgram);
+		}
+
+		for (auto&& light: scene->getLights()) {
+			renderer_->draw(scene->skybox_, ShaderPass::Shader_ForwardShading_Pass, {}, cubeShadowProgram);
+		}
+	}
+
+	/*
+	* ToScreenPass
+	*/
+	// renderer_->dump(plainPass_->getOutTex(), true, false, nullptr, 0, false, {});
+	// renderer_->endRenderPass();
+}
+
+void Viewer::drawScene_OnScreen(const std::shared_ptr<FScene> &scene) const {
+
+}
+
+void Viewer::drawScene_DefferedRendering(std::shared_ptr<FScene> scene) {
 	/**
 	 * Beginning
 	 */
@@ -284,13 +362,7 @@ void Viewer::drawScene_DefferedRendering(std::shared_ptr<Scene> scene) {
 		clearStatesToScreenPass.depthFlag = true;
 
 		renderer_->beginRenderPass(nullptr, clearStatesToScreenPass);
-		renderer_->dump(lightPass_->getOutTex(), true, false, nullptr, 1, false, {});
+		renderer_->dump(renderer_->getToScreenColorProgram(lightPass_->getOutTex()), false, nullptr, 1);
 		renderer_->endRenderPass();
 	}
 }
-
-void Viewer::drawModel(std::shared_ptr<UModel> model)
-{
-
-}
-

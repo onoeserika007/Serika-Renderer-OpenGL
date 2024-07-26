@@ -524,7 +524,7 @@ void LoadSkybox() {
         g_hDlg,GetModuleHandle(nullptr),
         "Skyboxes\0*.dds\0*.*\0", nullptr, 0, 1,
         szFileName, MAX_PATH, nullptr, 0, nullptr,
-        "Open skybox as background",
+        "Open skybox_default as background",
         OFN_OVERWRITEPROMPT | OFN_HIDEREADONLY | OFN_NOCHANGEDIR,
         0, 1, ".dds", 0, nullptr, nullptr
     };
@@ -1661,7 +1661,7 @@ INT_PTR CALLBACK MessageProc(HWND hwndDlg,UINT uMsg, WPARAM wParam,LPARAM lParam
 
                         if (dwCaps & 0x00000400L /* DDSCAPS2_CUBEMAP_POSITIVEX */) {
                             CLogDisplay::Instance().AddEntry(
-                                "[INFO] Assuming this dds file is a skybox ...",
+                                "[INFO] Assuming this dds file is a skybox_default ...",
                                 D3DCOLOR_ARGB(0xFF,0xFF,0xFF,0));
 
                             CBackgroundPainter::Instance().SetCubeMapBG(szFile);

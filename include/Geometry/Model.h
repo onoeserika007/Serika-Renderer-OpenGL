@@ -2,16 +2,13 @@
 
 #include <string>
 #include <memory>
-#include <vector>
 
-#include "Mesh.h"
+#include "UMesh.h"
 #include "Object.h"
-#include "assimp/Importer.hpp"
-#include "assimp/scene.h"
 
-class Material;
+class FMaterial;
 class UObject;
-class Camera;
+class FCamera;
 class Texture;
 class ULight;
 class Shader;
@@ -23,21 +20,13 @@ public:
 	template <typename... Args>
 	static std::shared_ptr<UModel> makeModel(Args&&... args);
 
-	// std::vector<std::shared_ptr<UMesh>> &getMeshes();
-	void loadModel(const std::string& path);
+	virtual std::unique_ptr<UObject> Clone() const override { return std::unique_ptr<UModel>(new UModel(*this)); }
+
+	UModel& operator=(const UModel& other) = delete;
 private:
 	UModel();
-	/* model data */
-	// std::vector<std::shared_ptr<UMesh>> meshes;
-	std::string directory;
-	std::vector<std::shared_ptr<Texture>> textures;
 
-	/* function */
-	void processNode(aiNode* node, const aiScene* scene);
-
-	std::shared_ptr<UMesh> processMesh(aiMesh *mesh, const aiScene *scene);
-
-	// std::vector<std::shared_ptr<Texture>> loadMaterialTextures(aiMaterial* mat, aiTextureType type, std::string typeName);
+	explicit UModel(const UMesh& other) {}
 };
 
 template<typename ... Args>

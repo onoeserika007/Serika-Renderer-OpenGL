@@ -1,8 +1,8 @@
 #pragma once
 #include <memory>
 #include <string>
-#include "Base/GLMInc.h"
-#include "Geometry/Mesh.h"
+#include "Base/Globals.h"
+#include "Geometry/UMesh.h"
 #include "Geometry/Object.h"
 
 
@@ -11,8 +11,8 @@ class RenderPass;
 // 用前向声明替换直接include，在cpp文件中再include
 class UObject;
 class Shader;
-class Material;
-class Geometry;
+class FMaterial;
+class FGeometry;
 class Renderer;
 
 const unsigned MAX_LIGHT_NUMS = 10;
@@ -89,7 +89,6 @@ public:
     template<typename ...Args>
     static std::shared_ptr<ULight> makeLight(Args&&... args);
 
-    void setName(const std::string& name);
     void setAsPointLight(glm::vec3 pos, glm::vec3 ambient, glm::vec3 diff, glm::vec3 spec, float constant, float linear, float quadratic);
     void setAsDirectionalLight(glm::vec3 dir, glm::vec3 ambient, glm::vec3 diff, glm::vec3 spec);
     void setAsSpotLight(glm::vec3 pos, glm::vec3 dir, float cutoff, float outerCutoff);
@@ -101,7 +100,9 @@ public:
     ULight& deserialize(const LightDataUniformBlock &block);
 
     LightType getType() const;
-    std::string getName() const;
+    bool isPointLight() const { return lightData_.uLightType == LightType_PointLight; }
+    bool isDirectionalLight() const { return lightData_.uLightType == LightType_DirectionalLight; }
+    bool isSpotLight () const { return lightData_.uLightType == LightType_SpotLight; }
 
     virtual void updateFrame(Renderer& renderer) override;
 
@@ -109,19 +110,20 @@ public:
     static std::shared_ptr<ULight> generateDefaultDirectionalLight();
     static std::shared_ptr<ULight> generateDefaultSpotLight();
 
-    std::shared_ptr<Camera> getLightCamera() const;
+    // shadow map
+    std::shared_ptr<FCamera> getLightCamera() const;
     std::shared_ptr<Texture> getShadowMap(const Renderer &renderer) const;
 
 private:
 
     ULight();
     ULight(std::string name, glm::vec3 ambient, glm::vec3 diff, glm::vec3 spec);
-    ULight(std::shared_ptr<Geometry> pgeometry, std::shared_ptr<Material> pmaterial);
-    ULight(std::string name, std::shared_ptr<Geometry> pgeometry, std::shared_ptr<Material> pmaterial);
-    ULight(std::string name, glm::vec3 ambient, glm::vec3 diff, glm::vec3 spec, std::shared_ptr<Geometry> pgeometry, std::shared_ptr<Material> pmaterial);
+    explicit ULight(const std::shared_ptr<UMesh> &mesh);
+    ULight(std::shared_ptr<FGeometry> pgeometry, std::shared_ptr<FMaterial> pmaterial);
+    ULight(std::string name, std::shared_ptr<FGeometry> pgeometry, std::shared_ptr<FMaterial> pmaterial);
+    ULight(std::string name, glm::vec3 ambient, glm::vec3 diff, glm::vec3 spec, std::shared_ptr<FGeometry> pgeometry, std::shared_ptr<FMaterial> pmaterial);
 
-    std::string name_in_shader_;
-    mutable std::shared_ptr<Camera> camera_;
+    mutable std::shared_ptr<FCamera> camera_;
     mutable std::shared_ptr<Texture> shadowMap_;
 
     LightDataUniformBlock lightData_;

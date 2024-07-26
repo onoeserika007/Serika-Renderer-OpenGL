@@ -18,7 +18,7 @@ public:
 
     static const char* GBUFFER_NAMES[GBUFFER_NUM_TEXTURES];
 
-    virtual void render(Scene & scene) override;
+    virtual void render(FScene & scene) override;
     virtual void setupBuffers() override;
     virtual void init() override;
 

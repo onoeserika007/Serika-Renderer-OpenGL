@@ -48,7 +48,7 @@ extern std::string g_szSkyboxShader;
 
 // From: U3D build 1256 (src\kernel\graphic\scenegraph\SkyBox.cpp)
 // ------------------------------------------------------------------------------
-/** \brief Vertex structure for the skybox
+/** \brief Vertex structure for the skybox_default
 */
 // ------------------------------------------------------------------------------
 struct SkyBoxVertex {
@@ -57,7 +57,7 @@ struct SkyBoxVertex {
 };
 
 // ------------------------------------------------------------------------------
-/** \brief Vertices for the skybox
+/** \brief Vertices for the skybox_default
 */
 // ------------------------------------------------------------------------------
 SkyBoxVertex g_cubeVertices_indexed[] = {
@@ -72,7 +72,7 @@ SkyBoxVertex g_cubeVertices_indexed[] = {
 };
 
 // ------------------------------------------------------------------------------
-/** \brief Indices for the skybox
+/** \brief Indices for the skybox_default
 */
 // ------------------------------------------------------------------------------
 unsigned short g_cubeIndices[] = {
@@ -394,7 +394,7 @@ void CBackgroundPainter::RecreateNativeResource() {
             eMode = SIMPLE_COLOR;
             return;
         } else
-            CLogDisplay::Instance().AddEntry("[OK] The skybox has been imported successfully",
+            CLogDisplay::Instance().AddEntry("[OK] The skybox_default has been imported successfully",
                     D3DCOLOR_ARGB(0xFF, 0, 0xFF, 0));
     } else {
         if (FAILED(D3DXCreateTextureFromFileEx(
@@ -445,7 +445,7 @@ void CBackgroundPainter::RecreateNativeResource() {
                 piBuffer->Release();
             }
 
-            CLogDisplay::Instance().AddEntry("[ERROR] Unable to compile skybox shader",
+            CLogDisplay::Instance().AddEntry("[ERROR] Unable to compile skybox_default shader",
                     D3DCOLOR_ARGB(0xFF, 0xFF, 0, 0));
             eMode = SIMPLE_COLOR;
             return;

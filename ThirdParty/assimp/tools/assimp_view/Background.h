@@ -83,10 +83,10 @@ namespace AssimpView
         // Recreate any native resources associated with the instance
         void RecreateNativeResource();
 
-        // Rotate the skybox
+        // Rotate the skybox_default
         void RotateSB( const aiMatrix4x4* pm );
 
-        // Reset the state of the skybox
+        // Reset the state of the skybox_default
         void ResetSB();
 
         inline MODE GetMode() const
@@ -121,7 +121,7 @@ namespace AssimpView
         // path to the texture
         std::string szPath;
 
-        // transformation matrix for the skybox
+        // transformation matrix for the skybox_default
         aiMatrix4x4 mMatrix;
     };
 

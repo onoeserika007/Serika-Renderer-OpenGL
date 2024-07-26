@@ -1,11 +1,12 @@
-#include "../Uniform.h"
+#include "../Material/Uniform.h"
 #include "../../ThirdParty/glad/include/glad/glad.h"
 
 class Texture;
 class Shader;
 class UniformSamplerOpenGL : public UniformSampler {
 private:
-	unsigned textureId_ = 0;
+	GLuint textureId_ = 0;
+	GLuint texTarget_ = 0;
 public:
 	UniformSamplerOpenGL(const std::string& name, TextureTarget target, TextureFormat format) 
         : UniformSampler(name, target, format) {}

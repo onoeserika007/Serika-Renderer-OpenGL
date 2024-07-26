@@ -1,9 +1,3 @@
-/*
- * SoftGLRender
- * @author 	: keith@robot9.me
- *
- */
-
 #define STB_IMAGE_IMPLEMENTATION
 #define STB_IMAGE_WRITE_IMPLEMENTATION
  // 实现在这里
@@ -30,7 +24,7 @@ std::shared_ptr<Buffer<RGBA>> ImageUtils::readImageRGBA(const std::string& path,
     // convert to rgba
     for (size_t y = 0; y < ih; y++) {
         for (size_t x = 0; x < iw; x++) {
-            auto& to = buffer->get(x, y);
+            auto& to = buffer->getPixelRef(x, y);
             size_t idx = x + y * iw;
 
             switch (n) {

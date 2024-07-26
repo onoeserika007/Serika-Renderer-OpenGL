@@ -1,5 +1,10 @@
-#include "Shader.h"
+#include "Material/Shader.h"
 
+void Shader::addDefines(const std::vector<std::string> &defines) {
+    for (const auto& def : defines) {
+        addDefine(def);
+    }
+}
 void Shader::setResources(const std::shared_ptr<ShaderResources> &resources) {
     shaderResources_ = resources;
 }
@@ -7,29 +12,33 @@ void Shader::setResources(const std::shared_ptr<ShaderResources> &resources) {
 void Shader::bindResources(const std::shared_ptr<ShaderResources> &resources) {
     setResources(resources);
     bindHoldingResources();
-}
+};;
 
 void Shader::bindHoldingResources() const {
     // useProgram, this is the only call
     use();
     if (auto&& resource = shaderResources_.lock()) {
         for (auto& [_, sampler] : resource->blocks) {
-            bindUniform(*sampler);
+            if (sampler) {
+                bindUniform(*sampler);
+            }
         }
 
         for (auto& [_, sampler] : resource->samplers) {
-            bindUniform(*sampler);
+            if (sampler) {
+                bindUniform(*sampler);
+            }
         }
     }
 }
 
-void Shader::setUniformSampler(const std::string &name, const std::shared_ptr<UniformSampler> &uniform) {
+void Shader::setUniformSampler(const std::string &name, const std::shared_ptr<UniformSampler> &uniform) const {
     if (auto&& res = shaderResources_.lock()) {
         res->samplers[name] = uniform;
     }
 }
 
-void Shader::setUniformBlock(const std::string &name, const std::shared_ptr<UniformBlock> &uniform) {
+void Shader::setUniformBlock(const std::string &name, const std::shared_ptr<UniformBlock> &uniform) const {
     if (auto&& res = shaderResources_.lock()) {
         res->blocks[name] = uniform;
     }
@@ -38,7 +47,7 @@ void Shader::setUniformBlock(const std::string &name, const std::shared_ptr<Unif
 bool Shader::bindUniform(Uniform &uniform) const {
     int hash = uniform.getHash();
     int location = -1;
-    if (uniformLocations_.find(hash) == uniformLocations_.end()) {
+    if (!uniformLocations_.contains(hash)) { // if not contains
         location = uniform.getLocation(*this);
         uniformLocations_[hash] = location;
     }
@@ -54,7 +63,7 @@ bool Shader::bindUniform(Uniform &uniform) const {
     return true;
 }
 
-bool Shader::ready() {
+bool Shader::ready() const {
     return pipelineSetup_;
 }
 
@@ -62,10 +71,10 @@ void Shader::setReady(bool flag) {
     pipelineSetup_ = flag;
 }
 
-EShadingMode Shader::shadingMode() {
+EShadingModel Shader::shadingMode() const {
     return shadingMode_;
 }
 
-void Shader::setShadingMode(EShadingMode mode) {
+void Shader::setShadingMode(EShadingModel mode) {
     shadingMode_ = mode;
 }

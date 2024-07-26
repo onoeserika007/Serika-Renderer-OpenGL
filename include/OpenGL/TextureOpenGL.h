@@ -1,4 +1,4 @@
-#include "../Texture.h"
+#include "../Material/Texture.h"
 
 class TextureOpenGL:public Texture {
 public:
@@ -28,5 +28,6 @@ public:
     TextureOpenGLCube(const TextureInfo& texInfo, const SamplerInfo& smInfo);
     TextureOpenGLCube(const TextureInfo& texInfo, const SamplerInfo& smInfo, const TextureData& texData);
 
+    void setupPipeline();
     virtual ~TextureOpenGLCube();
 };

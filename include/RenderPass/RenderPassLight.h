@@ -17,7 +17,7 @@ class UObject;
 class RenderPassLight: public RenderPass{
 public:
     RenderPassLight(Renderer& renderer);
-    virtual void render(Scene & scene) override;
+    virtual void render(FScene & scene) override;
     virtual void setupBuffers() override;
     virtual void init() override;
 

@@ -1,8 +1,8 @@
-// #version 330 core
+#version 430 core
 
-in vec2 TexCoord;
-in vec3 worldNormal;
-in vec3 fragPos;
+in vec2 vTexCoord;
+in vec3 vWorldNormal;
+in vec3 vFragPos;
 
 layout (location = 0) out vec3 WorldPosOut;
 layout (location = 1) out vec3 DiffuseOut;
@@ -17,6 +17,8 @@ layout(std140) uniform Model {
     mat4 uShadowMapMVP;
     vec3 uViewPos;
     bool uUseShadowMap;
+    bool uUseShadowMapCube;
+    bool uUseEnvMap;
 };
 
 #ifdef DIFFUSE_MAP
@@ -38,22 +40,22 @@ layout(std140) uniform Model {
 void main()
 {
     // pos
-    WorldPosOut = fragPos;
+    WorldPosOut = vFragPos;
 
     // diffuse
 #ifdef DIFFUSE_MAP
-    DiffuseOut = texture(uDiffuseMap, TexCoord).xyz;
+    DiffuseOut = texture(uDiffuseMap, vTexCoord).xyz;
 #else
     DiffuseOut = vec3(0.5f);
 #endif
 
     // normal
-    NormalOut = normalize(worldNormal);
+    NormalOut = normalize(vWorldNormal);
 
     // spec
 #ifdef SPECULAR_MAP
-    SpecularOut = texture(uSpecularMap, TexCoord).xyz;
+    SpecularOut = texture(uSpecularMap, vTexCoord).xyz;
 #else
-    SpecularOut = vec3(0.5f);
+    SpecularOut = vec3(0.2f);
 #endif
 }

@@ -1,5 +1,6 @@
 #include "Utils/OpenGLUtils.h"
 #include "Utils/Logger.h"
+#include <glad/glad.h>
 
 void checkGLError_(const char* stmt, const char* file, int line) {
     const char* str;
@@ -30,6 +31,6 @@ void checkGLError_(const char* stmt, const char* file, int line) {
 
     if (err != GL_NO_ERROR) {
         LOGE("GL_CHECK: %s, %s:%d, %s", str, file, line, stmt);
-        throw std::exception("OpenGL Error!");
+        // throw std::exception("OpenGL Error!");
     }
 }

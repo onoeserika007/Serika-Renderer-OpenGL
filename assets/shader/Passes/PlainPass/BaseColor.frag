@@ -1,7 +1,7 @@
-// #version 330 core
+#version 430 core
 
-in vec2 TexCoord;
-in vec3 fragPos;
+in vec2 vTexCoord;
+in vec3 vFragPos;
 
 layout(location = 0) out vec4 FragColor;
 
@@ -21,7 +21,7 @@ layout(location = 0) out vec4 FragColor;
 void main()
 {
 #ifdef DIFFUSE_MAP
-    FragColor = texture(uDiffuseMap, TexCoord);
+    FragColor = texture(uDiffuseMap, vTexCoord);
 #else
     FragColor = vec4(1.f);
 #endif

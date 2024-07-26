@@ -3,8 +3,8 @@
 #include <string>
 #include <vector>
 #include <memory>
-#include "../Base/GLMInc.h"
-#include "../Shader.h"
+#include "../Base/Globals.h"
+#include "../Material/Shader.h"
 
 enum ShaderType{
     ShaderType_VertexShader,
@@ -24,31 +24,39 @@ class ShaderGLSL: public Shader
 
     std::string headers_;
     std::string defines_;
+    // vert
     std::string vertexCode_;
     std::string vsPath_;
+    // frag
     std::string fragmentCode_;
     std::string fsPath_;
+    // geom
+    std::string geometryCode_;
+    std::string gsPath_;
+
+    static bool checkSourceVersionHeader(const std::string& code);
+
     // 构造器读取并构建着色器
-    ShaderGLSL(const std::string& vertexPath, const std::string& fragmentPath);
+    ShaderGLSL(const std::string& vertexPath, const std::string& fragmentPath, const std::string& geometryPath = {});
     ShaderGLSL();
 public:
-    explicit ShaderGLSL(PassKey passkey, const std::string& vertexPath, const std::string& fragmentPath) : ShaderGLSL(vertexPath, fragmentPath) {}
-    static std::shared_ptr<ShaderGLSL> loadShader(const std::string& vertexPath, const std::string& fragmentPath);
+    explicit ShaderGLSL(PassKey passkey, const std::string& vertexPath, const std::string& fragmentPath, const std::string& geometryPath = {}) : ShaderGLSL(vertexPath, fragmentPath, geometryPath) {}
+    static std::shared_ptr<ShaderGLSL> loadShader(const std::string& vertexPath, const std::string& fragmentPath, const std::string& geometryPath = {});
+
     static std::shared_ptr<ShaderGLSL> loadDefaultShader();
     static std::shared_ptr<ShaderGLSL> loadBaseColorShader();
     static std::shared_ptr<ShaderGLSL> loadBlinnPhongShader();
     static std::shared_ptr<ShaderGLSL> loadGeometryShader();
-    static std::shared_ptr<ShaderGLSL> loadPhongMaterialShader();
-    static std::shared_ptr<ShaderGLSL> loadLightMapMaterialShader();
-    static std::shared_ptr<ShaderGLSL> loadStandardMaterialShader();
+
     static std::shared_ptr<ShaderGLSL> loadShadowPassShader();
+    static std::shared_ptr<ShaderGLSL> loadShadowCubePassShader();
     static std::shared_ptr<ShaderGLSL> loadDefferedBlinnPhongShader();
-    static std::shared_ptr<ShaderGLSL> loadFromRawSource(const std::string& VS, const std::string& FS);
+    static std::shared_ptr<ShaderGLSL> loadSkyBoxShader();
+    static std::shared_ptr<ShaderGLSL> loadFromRawSource(const std::string& VS, const std::string& FS, const std::string &GS = {});
 
     // compile
+    virtual void addDefine(const std::string& define) override;
     void addHeader(const std::string& header);
-    void addDefines(const std::vector<std::string>& defines);
-    void addDefine(const std::string& define);
     void compileAndLink();
     
     // uniform工具函数
@@ -63,8 +71,8 @@ public:
     virtual unsigned getSamplerBinding() const override;
     virtual unsigned getUniformBlockBinding() const override;
     // 使用/激活程序
-    virtual void setupPipeline(Material& material) override;
+    virtual void setupPipeline(FMaterial& material) override;
     virtual void use() const override;
-    virtual int getId() const override;
+    virtual GLuint getId() const override;
     virtual std::shared_ptr<Shader> clone() const override;
 };

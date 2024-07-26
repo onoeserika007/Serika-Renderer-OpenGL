@@ -1,0 +1,18 @@
+{
+  "CameraAspect": 1,
+  "CameraFOV": 45,
+  "CameraFar": 100,
+  "CameraNear": 0.10000000149011612,
+  "CameraPitch": 0,
+  "CameraSpeed": 2.5,
+  "CameraYaw": -90,
+  "CameraZoom": 45,
+  "CaptureRadius_ShadowMap": 5,
+  "MouseSensitivity": 0.10000000149011612,
+  "RenderMode": 0,
+  "Resolution_ShadowMap": 1024,
+  "WindowHeight": 1080,
+  "WindowWidth": 1920,
+  "bShadowMap": true,
+  "bSkybox": true
+}

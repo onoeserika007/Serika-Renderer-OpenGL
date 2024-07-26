@@ -1,4 +1,4 @@
-#include "Uniform.h"
+#include "../include/Material/Uniform.h"
 #include <iostream>
 
 UniformBlock::~UniformBlock()
