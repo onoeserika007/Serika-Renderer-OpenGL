@@ -15,7 +15,8 @@ enum class ERenderMode: int {
 	RenderMode_ForwardRendering,
 	RenderMode_DefferedRendering,
 	RenderMode_TestRendering_OffScreen,
-	RenderMode_TestRendering_OnScreen
+	RenderMode_TestRendering_OnScreen,
+	RenderMode_PathTracing
 };
 
 // 修改这里前要删掉config，不然会崩溃
@@ -40,15 +41,15 @@ struct Config {
 
 	// shadow map
 	int Resolution_ShadowMap = 1024;
-
 	float CameraNear = 0.1f;
 	float CameraFar = 50.f;
+
 	// perspective camera
 	float CameraAspect = 1.f;
 	float CameraFOV = 45.f;
-	// Ortho camera
-	float CaptureRadius_ShadowMap = 20.f;
 
+	// Ortho camera
+	float CaptureRadius_ShadowMap = 60.f;
 
 	void serialize(const std::string& path);
 	void deserialize(const std::string& path);

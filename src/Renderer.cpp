@@ -1,6 +1,7 @@
 #include "Renderer.h"
 
-#include <Light.h>
+#include <ranges>
+#include <ULight.h>
 #include <../include/Material/Shader.h>
 
 #include "FCamera.h"
@@ -18,8 +19,42 @@ Renderer::Renderer(const std::shared_ptr<FCamera> &camera) {
 	viewCamera_ = camera;
 }
 
-void Renderer::loadGlobalUniforms(const std::shared_ptr<UMesh> &mesh) {
+
+void Renderer::drawDebugLine(const glm::vec3 &start, const glm::vec3 &end, float persistTime) {
+	std::lock_guard<std::mutex> guard(debug_line_task_lock_);
+	auto&& line = std::make_shared<FLine>(start, end, persistTime);
+	debug_line_tasks_[line->getUUID()] = line;
+}
+
+void Renderer::drawDebugTriangle(const Triangle &inTri, float persistTime) {
+	std::lock_guard<std::mutex> guard(debug_triangle_task_lock_);
+	auto&& triangle = std::make_shared<Triangle>(inTri);
+	triangle->persistTime_ = persistTime;
+	debug_triangle_tasks_[triangle->getUUID()] = triangle;;
+}
+
+void Renderer::handleDebugs() {
+	// handle lines
+	{
+		std::lock_guard<std::mutex> guard(debug_line_task_lock_);
+		for (auto &line: debug_line_tasks_ | std::views::values) {
+			drawDebugLine_Impl(*line);
+		}
+	}
+
+	// handle triangles
+	{
+		std::lock_guard<std::mutex> guard(debug_triangle_task_lock_);
+		for (auto &triangle: debug_triangle_tasks_ | std::views::values) {
+			drawDebugTriangle_Impl(*triangle);
+		}
+	}
+
+}
+
+void Renderer::loadGlobalUniforms(const std::shared_ptr<UMesh> &mesh) const {
 	const auto pmat = mesh->getMaterial();
+	// if (!pmat) return;
 	// uniforms will be loaded to shader when Material::use(ShaderPass) is called.
 	pmat->setUniformBlock(modelUniformBlock_->name(), modelUniformBlock_);
 	pmat->setUniformBlock(lightUniformBlock_->name(), lightUniformBlock_);
@@ -27,23 +62,23 @@ void Renderer::loadGlobalUniforms(const std::shared_ptr<UMesh> &mesh) {
 	if (auto&& shadowMap = shadowMapUniformSampler_.lock()) {
 		pmat->setUniformSampler(shadowMap->name(), shadowMap);
 	}
-	if (auto&& envMap = environmentMappingCubeSampler_.lock()) {
+	if (auto&& envMap = envCubeMapUniformSampler_.lock()) {
 		pmat->setUniformSampler(envMap->name(), envMap);
 	}
 	if (auto&& cubeShadow = shadowMapCubeUniformSampler_.lock()) {
 		pmat->setUniformSampler(cubeShadow->name(), cubeShadow);
 	}
 }
-
-void Renderer::loadGlobalUniforms(Shader &program) {
+;
+void Renderer::loadGlobalUniforms(const Shader &program) const {
 	program.setUniformBlock(modelUniformBlock_->name(), modelUniformBlock_);
 	program.setUniformBlock(lightUniformBlock_->name(), lightUniformBlock_);
 	program.setUniformBlock(shadowUniformBlock_->name(), shadowUniformBlock_);
+	if (auto&& envMap = envCubeMapUniformSampler_.lock()) {
+		program.setUniformSampler(envMap->name(), envMap);
+	}
 	if (auto&& shadowMap = shadowMapUniformSampler_.lock()) {
 		program.setUniformSampler(shadowMap->name(), shadowMap);
-	}
-	if (auto&& envMap = environmentMappingCubeSampler_.lock()) {
-		program.setUniformSampler(envMap->name(), envMap);
 	}
 	if (auto&& cubeShadow = shadowMapCubeUniformSampler_.lock()) {
 		program.setUniformSampler(cubeShadow->name(), cubeShadow);
@@ -57,7 +92,7 @@ void Renderer::updateModelUniformBlock(const std::shared_ptr<UMesh> &mesh, const
 	tmp.uModel = glm::mat4(1.f);
 	if (mesh) {
 		tmp.uModel = mesh->getWorldMatrix();
-		tmp.uNormalToWorld = mesh->getNormalToWorld();
+		tmp.uNormalToWorld = glm::transpose(glm::inverse(mesh->getWorldMatrix()));
 	}
 
 	if (camera) {
@@ -78,7 +113,8 @@ void Renderer::updateModelUniformBlock(const std::shared_ptr<UMesh> &mesh, const
 		else {
 			tmp.uUseShadowMap = true;
 			tmp.uUseShadowMapCube = false;
-			tmp.uShadowMapMVP = shadowCamera->GetProjectionMatrix() * shadowCamera->GetViewMatrix() * tmp.uModel;
+			// model项将在shader中指定，方便gbuffer!!!!
+			tmp.uShadowMapVP = shadowCamera->GetProjectionMatrix() * shadowCamera->GetViewMatrix() * glm::mat4(1.f);
 			// set ShadowMap
 			shadowMapUniformSampler_ = shadowMapSampler;
 		}
@@ -89,8 +125,8 @@ void Renderer::updateModelUniformBlock(const std::shared_ptr<UMesh> &mesh, const
 	}
 	// eviroment mapping
 	auto&& scene = renderingScene_.lock();
-	if (config.bSkybox && scene && scene->skybox_) {
-		environmentMappingCubeSampler_ = scene->skybox_->tryGetSkyboxSampler(*this);
+	if (config.bSkybox && scene && scene->skybox_ && scene->skybox_->getMesh()) {
+		envCubeMapUniformSampler_ = scene->skybox_->getMesh()->tryGetSkyboxSampler(*this);
 		tmp.uUseEnvmap = true;
 	}
 	else {
@@ -104,16 +140,19 @@ void Renderer::updateShadowCubeUniformBlock(const std::shared_ptr<ULight> &shado
 	if (!config.bShadowMap) return;
 
 	ShadowCubeUniformBlock block {};
-	if (shadowLight && shadowLight->isPointLight()) {
+	if (shadowLight) {
 		auto&& lightCamera = shadowLight->getLightCamera();
-		auto&& proj = lightCamera->GetProjectionMatrix();
+		if (shadowLight->isPointLight()) {
+			auto&& proj = lightCamera->GetProjectionMatrix();
+			block.uShadowVPs[0] = proj * lightCamera->GetViewMatrix({1.f, 0.f, 0.f}, {0.f, -1.f, 0.f});		// positive x
+			block.uShadowVPs[1] = proj * lightCamera->GetViewMatrix({-1.f, 0.f, 0.f}, {0.f, -1.f, 0.f});	// negative x
+			block.uShadowVPs[2] = proj * lightCamera->GetViewMatrix({0.f, 1.f, 0.f}, {0.f, 0.f, 1.f});		// positive y
+			block.uShadowVPs[3] = proj * lightCamera->GetViewMatrix({0.f, -1.f, 0.f}, {0.f, 0.f, -1.f});	// negative y
+			block.uShadowVPs[4] = proj * lightCamera->GetViewMatrix({0.f, 0.f, 1.f}, {0.f, -1.f, 0.f});		// positive z
+			block.uShadowVPs[5] = proj * lightCamera->GetViewMatrix({0.f, 0.f, -1.f}, {0.f, -1.f, 0.f});	// negative z
+		}
+		// far plane
 		block.uFarPlane = lightCamera->getFarPlane();
-		block.uShadowVPs[0] = proj * lightCamera->GetViewMatrix({1.f, 0.f, 0.f}, {0.f, -1.f, 0.f});		// positive x
-		block.uShadowVPs[1] = proj * lightCamera->GetViewMatrix({-1.f, 0.f, 0.f}, {0.f, -1.f, 0.f});	// negative x
-		block.uShadowVPs[2] = proj * lightCamera->GetViewMatrix({0.f, 1.f, 0.f}, {0.f, 0.f, 1.f});		// positive y
-		block.uShadowVPs[3] = proj * lightCamera->GetViewMatrix({0.f, -1.f, 0.f}, {0.f, 0.f, -1.f});	// negative y
-		block.uShadowVPs[4] = proj * lightCamera->GetViewMatrix({0.f, 0.f, 1.f}, {0.f, -1.f, 0.f});		// positive z
-		block.uShadowVPs[5] = proj * lightCamera->GetViewMatrix({0.f, 0.f, -1.f}, {0.f, -1.f, 0.f});		// negative z
 	}
 	shadowUniformBlock_->setData(&block, sizeof(ShadowCubeUniformBlock));
 }
@@ -174,3 +213,14 @@ int Renderer::width() const {
 int Renderer::height() const {
 	return height_;
 }
+
+void Renderer::remove_line_debug_task_safe(int uuid) {
+	std::lock_guard<std::mutex> guard(debug_line_task_lock_);
+	debug_line_tasks_.erase(uuid);
+}
+
+void Renderer::remove_triangle_debug_task_safe(int uuid) {
+	std::lock_guard<std::mutex> guard(debug_triangle_task_lock_);
+	debug_triangle_tasks_.erase(uuid);
+}
+

@@ -26,14 +26,15 @@ BVHAccel::BVHAccel(const std::vector<std::shared_ptr<Intersectable>>& primitives
     printf(
         "\rBVH Generation complete: \nTime Taken: %i hrs, %i mins, %i secs\n\n",
         hrs, mins, secs);
+    fflush(stdout);
 }
 
 Intersection BVHAccel::Intersect(const Ray &ray) const {
     if (!root_) return {};
-    return IntersectImpl(root_, ray);
+    return IntersectImpl(root_, ray);;;
 }
 
-Intersection BVHAccel::IntersectImpl(const std::unique_ptr<BVHBuildNode> &node, const Ray &ray) const {
+Intersection BVHAccel::IntersectImpl(const std::shared_ptr<BVHNode> &node, const Ray &ray) const {
     // TODO Traverse the BVH to find intersection
 
     if(!node || !node->bbox.intersectRay(ray)) return {};
@@ -41,6 +42,8 @@ Intersection BVHAccel::IntersectImpl(const std::unique_ptr<BVHBuildNode> &node, 
     if(!node->right && !node->left && node->primitive)
         return node->primitive->getIntersection(ray);
 
+    // can not return early here, since bounds might overlap
+    // so we must initialize distance by +Inf
     Intersection isect2= IntersectImpl(node->left,ray);
     Intersection isect1= IntersectImpl(node->right,ray);
 
@@ -48,11 +51,11 @@ Intersection BVHAccel::IntersectImpl(const std::unique_ptr<BVHBuildNode> &node, 
 }
 
 BoundingBox BVHAccel::WorldBound() const {
-    if (root_) return root_->bbox;
-    return {};
+    if (root_) return root_->bbox;;
+    return {};;
 }
 
-void BVHAccel::getSample(const std::unique_ptr<BVHBuildNode> &node, float split, Intersection &pos, float &pdf) {
+void BVHAccel::getSample(const std::shared_ptr<BVHNode> &node, float split, Intersection &pos, float &pdf) {
     if(node->left == nullptr || node->right == nullptr){
         node->primitive->Sample(pos, pdf);
         pdf *= node->area;
@@ -73,8 +76,8 @@ void BVHAccel::Sample(Intersection &pos, float &pdf) {
     pdf /= root_->area;
 }
 
-std::unique_ptr<BVHBuildNode> BVHAccel::recursiveBuild(const std::vector<std::shared_ptr<Intersectable>> &primitives) {
-    auto&& node = std::make_unique<BVHBuildNode>();
+std::shared_ptr<BVHNode> BVHAccel::recursiveBuild(const std::vector<std::shared_ptr<Intersectable>> &primitives) {
+    auto&& node = std::make_shared<BVHNode>();
 
     std::vector<std::shared_ptr<Intersectable>> prim_cpoy {primitives.begin(), primitives.end()};
 
@@ -114,7 +117,7 @@ std::unique_ptr<BVHBuildNode> BVHAccel::recursiveBuild(const std::vector<std::sh
         case 1:
             std::sort(prim_cpoy.begin(), prim_cpoy.end(), [](const auto& f1, const auto& f2) {
                 return f1->getBounds().Centroid().y < f2->getBounds().Centroid().y;
-            });
+            });;
             break;
         case 2:
             std::sort(prim_cpoy.begin(), prim_cpoy.end(), [](const auto& f1, const auto& f2) {

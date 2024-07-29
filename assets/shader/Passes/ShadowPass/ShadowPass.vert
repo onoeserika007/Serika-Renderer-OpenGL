@@ -3,8 +3,8 @@ layout(location = 0) in vec3 aPos;
 layout(location = 1) in vec2 aTexCoord;
 layout(location = 2) in vec3 aNormal;
 
-out vec2 TexCoord;
-
+out vec2 vTexCoord;
+out vec4 vFragDNCPos;
 layout(std140) uniform Model {
     mat4 uModel;
     mat4 uView;
@@ -18,6 +18,7 @@ layout(std140) uniform Model {
 };
 
 void main() {
-    TexCoord = aTexCoord;
+    vTexCoord = aTexCoord;
+    vFragDNCPos = uProjection * uView * uModel * vec4(aPos, 1.0);
     gl_Position = uProjection * uView * uModel * vec4(aPos, 1.0);
 }

@@ -1,12 +1,11 @@
 #include "RenderPass/RenderPassForwardShading.h"
 
-#include <../../include/Geometry/Model.h>
 #include <FScene.h>
-#include "Light.h"
+#include "ULight.h"
 
 #include "FrameBuffer.h"
 #include "Renderer.h"
-#include "../../include/Material/Uniform.h"
+#include "Material/Uniform.h"
 #include "Base/Config.h"
 
 RenderPassForwardShading::RenderPassForwardShading(Renderer& renderer): RenderPass(renderer)
@@ -20,7 +19,7 @@ void RenderPassForwardShading::render(FScene & scene)
 	// 为何这里的texture没有被回收？？ 懂了！！Frambuffer中的Attachment还保存有一份引用
 	setupBuffers();
 	fboMain_->bind();
-	RenderStates& renderStates = renderer_.renderStates;
+	RenderStates& renderStates = renderer_.renderStates_;
 
 	BlendParameters blendParams;
 	blendParams.SetBlendFactor(BlendFactor_ONE, BlendFactor_ONE);
@@ -40,9 +39,9 @@ void RenderPassForwardShading::render(FScene & scene)
 
 	auto setupToScreen = [&renderStates, this]() {
 		renderStates.blend = true;
-		renderStates.depthTest = false;
+		renderStates.depthTest = false;;
 		renderStates.depthMask = false;
-		renderStates.cullFace = false;
+		renderStates.cullFace = false;;
 		renderer_.updateRenderStates(renderStates);
 	};
 
@@ -55,8 +54,8 @@ void RenderPassForwardShading::render(FScene & scene)
 		fboMain_->setWriteBuffer(0, true); // to render target
 		fboMain_->clearDepthBuffer();
 		// 渲染所有mesh时关闭混合，保证深度测试
-		for (const auto& model : scene.getModels()) {
-			renderer_.draw(model, shaderPass_, light); // may set shadow cast in updateModelUniformBlock called in draw()
+		for (const auto& model : scene.getPackedMeshes()) {
+			renderer_.drawMesh(model, shaderPass_, light); // may set shadow cast in updateModelUniformBlock called in draw()
 		}
 
 		// 混合光照结果时打开混合
@@ -67,12 +66,12 @@ void RenderPassForwardShading::render(FScene & scene)
 	// 画光源时关闭混合
 	setupComputeLight();
 	fboMain_->setWriteBuffer(1, false); // to blend target
-	for (const auto& light: scene.getLights()) {
+	for (const auto& light: scene.getPackedLightMeshes()) {
 		renderer_.updateLightUniformBlock(nullptr);
-		renderer_.draw(light, ShaderPass::Shader_ForwardShading_Pass, nullptr);
+		renderer_.drawMesh(light, ShaderPass::Shader_ForwardShading_Pass, nullptr);
 	}
-	if (scene.skybox_) {
-		renderer_.draw(scene.skybox_, ShaderPass::Shader_ForwardShading_Pass, nullptr);
+	if (scene.skybox_ && scene.skybox_->getMesh()) {
+		renderer_.drawMesh(scene.skybox_->getMesh(), ShaderPass::Shader_ForwardShading_Pass, nullptr);
 	}
 
 }

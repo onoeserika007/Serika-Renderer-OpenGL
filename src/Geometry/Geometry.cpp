@@ -48,7 +48,7 @@ std::unique_ptr<Triangle> FGeometry::fetchTriangle(unsigned k) const {
         unsigned idx2 = indices_[k * 3 + 2];
         auto&& pos = data_map_.at(EBA_Position);
         glm::vec3 v0 {pos[idx0 * 3], pos[idx0 * 3 + 1], pos[idx0 * 3 + 2]};
-        glm::vec3 v1 {pos[idx1 * 3], pos[idx1 * 3 + 1], pos[idx1 * 3 + 2]};
+        glm::vec3 v1 {pos[idx1 * 3], pos[idx1 * 3 + 1], pos[idx1 * 3 + 2]};;
         glm::vec3 v2 {pos[idx2 * 3], pos[idx2 * 3 + 1], pos[idx2 * 3 + 2]};
 
         auto&& ret = std::make_unique<Triangle>(v0, v1, v2);
@@ -57,11 +57,11 @@ std::unique_ptr<Triangle> FGeometry::fetchTriangle(unsigned k) const {
             ret->t0_ = glm::vec2(tex[idx0 * 2], tex[idx0 * 2 + 1]);
             ret->t1_ = glm::vec2(tex[idx1 * 2], tex[idx1 * 2 + 1]);
             ret->t2_ = glm::vec2(tex[idx2 * 2], tex[idx2 * 2 + 1]);
-        }
+        };
 
         return ret;
     }
-    return {};
+    return {};;
 }
 
 const unsigned *FGeometry::getIndicesRawData() const {

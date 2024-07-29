@@ -16,7 +16,6 @@ class FrameBuffer;
 class UObject;
 class RenderPassForwardShading;
 class FScene;
-class UModel;
 
 class Viewer {
 public:
@@ -24,12 +23,22 @@ public:
 	virtual ~Viewer();
 	void init(int width, int height, int outTexId);
 	void setViewPort(int x, int y, int width, int height);
+	void setScene(const std::shared_ptr<FScene>& scene);
+
 	void cleanup();
-	void render(const std::shared_ptr<FScene> &scene);
+	void DrawFrame();
 	void drawScene_ForwardRendering(const std::shared_ptr<FScene> &scene) const;
-	void drawScene_DefferedRendering(std::shared_ptr<FScene> scene);
+	void drawScene_DefferedRendering(const std::shared_ptr<FScene>& scene);
 	void drawScene_TestPipeline(const std::shared_ptr<FScene> &scene) const;
 	void drawScene_OnScreen(const std::shared_ptr<FScene>& scene) const;
+
+	// ray casting
+	void drawScene_PathTracing_CPU(const std::shared_ptr<FScene>& scene) const;
+
+	Ray screenToWorldRay(int mouseX, int mouseY, int screenWidth, int screenHeight,
+	                     const std::shared_ptr<FCamera> &camera, bool bUseDisturb = false, float disturbRadius = 0) const;
+	void drawCursorHitDebugLine(int mouseX, int mouseY, int screenWidth, int screenHeight);
+	void drawUnderCursorTraceDebugTriangle(int mouseX, int mouseY, int screenWidth, int screenHeight);
 
 	void waitIdle();
 
@@ -39,6 +48,8 @@ public:
 public:
 
 protected:
+
+private:
 	std::shared_ptr<FCamera> cameraMain_;
 	std::shared_ptr<FCamera> cameraDepth_ = nullptr;
 
@@ -46,6 +57,7 @@ protected:
 	int width_ = 0;
 	int height_ = 0;
 	int outTexId_ = 0;
+	std::shared_ptr<FScene> scene_;
 
 	std::shared_ptr<Renderer> renderer_ = nullptr;
 
@@ -57,6 +69,5 @@ protected:
 	std::shared_ptr<RenderPassGeometry> geometryPass_ = nullptr;
 	std::shared_ptr<RenderPassLight> lightPass_ = nullptr;
 	std::shared_ptr<RenderPassShadow> shadowPass_ = nullptr;
-private:
 
 };

@@ -1,7 +1,4 @@
-﻿// learnOpenGL-aTriangle.h: 标准系统包含文件的包含文件
-// 或项目特定的包含文件。
-
-#pragma once
+﻿#pragma once
 // #define GLM_FORCE_ALIGNED
 #define GLM_FORCE_INLINE
 
@@ -13,21 +10,33 @@ using RGBA = glm::u8vec4;
 #define DEBUG
 // #undef DEBUG
 
-constexpr double M_PI = 3.14159265358979323846f;
+constexpr float M_PI = 3.14159265358979323846f;
 constexpr float M_EPSILON = 1e-6;
+constexpr float FLOAT_MAX = std::numeric_limits<float>::max();
+// constexpr float FLOAT_MIN = std::numeric_limits<float>::min(); // 对这个理解错误了，这不是最小的值，这是最小的norm值
+constexpr float FLOAT_MIN = -std::numeric_limits<float>::max();
+
+constexpr glm::vec3 WHITE_COLOR {0.725f, 0.71f, 0.68f};
+constexpr glm::vec3 BLACK_COLOR {0.001f, 0.001f, 0.001f};
+constexpr glm::vec3 RED_COLOR {0.63f, 0.065f, 0.05f};
+constexpr glm::vec3 GREEN_COLOR {0.14f, 0.45f, 0.091f};
+
+constexpr glm::vec3 M_X_POSITIVE_UNIT {1.f, 0.f, 0.f};
+constexpr glm::vec3 M_Y_POSITIVE_UNIT {0.f, 1.f, 0.f};
+constexpr glm::vec3 M_Z_POSITIVE_UNIT {0.f, 0.f, 1.f};
 
 #define NO_DISCARD [[nodiscard]]
 
 struct ModelUniformBlock{
-	alignas(64)	glm::mat4 uModel;
-	alignas(64)	glm::mat4 uView;
-	alignas(64)	glm::mat4 uProjection;
-	alignas(64)	glm::mat4 uNormalToWorld;
-	alignas(64)	glm::mat4 uShadowMapMVP;
-	alignas(16)	glm::vec3 uViewPos;
-	alignas(4)	glm::int32 uUseShadowMap;
-	alignas(4)	glm::int32 uUseShadowMapCube;
-	alignas(4)	glm::int32 uUseEnvmap;
+	alignas(64)	glm::mat4 uModel {1.f};
+	alignas(64)	glm::mat4 uView {1.f};
+	alignas(64)	glm::mat4 uProjection {1.f};
+	alignas(64)	glm::mat4 uNormalToWorld {1.f};
+	alignas(64)	glm::mat4 uShadowMapVP {1.f};
+	alignas(16)	glm::vec3 uViewPos {1.f};
+	alignas(4)	glm::int32 uUseShadowMap = false;
+	alignas(4)	glm::int32 uUseShadowMapCube = false;
+	alignas(4)	glm::int32 uUseEnvmap = false;
 };
 
 struct ShadowCubeUniformBlock {
@@ -54,6 +63,7 @@ enum FilterMode {
 enum EShadingModel {
 	Shading_Unknown = 0,
 	Shading_BaseColor,
+	Shading_Lambertian,
 	Shading_BlinnPhong,
 	Shading_PBR,
 	Shading_Skybox,
@@ -69,17 +79,3 @@ enum class ShaderPass: uint8_t {
 	Shader_Geometry_Pass,
 	Shader_Light_Pass,
 };
-
-struct MaterialInfo {
-	EShadingModel shading_model;
-	glm::vec3 emission;
-	float ior;
-	glm::vec3 Kd;
-	glm::vec3 Ks;
-	float specularExponent;
-
-	bool hasEmission() const { return glm::length(emission) > 0.f; }
-};
-
-
-// TODO: 在此处引用程序需要的其他标头。

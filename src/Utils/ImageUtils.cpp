@@ -11,19 +11,21 @@
 std::shared_ptr<Buffer<RGBA>> ImageUtils::readImageRGBA(const std::string& path, bool flipY) {
     // 你可能注意到纹理上下颠倒了！这是因为OpenGL要求y轴0.0坐标是在图片的底部的，但是图片的y轴0.0坐标通常在顶部。
     // 很幸运，stb_image.h能够在图像加载时帮助我们翻转y轴，只需要在加载任何图像前加入以下语句即可：
-    //stbi_set_flip_vertically_on_load(flipY);
-    // 似乎因为索引加载方式可以不用反转图像
+    stbi_set_flip_vertically_on_load(!flipY);
+    // 似乎因为索引加载方式可以不用反转图像，已经是反着加载的了，不管了，只要对外表现出来是反加载就行了;
     int iw = 0, ih = 0, n = 0;
     unsigned char* data = stbi_load(path.c_str(), &iw, &ih, &n, STBI_default);
     if (data == nullptr) {
         LOGD("ImageUtils::readImage failed, path: %s", path.c_str());
         return nullptr;
     }
-    auto buffer = Buffer<RGBA>::makeDefault(iw, ih);
 
+    auto buffer = Buffer<RGBA>::makeBuffer(iw, ih);
+
+    // 这种读取方式读出来已经是反着的了
     // convert to rgba
-    for (size_t y = 0; y < ih; y++) {
-        for (size_t x = 0; x < iw; x++) {
+    for (int y = 0; y < ih; y++) {
+        for (int x = 0; x < iw; x++) {
             auto& to = buffer->getPixelRef(x, y);
             size_t idx = x + y * iw;
 
@@ -69,6 +71,10 @@ void ImageUtils::writeImage(char const* filename, int w, int h, int comp, const 
     bool flipY) {
     stbi_flip_vertically_on_write(flipY);
     stbi_write_png(filename, w, h, comp, data, strideInBytes);
+}
+
+void ImageUtils::writeImage(char const *filename, const std::shared_ptr<Buffer<RGBA>> &buffer, bool flipY) {
+    writeImage(filename, buffer->width(), buffer->height(), buffer->getComponentsNum(), buffer->rawData(), buffer->width() * buffer->getComponentsNum(), flipY);
 }
 
 void ImageUtils::convertFloatImage(RGBA* dst, float* src, uint32_t width, uint32_t height) {

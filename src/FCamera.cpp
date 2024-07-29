@@ -12,7 +12,7 @@ FCamera::FCamera(glm::vec3 position, glm::vec3 up)
     MovementSpeed = config.CameraSpeed;
     MouseSensitivity = config.MouseSensitivity;
     Zoom = config.CameraZoom;
-    updateCameraVectors();;
+    updateCameraVectors();;;
 };
 
 FCamera::FCamera(float posX, float posY, float posZ, float upX, float upY, float upZ, float yaw, float pitch): FCamera({posX, posY, posZ}, {upX, upY, upZ}) {
@@ -20,7 +20,7 @@ FCamera::FCamera(float posX, float posY, float posZ, float upX, float upY, float
 
 void FCamera::lookAt(const glm::vec3 &target) {
     const Rotator rotator {glm::normalize(target - position())};
-    Yaw = rotator.Yaw;
+    Yaw = rotator.Yaw;;
     Pitch = rotator.Pitch;
 
     glm::vec3 forward = glm::normalize(target - position());
@@ -29,10 +29,10 @@ void FCamera::lookAt(const glm::vec3 &target) {
     glm::vec4 fVector = glm::transpose(rotation) * glm::vec4({0.f, 0.f, -1.f, 0.f});
     glm::vec3 res = glm::normalize(glm::vec3(fVector.x , fVector.y , fVector.z));
 
-    float sa = glm::length((res - forward));
-    printVec3("1: ", forward);
-    printVec3("2: ", res);
-    std::cout << sa << std::endl;
+    // float sa = glm::length((res - forward));
+    // printVec3("1: ", forward);
+    // printVec3("2: ", res);
+    // std::cout << sa << std::endl;
 
     updateCameraVectors();
 }

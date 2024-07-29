@@ -2,13 +2,13 @@
 
 #include <future>
 
-#include "../include/Geometry/BufferAttribute.h"
+#include "Geometry/BufferAttribute.h"
 #include "assimp/Importer.hpp"
 #include "assimp/postprocess.h"
 #include "Base/ThreadPool.h"
 #include "Geometry/Geometry.h"
-#include "Geometry/Model.h"
 #include "Geometry/Primitives.h"
+#include "Geometry/UMesh.h"
 
 
 std::shared_ptr<Buffer<RGBA>> ResourceLoader::loadTexture(const std::string& path) {
@@ -28,7 +28,7 @@ std::shared_ptr<Buffer<RGBA>> ResourceLoader::loadTexture(const std::string& pat
 	texCacheMutex_.unlock();
 
 	// copy ctor
-	return buffer? std::make_shared<Buffer<RGBA>>(*buffer) : nullptr;
+	return buffer? Buffer<RGBA>::makeBuffer(*buffer) : nullptr;
 }
 
 std::string ResourceLoader::loadShader(const std::string& path)
@@ -41,7 +41,7 @@ std::string ResourceLoader::loadShader(const std::string& path)
 	return shaderSourceCache_[path];
 }
 
-std::shared_ptr<UModel> ResourceLoader::loadModel(const std::string &path, bool bUseThreadPool) {
+std::shared_ptr<UMesh> ResourceLoader::loadMesh(const std::string &path, bool bUseThreadPool) {
 	Assimp::Importer importer;
 	/* aiProcess_GenNormals：如果模型不包含法向量的话，就为每个顶点创建法线。
 	aiProcess_SplitLargeMeshes：将比较大的网格分割成更小的子网格，如果你的渲染有最大顶点数限制，只能渲染较小的网格，那么它会非常有用。
@@ -55,16 +55,21 @@ std::shared_ptr<UModel> ResourceLoader::loadModel(const std::string &path, bool 
 		return {};
 	}
 
-	loadingDirectory = path.substr(0, path.find_last_of('/'));
-	TEST_TIME_COST(auto ret = processNode(scene->mRootNode, scene, bUseThreadPool), Process_Node);
+	*scene->mRootNode; // ??? deref here can fix load mistake
 
-	return ret;
+	loadingDirectory = path.substr(0, path.find_last_of('/'));
+
+	auto&& retMesh = UMesh::makeMesh();
+	TEST_TIME_COST(processNode(scene->mRootNode, scene, retMesh, bUseThreadPool), Process_Node);
+
+	return retMesh;
 }
 
-std::shared_ptr<UModel> ResourceLoader::processNode(aiNode *node, const aiScene *scene, bool bMultiThread) {
+void ResourceLoader::processNode(aiNode *node, const aiScene *scene, std::shared_ptr<UMesh> &parentMesh,
+                                 bool bMultiThread) {
 
 	auto&& threadPool = FThreadPool::getInst();
-	auto&& retModelNode = UModel::makeModel();
+
 	if (bMultiThread) {
 		std::vector<std::future<std::shared_ptr<UMesh>>> futures;
 		// 处理节点所有的网格（如果有的话）
@@ -76,7 +81,7 @@ std::shared_ptr<UModel> ResourceLoader::processNode(aiNode *node, const aiScene 
 		}
 
 		for (auto&& loadedMesh: futures) {
-			retModelNode->addChild(loadedMesh.get());
+			parentMesh->addMesh(loadedMesh.get());
 		}
 	}
 	else {
@@ -84,16 +89,15 @@ std::shared_ptr<UModel> ResourceLoader::processNode(aiNode *node, const aiScene 
 		for (unsigned int i = 0; i < node->mNumMeshes; i++)
 		{
 			aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
-			retModelNode->addChild(processMesh(mesh, scene));
+			parentMesh->addMesh(processMesh(mesh, scene));
 		}
 	}
 
 	// 接下来对它的子节点重复这一过程
 	for (unsigned int i = 0; i < node->mNumChildren; i++)
 	{
-		retModelNode->addChild(processNode(node->mChildren[i], scene, false));
+		processNode(node->mChildren[i], scene, parentMesh, false);
 	}
-	return retModelNode;
 }
 
 std::shared_ptr<UMesh> ResourceLoader::processMesh(aiMesh *mesh, const aiScene *scene) {
@@ -117,9 +121,12 @@ std::shared_ptr<UMesh> ResourceLoader::processMesh(aiMesh *mesh, const aiScene *
 			TexCoordArray.emplace_back(0.0f);
 		}
 
-		NormalArray.emplace_back(mesh->mNormals[i].x);
-		NormalArray.emplace_back(mesh->mNormals[i].y);
-		NormalArray.emplace_back(mesh->mNormals[i].z);
+		if (mesh->mNormals) // check if has normal
+		{
+			NormalArray.emplace_back(mesh->mNormals[i].x);
+			NormalArray.emplace_back(mesh->mNormals[i].y);
+			NormalArray.emplace_back(mesh->mNormals[i].z);
+		}
 	}
 
 	BufferAttribute posAttrs(PosArray, 3), texcoordAttrs(TexCoordArray, 2), normalAttrs(NormalArray, 3);
@@ -139,7 +146,7 @@ std::shared_ptr<UMesh> ResourceLoader::processMesh(aiMesh *mesh, const aiScene *
 	// 处理材质
 	auto pmaterial = std::make_shared<FMaterial>();
 	//std::vector<aiTextureType> types = { aiTextureType_DIFFUSE, aiTextureType_SPECULAR, aiTextureType_NORMALS, aiTextureType_UNKNOWN };
-	if (mesh->mMaterialIndex >= 0)
+	if (static_cast<int>(mesh->mMaterialIndex) >= 0)
 	{
 		aiMaterial* material = scene->mMaterials[mesh->mMaterialIndex];
 		for (int i = 0; i <= aiTextureType_TRANSMISSION; i++) {
@@ -175,7 +182,7 @@ std::shared_ptr<UMesh> ResourceLoader::loadSkyBox(const std::string &path) {
 	}
 	loadingDirectory = path.substr(0, path.find_last_of('/'));
 
-	auto&& mesh = Cube::loadCubeMesh(true); // load reverse face to support cull face
+	auto&& mesh = MeshMakers::loadCubeMesh(true); // load reverse face to support cull face
 
 	auto&& pMaterial = std::make_shared<FMaterial>();
 

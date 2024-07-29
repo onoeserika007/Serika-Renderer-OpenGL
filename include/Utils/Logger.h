@@ -1,7 +1,5 @@
 #pragma once
 
-#include <cstdio>
-#include <cstring>
 #include <cstdarg>
 #include <mutex>
 ;

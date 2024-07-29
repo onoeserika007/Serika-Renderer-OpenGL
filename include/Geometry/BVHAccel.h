@@ -5,14 +5,14 @@
 #include "Ray.h"
 
 class Intersectable;
-struct BVHBuildNode;
+struct BVHNode;
 
 struct BVHPrimitiveInfo;
 
-struct BVHBuildNode {
+struct BVHNode {
     BoundingBox bbox {};
-    std::unique_ptr<BVHBuildNode> left = nullptr;
-    std::unique_ptr<BVHBuildNode> right = nullptr;
+    std::shared_ptr<BVHNode> left = nullptr;
+    std::shared_ptr<BVHNode> right = nullptr;
     std::shared_ptr<Intersectable> primitive = nullptr;
 
     float area;
@@ -33,21 +33,23 @@ public:
     explicit BVHAccel(const std::vector<std::shared_ptr<Intersectable>>& primitives, int maxPrimsInNode = 1, SplitMethod splitMethod = SplitMethod::NAIVE);
 
     NO_DISCARD Intersection Intersect(const Ray &ray) const;
-    NO_DISCARD Intersection IntersectImpl(const std::unique_ptr<BVHBuildNode> &node, const Ray& ray)const;
+    NO_DISCARD Intersection IntersectImpl(const std::shared_ptr<BVHNode> &node, const Ray& ray)const;
     NO_DISCARD BoundingBox WorldBound() const;
-    void getSample(const std::unique_ptr<BVHBuildNode> &node, float split, Intersection &pos, float &pdf);
     void Sample(Intersection &pos, float &pdf);
 
-    // BVHAccel Private Methods
-    std::unique_ptr<BVHBuildNode> recursiveBuild(const std::vector<std::shared_ptr<Intersectable>>& primitives);
-
+    NO_DISCARD std::shared_ptr<BVHNode> getRoot() const { return root_; }
 
 public:
 
 private:
+    // BVHAccel Private Methods
+    std::shared_ptr<BVHNode> recursiveBuild(const std::vector<std::shared_ptr<Intersectable>>& primitives);
+
+    void getSample(const std::shared_ptr<BVHNode> &node, float split, Intersection &pos, float &pdf);
+
     // BVHAccel Private Data
     const int maxPrimsInNode_;
     const SplitMethod splitMethod_;
     std::vector<std::shared_ptr<Intersectable>> primitives_;
-    std::unique_ptr<BVHBuildNode> root_;
+    std::shared_ptr<BVHNode> root_;
 };

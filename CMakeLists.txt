@@ -4,7 +4,7 @@ set(TARGET_NAME LearnOpenGL-Personal)
 project (${TARGET_NAME})
 
 set(CMAKE_CXX_STANDARD 20)
-#set(CMAKE_BUILD_TYPE "Release")
+set(CMAKE_BUILD_TYPE "Release")
 #set(CMAKE_BUILD_TYPE "RelWithDebInfo")
 
 # 启用OpenMP支持
@@ -100,6 +100,8 @@ add_executable(
 add_executable(
         FeatureTestMain
         ${PROJECT_SOURCE_DIR}/Test/FeatureTestMain.cpp
+        ${PROJECT_SOURCE_DIR}/src/Utils/ImageUtils.cpp
+        ${PROJECT_SOURCE_DIR}/src/Utils/Logger.cpp
 )
 #####################################
 ##          EXECUTABLES        ######

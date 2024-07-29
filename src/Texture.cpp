@@ -224,7 +224,7 @@ void Texture::copyDataTo(Texture &other) {
 	TextureData tmp;
 	tmp.path = textureData_.path;
 	for(const auto& elem: textureData_.dataArray) {
-		tmp.dataArray.emplace_back(std::make_shared<Buffer<RGBA>>(*elem));
+		tmp.dataArray.emplace_back(Buffer<RGBA>::makeBuffer(*elem));
 	}
 	other.textureData_ = std::move(tmp);
 }

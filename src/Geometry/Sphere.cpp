@@ -49,8 +49,25 @@ void Sphere::Sample(Intersection &intersection, float &pdf) {
     glm::vec3 dir(std::cos(phi), std::sin(phi)*std::cos(theta), std::sin(phi)*std::sin(theta));
     intersection.impactPoint = center_ + radius * dir;
     intersection.normal = dir;
-    intersection.emission = material_info_.hasEmission() ? material_info_.emission : glm::vec3(0.f);
+    intersection.material = material_info_;
     pdf = 1.0f / area;
+}
+
+void Sphere::transform(const glm::mat4 &trans) {
+
+    // 注意：glm的默认构造是列主序
+    auto position = glm::vec3(trans[3]);
+
+    center_ = center_ + position;
+
+    glm::vec3 scale;
+    scale.x = glm::length(glm::vec3(trans[0]));
+    scale.y = glm::length(glm::vec3(trans[1]));
+    scale.z = glm::length(glm::vec3(trans[2]));
+    radius *= scale.x;
+    radius2 = radius * radius;
+    area = 4 * M_PI * radius * radius;
+
 }
 
 float Sphere::getArea() const { return area; }

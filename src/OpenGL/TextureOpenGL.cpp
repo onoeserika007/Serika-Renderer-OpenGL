@@ -126,8 +126,6 @@ void TextureOpenGLCube::setupPipeline() {
 	auto& textureInfo = getTextureInfo();
 	const auto& openglTextureInfo = OpenGL::cvtTextureFormat(static_cast<TextureFormat>(textureInfo.format));
 	auto target = OpenGL::cvtTextureTarget(static_cast<TextureTarget>(textureInfo.target));
-	// desired_channels：希望图像数据被加载到的通道数。可以是 0、1、2 或 3。0 表示使用图像文件中的通道数，1 表示灰度图，2 表示灰度图的 Alpha 通道，3 表示 RGB 图像。
-	// 如果文件中包含 Alpha 通道，但 desired_channels 设置为 3，那么 Alpha 通道将被丢弃。可以为 NULL，如果不关心。
 	// glGenTextures函数首先需要输入生成纹理的数量，然后把它们储存在第二个参数的unsigned int数组中
 	GL_CHECK(glGenTextures(1, &textureId));
 	// 激活纹理单元 纹理单元是状态无关的 是全局的
@@ -173,4 +171,40 @@ void TextureOpenGLCube::setupPipeline() {
 
 TextureOpenGLCube::~TextureOpenGLCube()
 {
+}
+
+TextureOpenGLBuffer::TextureOpenGLBuffer(const TextureInfo &texInfo, const SamplerInfo &smInfo): TextureOpenGL(texInfo, smInfo) {
+	assert(texInfo.target == TextureTarget::TextureTarget_TEXTURE_BUFFER);
+	setupPipeline();
+}
+
+TextureOpenGLBuffer::TextureOpenGLBuffer(const TextureInfo &texInfo, const SamplerInfo &smInfo,
+	const TextureData &texData): TextureOpenGL(texInfo, smInfo, texData) {
+	assert(texInfo.target == TextureTarget::TextureTarget_TEXTURE_BUFFER);
+	setupPipeline();
+}
+
+void TextureOpenGLBuffer::setupPipeline() {
+
+	auto& textureInfo = getTextureInfo();
+	const auto& openglTextureInfo = OpenGL::cvtTextureFormat(static_cast<TextureFormat>(textureInfo.format));
+	auto target = OpenGL::cvtTextureTarget(static_cast<TextureTarget>(textureInfo.target));
+
+	// tbo
+	GLuint tbo;
+	glGenBuffers(1, &tbo);
+	glBindBuffer(target, tbo);
+
+	auto&& textureData_ = getTextureData();
+	if (!textureData_.bufferData.empty()) {
+		glBufferData(GL_TEXTURE_BUFFER, textureData_.bufferData.size() * sizeof(float), textureData_.bufferData.data(), GL_STATIC_DRAW);
+	}
+
+	// tex id
+	GLuint& tex = textureId_;
+	assert(target == GL_TEXTURE_BUFFER);
+	GL_CHECK(glGenTextures(1, &tex));
+	GL_CHECK(glActiveTexture(GL_TEXTURE0));
+	GL_CHECK(glBindTexture(target, tex));
+	glTexBuffer(GL_TEXTURE_BUFFER, GL_RGB32F, tbo);
 }

@@ -59,7 +59,7 @@ std::shared_ptr<ShaderResources> FMaterial::getShaderResources() const {
  	if (!shaderResources_) {
  		shaderResources_ = std::make_shared<ShaderResources>();
  	}
- 	return shaderResources_;
+ 	return shaderResources_;;
 }
 
 std::shared_ptr<UniformSampler> FMaterial::getUniformSampler(const std::string &name) const {
@@ -129,12 +129,12 @@ void FMaterial::setupPipeline(Renderer &renderer) {
 }
 
 bool FMaterial::hasEmission() const {
- 	return textureData_.contains(TEXTURE_TYPE_EMISSIVE) || textureData_.contains(TEXTURE_TYPE_EMISSION_COLOR) || glm::length(emission) > M_EPSILON;
+ 	return textureData_.contains(TEXTURE_TYPE_EMISSIVE) || textureData_.contains(TEXTURE_TYPE_EMISSION_COLOR) || glm::length(emission_) > M_EPSILON;
 }
 
 glm::vec3 FMaterial::getEmission() const {
  	if (!hasEmission()) return {};
- 	return emission;
+ 	return emission_;
 }
 
 glm::vec3 FMaterial::getEmission(float u, float v) const {
@@ -149,3 +149,24 @@ glm::vec3 FMaterial::getEmission(float u, float v) const {
  	}
  	return {};
 }
+
+glm::vec3 FMaterial::getDiffuse() const {
+ 	return diffuse_;
+}
+
+glm::vec3 FMaterial::getDiffuse(float u, float v) const {
+ 	if (textureData_.contains(TEXTURE_TYPE_DIFFUSE)) {
+ 		auto&& ret = sample2D<RGBA>(u, v, TEXTURE_TYPE_DIFFUSE, FilterMode::Filter_NEAREST);
+ 		return {ret.x, ret.y, ret.z};
+ 	}
+ 	return {};
+}
+
+glm::vec3 FMaterial::getSpecular(float u, float v) const {
+ 	if (textureData_.contains(TEXTURE_TYPE_SPECULAR)) {
+ 		auto&& ret = sample2D<RGBA>(u, v, TEXTURE_TYPE_SPECULAR, FilterMode::Filter_NEAREST);
+ 		return {ret.x, ret.y, ret.z};
+ 	}
+ 	return {};
+}
+

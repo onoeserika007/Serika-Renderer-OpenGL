@@ -72,7 +72,10 @@ public:
     NO_DISCARD virtual glm::mat4 GetProjectionMatrix() const { return glm::mat4(1.0); }
     NO_DISCARD glm::vec3 position() const { return Position; }
     NO_DISCARD glm::vec3 forward() const { return Front; }
+    NO_DISCARD float getNearPlane() const { return near_; }
     NO_DISCARD float getFarPlane() const { return far_; }
+    NO_DISCARD virtual float getFOV() const { return 0.f; }
+    NO_DISCARD virtual float getAspect() const { return 0.f; }
     NO_DISCARD glm::vec3 getFrustumCenter() const { return frustum_center_; }
 
 protected:
@@ -105,7 +108,7 @@ private:
 
 class PerspectiveCamera :public FCamera {
 public:
-    explicit PerspectiveCamera(float fov = 45.0, float aspect = 1.0, float near = 0.1, float far = 1000.0,
+    explicit PerspectiveCamera(float fov = 45.0, float aspect = 1.0, float near = 0.1, float far = 2000.0,
         glm::vec3 position = glm::vec3(0.0f, 0.0f, 0.0f),
         glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f));
 
@@ -113,6 +116,8 @@ public:
     void ProcessMouseScroll(float yoffset);
 
     virtual void debugCamera() const;
+    NO_DISCARD virtual float getFOV() const override { return fov_; }
+    NO_DISCARD virtual float getAspect() const { return aspect_; }
     virtual glm::mat4 GetProjectionMatrix() const override;
 
     void setAspect(float aspect) { aspect_ = aspect; }

@@ -22,6 +22,8 @@ class FGeometry {
     bool bReady_ = false;
     MeshType mesh_type_ = Mesh;
 
+    Serika::UUID<FGeometry> uuid_;
+
 public:
     FGeometry();
 

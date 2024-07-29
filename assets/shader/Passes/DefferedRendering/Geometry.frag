@@ -46,7 +46,7 @@ void main()
 #ifdef DIFFUSE_MAP
     DiffuseOut = texture(uDiffuseMap, vTexCoord).xyz;
 #else
-    DiffuseOut = vec3(0.5f);
+    DiffuseOut = vec3(1.0f);
 #endif
 
     // normal

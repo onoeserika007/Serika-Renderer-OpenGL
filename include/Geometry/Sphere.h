@@ -24,4 +24,6 @@ class Sphere final : public Intersectable {
     NO_DISCARD bool intersect(const Ray& ray) override;
 
     void Sample(Intersection &intersection, float &pdf) override;
+
+    virtual void transform(const glm::mat4 &trans) override;
 };

@@ -13,7 +13,7 @@ layout(std140) uniform Model {
     mat4 uView;
     mat4 uProjection;
     mat4 uNormalToWorld;
-    mat4 uShadowMapMVP;
+    mat4 uShadowMapVP;
     vec3 uViewPos;
     bool uUseShadowMap;
     bool uUseShadowMapCube;
@@ -24,6 +24,6 @@ void main() {
     vFragPos = vec3(uModel * vec4(aPos, 1.0));
     vTexCoord = aTexCoord;
     vWorldNormal = vec3(uNormalToWorld * vec4(aNormal, 1.0));
-    vPositionFromLight = uShadowMapMVP * vec4(aPos, 1.0);
+    vPositionFromLight = uShadowMapVP * uModel * vec4(aPos, 1.0);
     gl_Position = uProjection * uView * uModel * vec4(aPos, 1.0);
 }

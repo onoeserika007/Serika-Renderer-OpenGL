@@ -32,7 +32,7 @@ void Config::deserialize(const std::string &path) {
         }
         else {
             const std::string str((std::istreambuf_iterator<char>(ifs)), std::istreambuf_iterator<char>());
-            ifs.close();
+            ifs.close();;
 
             std::string err;
             json j = json::parse(str, err);
@@ -50,7 +50,7 @@ void Config::deserialize(const std::string &path) {
 
 Config & Config::getInstance() {
     static Config config;
-    return config;
+    return config;;
 }
 
 json Config::to_json() const {
@@ -72,7 +72,7 @@ json Config::to_json() const {
         {"WindowHeight", json(WindowHeight)},
         {"bSkybox", json(bSkybox)},
         {"bUseBVH", json(bUseBVH)}
-    };;;;
+    };;;
 }
 
 Config & Config::from_json(const json &j) {
@@ -82,7 +82,7 @@ Config & Config::from_json(const json &j) {
     CameraPitch = j["CameraPitch"].number_value();
     CameraSpeed = j["CameraSpeed"].number_value();
     MouseSensitivity = j["MouseSensitivity"].number_value();
-    CameraZoom = j["CameraZoom"].number_value();
+    CameraZoom = j["CameraZoom"].number_value();;
     CameraNear = j["CameraNear"].number_value();
     CameraFar = j["CameraFar"].number_value();
     Resolution_ShadowMap = j["Resolution_ShadowMap"].int_value();

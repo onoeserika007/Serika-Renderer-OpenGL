@@ -43,6 +43,7 @@ enum TextureTarget{
     TextureTarget_TEXTURE_2D,
     TextureTarget_TEXTURE_2D_MULTISAMPLE,
     TextureTarget_TEXTURE_CUBE_MAP,
+    TextureTarget_TEXTURE_BUFFER
 };
 
 enum TextureFormat {
@@ -63,6 +64,7 @@ enum TextureUsage {
 
 struct TextureData {
     std::vector<std::shared_ptr<Buffer<RGBA>>> dataArray;
+    std::vector<float> bufferData;
     std::string path;
     TextureType loadedTextureType = TEXTURE_TYPE_NONE;
 };

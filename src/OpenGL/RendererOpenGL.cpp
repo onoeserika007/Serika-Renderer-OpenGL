@@ -1,33 +1,37 @@
-#include "../../include/OpenGL/RendererOpenGL.h"
-#include "../../include/OpenGL/UniformOpenGL.h"
-#include "../../include/Base/Globals.h"
-#include "../../include/OpenGL/ShaderGLSL.h"
-#include "../../ThirdParty/glad/include/glad/glad.h"
-#include "../../include/Geometry/BufferAttribute.h"
-#include "../../include/Geometry/Geometry.h"
-#include "../../include/OpenGL/TextureOpenGL.h"
-#include "../../include/OpenGL/EnumsOpenGL.h"
-#include "../../include/Geometry/Object.h"
-#include "../../include/FCamera.h"
-#include "../../include/OpenGL/FrameBufferOpenGL.h"
-#include "../../include/Utils/Logger.h"
-#include "../../include/Utils/OpenGLUtils.h"
-#include "../../include/Light.h"
-#include "../../include/Geometry/UMesh.h"
-#include <../../ThirdParty/glfw/include/GLFW/glfw3.h>
+#include <glad/glad.h>
+#include <GLFW/glfw3.h>
+#include "OpenGL/RendererOpenGL.h"
+#include "OpenGL/UniformOpenGL.h"
+#include "Base/Globals.h"
+#include "OpenGL/ShaderGLSL.h"
+#include "Geometry/BufferAttribute.h"
+#include "Geometry/Geometry.h"
+#include "OpenGL/TextureOpenGL.h"
+#include "OpenGL/EnumsOpenGL.h"
+#include "Geometry/Object.h"
+#include "FCamera.h"
+#include "FScene.h"
+#include "OpenGL/FrameBufferOpenGL.h"
+#include "Utils/Logger.h"
+#include "Utils/OpenGLUtils.h"
+#include "ULight.h"
+#include "Base/ThreadPool.h"
+#include "Geometry/Triangle.h"
+#include "Geometry/UMesh.h"
 
-#include "../../include/RenderPass/RenderPassGeometry.h"
+#include "RenderPass/RenderPassGeometry.h"
 #include "Material/FMaterial.h"
 
 // set up vertex data (and buffer(s)) and configure vertex attributes
-constexpr float ToScreenRectangleVertices[] = {
+const std::vector<float> ToScreenRectangleVertices = {
 	// positions | texture coords
 	1.f, 1.f, 0.0f, 1.0f, 1.0f,   // top right
 	1.f, -1.f, 0.0f, 1.0f, 0.0f,  // bottom right
 	-1.f, -1.f, 0.0f, 0.0f, 0.0f, // bottom left
 	-1.f, 1.f, 0.0f, 0.0f, 1.0f   // top left
 };
-constexpr unsigned int ToScreenRectangleIndices[] = {
+
+const std::vector<GLuint> ToScreenRectangleIndices = {
 	0, 1, 3, // first triangle
 	1, 2, 3  // second triangle
 };
@@ -46,9 +50,11 @@ void RendererOpenGL::init()
 	lightUniformBlock_ = createUniformBlock("Light", sizeof(LightDataUniformBlock));
 
 	// place holder
+	setupColorBuffer(envCubeMapPlaceholder_, 1, 1, false, true, TextureTarget_TEXTURE_CUBE_MAP, TextureFormat_RGBA8, TEXTURE_TYPE_CUBE);
 	setupShadowMapBuffer(shadowMapPlaceholder_, 1, 1, false, false, false);
 	setupShadowMapBuffer(shadowMapCubePlaceholder_, 1, 1, false, true, false);
-	// in case uniform don't have a texture binding to it.
+	// in case uniform don't have a texture binding to it, then nsight will got error
+	envCubeMapUniformSampler_ = envCubeMapPlaceholder_->getUniformSampler(*this);
 	shadowMapUniformSampler_ = shadowMapPlaceholder_->getUniformSampler(*this);
 	shadowMapCubeUniformSampler_ = shadowMapCubePlaceholder_->getUniformSampler(*this);
 }
@@ -86,7 +92,7 @@ std::shared_ptr<FrameBuffer> RendererOpenGL::createFrameBuffer(bool offScreen)
 }
 
 void RendererOpenGL::setupColorBuffer(std::shared_ptr<Texture> &outBuffer, int width, int height, bool force, bool bCubeMap, TextureTarget texTarget, TextureFormat
-                                      texFormat) const {
+                                      texFormat, TextureType texType) const {
 	if (outBuffer) {
 		const TextureInfo& texInfo = outBuffer->getTextureInfo();
 		force = force || texInfo.width != width || texInfo.height != height
@@ -101,6 +107,7 @@ void RendererOpenGL::setupColorBuffer(std::shared_ptr<Texture> &outBuffer, int w
 		texInfo.height = height;
 		texInfo.target = texTarget;
 		texInfo.format = texFormat;
+		texInfo.type = texType;
 		texInfo.usage = TextureUsage_AttachmentColor | TextureUsage_RendererOutput;
 		texInfo.multiSample = bMultisample;
 		texInfo.useMipmaps = false;
@@ -322,21 +329,19 @@ void RendererOpenGL::setupMesh(const std::shared_ptr<UMesh> &mesh, ShaderPass sh
 
 		// attrs
 		for (auto&& [attr, data]: pgeometry->getBufferData()) {
-			if (auto pshader = ShaderGLSL::loadDefaultShader()) {
-				// 错误的初始化shader，用于查找location，可能导致错误的顶点数据绑定，需要格外小心。
-				// 当然最简单的方法就是直接硬编码顺序
-				auto loc = pshader->getAttributeLocation(FGeometry::getAttributeName(attr));
-				if (loc != -1) {
-					const auto& VBO = data.VBO;
-					GL_CHECK(glBindBuffer(GL_ARRAY_BUFFER, VBO));
-					// 指定顶点属性的解释方式（如何解释VBO中的数据）
-					// 1. glVertexAttribPointer
-					// attri的Location(layout location = 0) | item_size | 数据类型 | 是否Normalize to 0-1 | stride | 从Buffer起始位置开始的偏移
-					GL_CHECK(glVertexAttribPointer(loc, data.elem_size(), GL_FLOAT, GL_FALSE, data.elem_size() * sizeof(float), (void*)0));
-					// 以顶点属性位置值作为参数，启用顶点属性；顶点属性默认是禁用的
-					GL_CHECK(glEnableVertexAttribArray(loc));
-				}
-			}
+			// if (auto pshader = ShaderGLSL::loadDefaultShader()) {
+			// 	// 错误的初始化shader，用于查找location，可能导致错误的顶点数据绑定，需要格外小心。
+			// 	// 当然最简单的方法就是直接硬编码顺序
+			// }
+			// now use enum as loc
+			const auto& VBO = data.VBO;;
+			GL_CHECK(glBindBuffer(GL_ARRAY_BUFFER, VBO));
+			// 指定顶点属性的解释方式（如何解释VBO中的数据）
+			// 1. glVertexAttribPointer
+			// attri的Location(layout location = 0) | item_size | 数据类型 | 是否Normalize to 0-1 | stride | 从Buffer起始位置开始的偏移
+			GL_CHECK(glVertexAttribPointer(attr, data.elem_size(), GL_FLOAT, GL_FALSE, data.elem_size() * sizeof(float), (void*)0));
+			// 以顶点属性位置值作为参数，启用顶点属性；顶点属性默认是禁用的
+			GL_CHECK(glEnableVertexAttribArray(attr));
 		}
 
 
@@ -348,24 +353,24 @@ void RendererOpenGL::setupMesh(const std::shared_ptr<UMesh> &mesh, ShaderPass sh
 
 		// set back
 		GL_CHECK(glBindVertexArray(0));
-
-		mesh->setPipelineReady(true);
-
 	} // geometry
 
 }
 
 // main render
-void RendererOpenGL::draw(const std::shared_ptr<UMesh> &mesh, const ShaderPass pass, const std::shared_ptr<ULight> &shadowLight, const std::
+void RendererOpenGL::drawMesh(const std::shared_ptr<UMesh> &mesh, const ShaderPass pass, const std::shared_ptr<ULight> &shadowLight, const std::
                           shared_ptr<Shader> &overrideShader)
 {
 	if (!mesh) return; // null check
 
+	auto&& config = Config::getInstance();;
+
+	// draw mesh
 	if (mesh->drawable()) {
 		setupMesh(mesh, pass);
-		mesh->updateFrame(*this);
-
+		// update model unifor
 		updateModelUniformBlock(mesh, mainCamera_, shadowLight);
+
 		// use shader forcely and explicitly
 		if (overrideShader) {
 			loadGlobalUniforms(*overrideShader);
@@ -392,13 +397,340 @@ void RendererOpenGL::draw(const std::shared_ptr<UMesh> &mesh, const ShaderPass p
 		GL_CHECK(glBindVertexArray(0));
 	}
 
-	for (auto&& child: mesh->getChildren()) {
-		if (auto childMesh = std::dynamic_pointer_cast<UMesh>(child)) {
-			childMesh->setShadingMode(mesh->getShadingMode());
-			draw(childMesh, pass, shadowLight, overrideShader);
+	for (auto&& child: mesh->getMeshes()) {
+		child->setShadingMode(mesh->getShadingMode());
+		drawMesh(child, pass, shadowLight, overrideShader);
+	}
+
+}
+
+void RendererOpenGL::drawDebugBBoxes(const std::shared_ptr<BVHNode> &node, int depth, const std::shared_ptr<UObject> &rootObject) {
+
+	if (!node || depth > 10) return;
+	auto&& config = Config::getInstance();;
+	if (config.bUseBVH) {
+		if (node->primitive) {
+			if (auto&& obj = std::dynamic_pointer_cast<UObject>(node->primitive)) {
+				// new root
+				drawDebugBBox(node->bbox, obj, depth);
+				auto&& meshBVHRoot = obj->getBVH()->getRoot();
+				drawDebugBBoxes(meshBVHRoot, depth + 1, obj);
+			}
+			else {
+				// if (!node->left && !node->right)
+					drawDebugBBox(node->bbox, rootObject, depth);
+				drawDebugBBoxes(node->left, depth + 1, rootObject);
+				drawDebugBBoxes(node->right, depth + 1, rootObject);
+			}
+		}
+		else {
+			// if (depth > 25) drawDebugBBox(node->bbox, {});
+			// if (!node->left && !node->right)
+				drawDebugBBox(node->bbox, rootObject, depth);
+			drawDebugBBoxes(node->left, depth + 1, rootObject);
+			drawDebugBBoxes(node->right, depth + 1, rootObject);
 		}
 	}
 
+}
+
+void RendererOpenGL::drawDebugBBox(const BoundingBox &bbox, const std::shared_ptr<UObject> &holdingObject, int depth) {
+	// if (depth != 17) return;
+	if (!bbox_draw_cache_.contains(bbox.getUUID())) {
+		glm::vec3 vertices[8] = {};
+		bbox.getCorners(vertices);;
+
+		static GLuint indices[24] = {
+			0, 1, 1, 2, 2, 3, 3, 0, // Near face
+			4, 5, 5, 6, 6, 7, 7, 4, // Far face
+			1, 6, 2, 5, 3, 4, 0, 7  // Connecting edges
+		};
+		// std::cout << "Setting up bbox" << std::endl;
+		GLuint VBO, VAO, EBO;
+		glGenVertexArrays(1, &VAO);
+		glGenBuffers(1, &VBO);
+		glGenBuffers(1, &EBO);
+
+		glBindVertexArray(VAO);
+
+		glBindBuffer(GL_ARRAY_BUFFER, VBO);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+		glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+
+		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+		glEnableVertexAttribArray(0);
+
+		glBindBuffer(GL_ARRAY_BUFFER, 0);
+		glBindVertexArray(0);
+
+		bbox_draw_cache_[bbox.getUUID()] = VAO;
+	}
+
+	if (bbox_draw_cache_.contains(bbox.getUUID())) {
+		int uuid = bbox.getUUID();
+		const RenderStates render_states = renderStates_;
+		GLuint VAO = bbox_draw_cache_[bbox.getUUID()];
+		auto&& debugShader = getDebugBBoxProgram();
+
+		// now this is not neccessary, we apply model matrix before build bvh
+		// updateModelUniformBlock(holdingMesh, mainCamera_, {}); // update model matrix if root mesh changed
+		updateModelUniformBlock({}, mainCamera_, {});
+		loadGlobalUniforms(*debugShader);
+		debugShader->bindHoldingResources();
+		debugShader->setFloat("uLayerDepth", depth);
+
+		auto parentUUID = 0;
+		if (holdingObject) {
+			parentUUID = holdingObject->getUUID();
+			debugShader->setInt("uParentUUID", holdingObject->getUUID());
+		}
+
+		// 设置线框模式
+		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+		glDisable(GL_DEPTH_TEST);
+		glDepthMask(GL_FALSE);
+
+		// 绑定VAO并绘制元素
+		glBindVertexArray(VAO);
+		glDrawElements(GL_LINES, 24, GL_UNSIGNED_INT, 0);
+		glBindVertexArray(0);
+
+		// 恢复填充模式
+		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+		glDepthMask(GL_TRUE);
+		glEnable(GL_DEPTH_TEST);
+
+		updateRenderStates(render_states);
+	}
+}
+
+void RendererOpenGL::drawWorldAxis(const std::shared_ptr<UMesh> &holdingMesh) {
+	// 设置顶点数据和缓冲
+	// 设置顶点数据和缓冲
+	float vertices[] = {
+		// X轴
+		0.0f,  0.0f,  0.0f,
+		1.0f,  0.0f,  0.0f,
+		// X箭头
+		1.0f,  0.0f,  0.0f,
+		0.9f,  0.05f,  0.05f,
+		0.9f, -0.05f,  0.05f,
+		0.9f, -0.05f, -0.05f,
+		0.9f,  0.05f, -0.05f,
+
+		// Y轴
+		0.0f,  0.0f,  0.0f,
+		0.0f,  1.0f,  0.0f,
+		// Y箭头
+		0.0f,  1.0f,  0.0f,
+		0.05f,  0.9f,  0.05f,
+	   -0.05f,  0.9f,  0.05f,
+	   -0.05f,  0.9f, -0.05f,
+		0.05f,  0.9f, -0.05f,
+
+		// Z轴
+		0.0f,  0.0f,  0.0f,
+		0.0f,  0.0f,  1.0f,
+		// Z箭头
+		0.0f,  0.0f,  1.0f,
+		0.05f,  0.05f,  0.9f,
+	   -0.05f,  0.05f,  0.9f,
+	   -0.05f, -0.05f,  0.9f,
+		0.05f, -0.05f,  0.9f,
+   };
+
+	unsigned int indices[] = {
+		0, 1,        // X轴
+		2, 3, 2, 4,  // X箭头
+		2, 5, 2, 6,
+
+		7, 8,        // Y轴
+		9, 10, 9, 11, // Y箭头
+		9, 12, 9, 13,
+
+		14, 15,      // Z轴
+		16, 17, 16, 18, // Z箭头
+		16, 19, 16, 20,
+	};
+
+	static GLuint VBO, VAO, EBO;
+	if (VBO == 0 || VAO == 0 || EBO == 0) {
+		glGenVertexArrays(1, &VAO);
+		glGenBuffers(1, &VBO);
+		glGenBuffers(1, &EBO);
+
+		glBindVertexArray(VAO);
+
+		glBindBuffer(GL_ARRAY_BUFFER, VBO);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+		glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+
+		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+		glEnableVertexAttribArray(0);
+
+		glBindBuffer(GL_ARRAY_BUFFER, 0);
+		glBindVertexArray(0);
+	}
+
+	if (auto && debugShader = getDrawDebuglineProgram()) {
+		// update MVP
+		updateModelUniformBlock(holdingMesh, mainCamera_, {});
+		loadGlobalUniforms(*debugShader);
+		debugShader->bindHoldingResources();
+
+		glBindVertexArray(VAO);
+		// set opengl state
+		glDisable(GL_DEPTH_TEST);
+		glDepthMask(GL_FALSE);
+		// 绘制X轴
+		debugShader->setVec3("uLineColor", glm::vec3(1.f, 0.f, 0.f));
+		glDrawElements(GL_LINES, 2, GL_UNSIGNED_INT, 0);
+		glDrawElements(GL_LINES, 8, GL_UNSIGNED_INT, (void*)(2 * sizeof(unsigned int)));
+
+		// 绘制Y轴
+		debugShader->setVec3("uLineColor", glm::vec3(0.f, 1.f, 0.f));
+		glDrawElements(GL_LINES, 2, GL_UNSIGNED_INT, (void*)(10 * sizeof(unsigned int)));
+		glDrawElements(GL_LINES, 8, GL_UNSIGNED_INT, (void*)(12 * sizeof(unsigned int)));
+
+		// 绘制Z轴
+		debugShader->setVec3("uLineColor", glm::vec3(0.f, 0.f, 1.f));
+		glDrawElements(GL_LINES, 2, GL_UNSIGNED_INT, (void*)(20 * sizeof(unsigned int)));
+		glDrawElements(GL_LINES, 8, GL_UNSIGNED_INT, (void*)(22 * sizeof(unsigned int)));
+
+		// recover
+		glDepthMask(GL_TRUE);
+		glEnable(GL_DEPTH_TEST);
+	}
+
+}
+
+void RendererOpenGL::drawDebugLine_Impl(FLine &line) {
+	if (line.VAO_ == 0) {
+		GLuint VBO;
+		glm::vec3 lineVertex[2] = {line.start_, line.end_};
+
+		glGenVertexArrays(1, &line.VAO_);
+		glGenBuffers(1, &VBO);
+		glBindVertexArray(line.VAO_);
+
+		glBindBuffer(GL_ARRAY_BUFFER, VBO);
+		// size means byte size, prevent array from degradating to const ptr.
+		glBufferData(GL_ARRAY_BUFFER, sizeof(lineVertex), lineVertex, GL_STATIC_DRAW);
+		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid*)0);
+		glEnableVertexAttribArray(0);
+
+		glBindBuffer(GL_ARRAY_BUFFER, 0);
+		glBindVertexArray(0);
+
+		// if 0.f, do not remove line
+		if (line.persistentTime_ > 0.f) {
+			std::weak_ptr<Renderer> self = shared_from_this();
+			auto releaseResource = [persistentTime = line.persistentTime_, VBO = VBO, VAO = line.VAO_, uuid = line.getUUID(), self]() {
+				std::this_thread::sleep_for(std::chrono::duration<double>(persistentTime));
+				if (auto&& renderer = self.lock())
+				{
+					renderer->remove_line_debug_task_safe(uuid);
+				}
+				glDeleteBuffers(1, &VBO);
+				glDeleteVertexArrays(1, &VAO);
+			};
+			auto&& pool = FThreadPool::getInst();
+			pool.pushTask(releaseResource); //
+		}
+
+	}
+
+	// draw line
+	{
+		auto && debugShader = getDrawDebuglineProgram();
+		// update MVP
+		updateModelUniformBlock({}, mainCamera_, {});
+		loadGlobalUniforms(*debugShader);
+		debugShader->bindHoldingResources();
+
+		// set opengl state
+		glDisable(GL_DEPTH_TEST);
+		glDepthMask(GL_FALSE);
+
+		glBindVertexArray(line.VAO_);
+		debugShader->setVec3("uLineColor", glm::vec3(0.f, 1.f, 0.f));
+		glDrawArrays(GL_LINES, 0, 2);
+		glBindVertexArray(0);
+
+		// recover
+		glDepthMask(GL_TRUE);
+		glEnable(GL_DEPTH_TEST);
+	}
+
+}
+
+void RendererOpenGL::drawDebugTriangle_Impl(Triangle &triangle) {
+	if (triangle.VAO_ == 0) {
+		GLuint VBO;
+		glm::vec3 triVertices[3] = {triangle.v0_, triangle.v1_, triangle.v2_};
+
+		GL_CHECK(glGenVertexArrays(1, &triangle.VAO_));
+
+		glGenBuffers(1, &VBO);
+		glBindVertexArray(triangle.VAO_);
+
+		glBindBuffer(GL_ARRAY_BUFFER, VBO);
+		// size means byte size, prevent array from degradating to const ptr.
+		glBufferData(GL_ARRAY_BUFFER, sizeof(triVertices), triVertices, GL_STATIC_DRAW);
+		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid*)0);
+		glEnableVertexAttribArray(0);
+
+		glBindBuffer(GL_ARRAY_BUFFER, 0);
+		glBindVertexArray(0);
+
+		// if 0.f, do not remove line
+		if (triangle.persistTime_ > 0.f) {
+			std::weak_ptr<Renderer> self = shared_from_this();
+			auto releaseResource = [persistTime = triangle.persistTime_, VBO = VBO, VAO = triangle.VAO_, uuid = triangle.getUUID(), self]() {
+				std::this_thread::sleep_for(std::chrono::duration<double>(persistTime));
+				if (auto&& renderer = self.lock())
+				{
+					renderer->remove_triangle_debug_task_safe(uuid);
+				}
+				glDeleteBuffers(1, &VBO);
+				glDeleteVertexArrays(1, &VAO);
+
+			};
+
+			auto&& pool = FThreadPool::getInst();
+			pool.pushTask(releaseResource); //
+		}
+
+	}
+
+	// draw triangle
+	{
+		auto && debugShader = getDrawDebuglineProgram();
+		// update MVP
+		updateModelUniformBlock({}, mainCamera_, {});
+		loadGlobalUniforms(*debugShader);
+		debugShader->bindHoldingResources();
+
+		// set opengl state
+		GL_CHECK(glDisable(GL_DEPTH_TEST));
+		glDepthMask(GL_FALSE);
+		GL_CHECK(glPolygonMode(GL_FRONT_AND_BACK, GL_FILL));
+		GL_CHECK(glEnable(GL_CULL_FACE));
+
+		GL_CHECK(glBindVertexArray(triangle.VAO_));
+		debugShader->setVec3("uLineColor", glm::vec3(0.f, 1.f, 0.f));
+		GL_CHECK(glDrawArrays(GL_TRIANGLES, 0, 3));
+		glBindVertexArray(0);
+
+		// recover
+		glDepthMask(GL_TRUE);
+		glEnable(GL_DEPTH_TEST);
+		GL_CHECK(glDisable(GL_CULL_FACE));
+	}
 }
 
 #define GL_STATE_SET(var, gl_state) if (var) GL_CHECK(glEnable(gl_state)); else GL_CHECK(glDisable(gl_state));
@@ -406,7 +738,7 @@ void RendererOpenGL::draw(const std::shared_ptr<UMesh> &mesh, const ShaderPass p
 
 void RendererOpenGL::updateRenderStates(const RenderStates &inRenderStates) {
 
-	renderStates = inRenderStates;
+	renderStates_ = inRenderStates;
 
 	// blend
 	GL_STATE_SET(inRenderStates.blend, GL_BLEND)
@@ -495,7 +827,7 @@ void RendererOpenGL::dump(const
 		if (VBO == 0) {
 			GL_CHECK(glGenBuffers(1, &VBO));
 			GL_CHECK(glBindBuffer(GL_ARRAY_BUFFER, VBO));
-			GL_CHECK(glBufferData(GL_ARRAY_BUFFER, sizeof(ToScreenRectangleVertices), ToScreenRectangleVertices, GL_STATIC_DRAW));
+			GL_CHECK(glBufferData(GL_ARRAY_BUFFER, ToScreenRectangleVertices.size() * sizeof(float), ToScreenRectangleVertices.data(), GL_STATIC_DRAW));
 
 			GL_CHECK(glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), nullptr));
 			GL_CHECK(glEnableVertexAttribArray(0));
@@ -506,14 +838,13 @@ void RendererOpenGL::dump(const
 		if (EBO == 0) {
 			GL_CHECK(glGenBuffers(1, &EBO));
 			GL_CHECK(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO));
-			GL_CHECK(glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(ToScreenRectangleIndices), ToScreenRectangleIndices, GL_STATIC_DRAW));
+			GL_CHECK(glBufferData(GL_ELEMENT_ARRAY_BUFFER, ToScreenRectangleIndices.size() * sizeof(GLuint), ToScreenRectangleIndices.data(), GL_STATIC_DRAW));
 		}
 
 		GL_CHECK(glBindVertexArray(GL_NONE));
 	}
 
 	if (VAO && EBO && VBO ) {
-
 		if (targetFrameBuffer) {
 			// blend ni kita no
 			targetFrameBuffer->bind();
@@ -537,6 +868,24 @@ void RendererOpenGL::dump(const
 			GL_CHECK(glClear(GL_COLOR_BUFFER_BIT));
 		}
 
+		GL_CHECK(glGenVertexArrays(1, &VAO));
+		GL_CHECK(glBindVertexArray(VAO));
+
+		GL_CHECK(glGenBuffers(1, &VBO));
+		GL_CHECK(glBindBuffer(GL_ARRAY_BUFFER, VBO));
+		GL_CHECK(glBufferData(GL_ARRAY_BUFFER, ToScreenRectangleVertices.size() * sizeof(float), ToScreenRectangleVertices.data(), GL_STATIC_DRAW));
+
+		GL_CHECK(glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), nullptr));
+		GL_CHECK(glEnableVertexAttribArray(0));
+		GL_CHECK(glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float))));
+		GL_CHECK(glEnableVertexAttribArray(1));
+
+		GL_CHECK(glGenBuffers(1, &EBO));
+		GL_CHECK(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO));
+		GL_CHECK(glBufferData(GL_ELEMENT_ARRAY_BUFFER, ToScreenRectangleIndices.size() * sizeof(GLuint), ToScreenRectangleIndices.data(), GL_STATIC_DRAW));
+
+		GL_CHECK(glBindVertexArray(GL_NONE));
+
 		// load Uniforms
 		loadGlobalUniforms(*program);
 		program->bindHoldingResources(); // where really 'use()'
@@ -547,6 +896,15 @@ void RendererOpenGL::dump(const
 	else {
 		LOGE("Failed render to screen!");
 	}
+
+	// GLuint VAO = 0;
+	// GLuint VBO = 0;
+	// GLuint EBO = 0;
+
+	// bounds error, may related to context lost, rebind every frame to fix this problem
+	// glDeleteBuffers(1, &EBO);
+	// glDeleteBuffers(1, &VBO);
+	// glDeleteVertexArrays(1, &VAO);
 }
 ;;
 
@@ -651,83 +1009,14 @@ std::shared_ptr<ShaderGLSL> RendererOpenGL::getToScreenDepthProgram(const std::s
 	return program;
 }
 
-std::shared_ptr<ShaderGLSL> RendererOpenGL::getToScreenCubeDepthProgram(const std::shared_ptr<Texture> &srcTex) const {
-	auto&& sampler = srcTex->getUniformSampler(*this);
-	sampler->setName("uCubeShadow");
-
-	static const char* VS = R"(
-		#version 430 core
-		layout(location = 0) in vec3 aPos;
-		layout(location = 1) in vec2 aTexCoord;
-		layout(location = 2) in vec3 aNormal;
-
-		out vec2 TexCoord;
-		out vec3 vFragPos;
-
-		layout(std140) uniform Model {
-		    mat4 uModel;
-		    mat4 uView;
-		    mat4 uProjection;
-		    mat4 uNormalToWorld;
-		    mat4 uShadowMapMVP;
-		    vec3 uViewPos;
-		    bool uUseShadowMap;
-		    bool uUseShadowMapCube;
-		    bool uUseEnvMap;
-		};
-
-		void main() {
-		    TexCoord = aTexCoord;
-		    vFragPos = vec3(uModel * vec4(aPos, 1.0));
-		    gl_Position = uProjection * uView * uModel * vec4(aPos, 1.0);
-		}
-	)";
-
-	static const char* FS = R"(
-		#version 430 core
-
-		in vec3 vFragPos;
-		layout(location = 0) out vec4 FragColor;
-
-		layout(std140) uniform ShadowCube {
-		    mat4 uShadowVPs[6];
-		    float uFarPlane;
-		};
-
-		uniform samplerCube uCubeShadow;
-
-		layout(std140) uniform Light {
-		    int uLightType;
-
-		    vec3 uLightPosition;
-		    vec3 uLightDirection;
-		    vec3 uLightAmbient;
-		    vec3 uLightDiffuse;
-		    vec3 uLightSpecular;
-
-		    float uLightCutoff;
-		    float uLightOuterCutoff;
-		    float uLightConstant;
-		    float uLightLinear;
-		    float uLightQuadratic;
-		};
-
-		void main() {
-		    // Get vector between fragment position and light position
-		    vec3 lightDir = uLightPosition - vFragPos;
-		    // Use the light to fragment vector to sample from the depth map
-		    float closestDepth = texture(uCubeShadow, -lightDir).r;
-		    // It is currently in linear range between [0,1]. Re-transform back to original value
-		    // closestDepth *= uFarPlane;
-		    FragColor  = vec4(vec3(closestDepth), 1.f);
-		}
-	)";
-
+std::shared_ptr<ShaderGLSL> RendererOpenGL::getDebugBBoxProgram() const {
 	static std::shared_ptr<ShaderGLSL> program;
 	static Serika::UUID<ShaderResources> resourceUUID;
 
 	if (!program) {
-		program = ShaderGLSL::loadFromRawSource(VS, FS);
+		program = ShaderGLSL::loadShader(
+			"assets/shader/Debug/BoundingBox/bbox.vert",
+			"assets/shader/Debug/BoundingBox/bbox.frag");
 		program->compileAndLink();
 
 		auto&& resources = noObjectContextShaderResources[resourceUUID.get()];
@@ -737,7 +1026,25 @@ std::shared_ptr<ShaderGLSL> RendererOpenGL::getToScreenCubeDepthProgram(const st
 		}
 	}
 
-	program->setUniformSampler(sampler->name(), sampler);
+	return program;
+}
+
+std::shared_ptr<ShaderGLSL> RendererOpenGL::getDrawDebuglineProgram() const {
+	static std::shared_ptr<ShaderGLSL> program;
+	static Serika::UUID<ShaderResources> resourceUUID;
+
+	if (!program) {
+		program = ShaderGLSL::loadShader(
+			"assets/shader/Debug/WorldAxis/DebugLine.vert",
+			"assets/shader/Debug/WorldAxis/DebugLine.frag");
+		program->compileAndLink();
+
+		auto&& resources = noObjectContextShaderResources[resourceUUID.get()];
+		if (!resources) {
+			resources = std::make_shared<ShaderResources>();
+			program->setResources(resources);
+		}
+	}
 
 	return program;
 }

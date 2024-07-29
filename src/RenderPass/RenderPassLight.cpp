@@ -2,7 +2,7 @@
 
 #include <glad/glad.h>
 
-#include "Light.h"
+#include "ULight.h"
 #include "../../include/Material/Texture.h"
 #include "Renderer.h"
 #include "FScene.h"
@@ -16,7 +16,7 @@ RenderPassLight::RenderPassLight(Renderer &renderer): RenderPass(renderer) {
 void RenderPassLight::render(FScene & scene) {
     if (auto&& geometryPass = geometryPass_.lock()) {
 
-        RenderStates& renderStates = renderer_.renderStates;
+        RenderStates& renderStates = renderer_.renderStates_;
 
         BlendParameters blendParams;
         blendParams.SetBlendFactor(BlendFactor_ONE, BlendFactor_ONE);
@@ -35,6 +35,7 @@ void RenderPassLight::render(FScene & scene) {
         for (auto&& light: scene.getLights()) {
             renderer_.updateLightUniformBlock(light);
             renderer_.updateModelUniformBlock({}, renderer_.getViewCamera(), light);
+            renderer_.updateShadowCubeUniformBlock(light);
             enableBlending(true);
             renderer_.dump(renderer_.getDefferedShadingProgram(geometryPass->getGBuffers()), true, fboMain_, 0);
         }
@@ -44,12 +45,12 @@ void RenderPassLight::render(FScene & scene) {
         auto&& depthBuffer = geometryPass->getFramebufferMain()->getDepthAttachment().tex;
         depthBuffer->copyDataTo(*texDepthMain_);
         enableBlending(false); // disable blending
-        for (auto&& light: scene.getLights()) {
+        for (auto&& light: scene.getPackedLightMeshes()) {
             renderer_.updateLightUniformBlock(nullptr);
-            renderer_.draw(light, ShaderPass::Shader_ForwardShading_Pass, nullptr);
+            renderer_.drawMesh(light, ShaderPass::Shader_ForwardShading_Pass, nullptr);
         }
-        if (scene.skybox_) {
-            renderer_.draw(scene.skybox_, ShaderPass::Shader_ForwardShading_Pass, nullptr);
+        if (scene.skybox_ && scene.skybox_->getMesh()) {
+            renderer_.drawMesh(scene.skybox_->getMesh(), ShaderPass::Shader_ForwardShading_Pass, nullptr);
         }
     }
 }

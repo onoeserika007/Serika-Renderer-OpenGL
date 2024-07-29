@@ -12,7 +12,7 @@ layout(std140) uniform Model {
     mat4 uView;
     mat4 uProjection;
     mat4 uNormalToWorld;
-    mat4 uShadowMapMVP;
+    mat4 uShadowMapVP;
     vec3 uViewPos;
     bool uUseShadowMap;
     bool uUseShadowMapCube;
@@ -129,6 +129,7 @@ void main()
         // visibility = calcStandardShadowMap(shadowCoords);
         if (uUseShadowMap) visibility = PCF(shadowCoords, 1.f / 1024.f);
         else visibility = PCF(shadowCoords, 0.05f);
+//        visibility = PCSS(shadowCoords);
         phongColor *= visibility;
     }
 
@@ -144,7 +145,7 @@ void main()
         phongColor += mappingColor * reflCoef;
     }
 
-    FragColor = vec4(phongColor * visibility, 1.f);
+    FragColor = vec4(phongColor, 1.f);
 }
 
 /*********************** PHONG SHADING **************************/
@@ -312,7 +313,7 @@ float sampleShadowMap2D(vec2 shadowCoords) {
     return texture(uShadowMap, shadowCoords.xy).x;
 }
 
-float smapleShadowMapCube(vec3 fragPos) {
+float sampleShadowMapCube(vec3 fragPos) {
     vec3 lightDir = uLightPosition - fragPos;
     return texture(uShadowMapCube, -lightDir).x;
 }
@@ -348,7 +349,7 @@ float PCF(vec3 shadowCoord, float filterSize) {
     for (int i = 0; i < NUM_SAMPLES; i++) {
         float LightDepth = 0.f;
         if (uUseShadowMap) LightDepth = sampleShadowMap2D(shadowCoord.xy + storedDisk[i].xy * filterSize);
-        else LightDepth = smapleShadowMapCube(vFragPos + + storedDisk[i] * filterSize);
+        else LightDepth = sampleShadowMapCube(vFragPos + storedDisk[i] * filterSize);
         visibility += (LightDepth + EPSILON <= FragDepth - getBias() ? 0.0 : 1.0);
     }
     return visibility / num;
@@ -371,11 +372,12 @@ float calcStandardShadowMap(vec3 shadowCoord) {
     
     float LightDepth = 0.f;
     if (uUseShadowMap) LightDepth = sampleShadowMap2D(shadowCoord.xy);
-    else LightDepth = smapleShadowMapCube(vFragPos);
+    else LightDepth = sampleShadowMapCube(vFragPos);
 
+    return LightDepth;
     float FragDepth = 0.f;
-    if (uUseShadowMap) FragDepth = shadowCoord.z;
-    else FragDepth = length(uLightPosition - vFragPos) / uFarPlane;
+    if (uUseShadowMap) FragDepth = shadowCoord.z / uFarPlane; // mapping to 0~1
+    else FragDepth = length(uLightPosition - vFragPos) / uFarPlane; // mapping to 0~1
 
     if (FragDepth > 1.f) FragDepth = 0.f;
     return LightDepth + EPSILON <= FragDepth - getBias() ? 0.0 : 1.0;

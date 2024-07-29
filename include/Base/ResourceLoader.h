@@ -11,7 +11,6 @@
 
 class UObject;
 class UMesh;
-class UModel;
 
 class ResourceLoader {
 public:
@@ -20,7 +19,8 @@ public:
 
 	std::unordered_map<std::string, std::string> shaderSourceCache_;
 	std::string loadShader(const std::string& path);
-	std::shared_ptr<UModel> loadModel(const std::string& path, bool bUseThreadPool = false);
+
+	std::shared_ptr<UMesh> loadMesh(const std::string &path, bool bUseThreadPool = false);
 	std::shared_ptr<UMesh> loadSkyBox(const std::string& path);
 
 	ResourceLoader(const ResourceLoader&) = delete;
@@ -31,7 +31,7 @@ private:
 
 	std::string loadingDirectory;
 
-	std::shared_ptr<UModel> processNode(aiNode* node, const aiScene* scene, bool bMultiThread);
+	void processNode(aiNode *node, const aiScene *scene, std::shared_ptr<UMesh> &parentMesh, bool bMultiThread);
 	std::shared_ptr<UMesh> processMesh(aiMesh *mesh, const aiScene *scene);
 
 	std::mutex texCacheMutex_;

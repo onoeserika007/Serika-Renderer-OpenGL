@@ -3,21 +3,21 @@
 #include "Geometry/Ray.h"
 
 void BoundingBox::getCorners(glm::vec3 *dst) const {
-    dst[0] = glm::vec3(min_.x, max_.y, max_.z);
-    dst[1] = glm::vec3(min_.x, min_.y, max_.z);
-    dst[2] = glm::vec3(max_.x, min_.y, max_.z);
-    dst[3] = glm::vec3(max_.x, max_.y, max_.z);
+    dst[0] = glm::vec3(min_.x, max_.y, max_.z); // nearTopLeft
+    dst[1] = glm::vec3(min_.x, min_.y, max_.z); // nearBottomLeft
+    dst[2] = glm::vec3(max_.x, min_.y, max_.z); // nearBottomRight
+    dst[3] = glm::vec3(max_.x, max_.y, max_.z); // nearTopRight
 
-    dst[4] = glm::vec3(max_.x, max_.y, min_.z);
-    dst[5] = glm::vec3(max_.x, min_.y, min_.z);
-    dst[6] = glm::vec3(min_.x, min_.y, min_.z);
-    dst[7] = glm::vec3(min_.x, max_.y, min_.z);
+    dst[4] = glm::vec3(max_.x, max_.y, min_.z); // farTopRight
+    dst[5] = glm::vec3(max_.x, min_.y, min_.z); // farBottomRight
+    dst[6] = glm::vec3(min_.x, min_.y, min_.z); // farBottomLeft
+    dst[7] = glm::vec3(min_.x, max_.y, min_.z); // farBottomRight
 }
 
 BoundingBox BoundingBox::transform(const glm::mat4 &matrix) const {
     BoundingBox newBBox;
 
-    glm::vec3 corners[8];
+    glm::vec3 corners[8];;
     getCorners(corners);
 
     corners[0] = matrix * glm::vec4(corners[0], 1.f);
@@ -85,6 +85,10 @@ float BoundingBox::SurfaceArea() const {
     return 2 * (d.x * d.y + d.x * d.z + d.y * d.z);
 }
 
+int BoundingBox::getUUID() const {
+    return uuid_.get();
+}
+
 BoundingBox &BoundingBox::merge(const glm::vec3 &point) {
     min_ = glm::min(min_, point);
     max_ = glm::max(max_, point);
@@ -92,6 +96,8 @@ BoundingBox &BoundingBox::merge(const glm::vec3 &point) {
 }
 
 BoundingBox &BoundingBox::merge(const BoundingBox &box) {
+    // merge(box.min_);
+    // merge(box.max_);
     min_ = glm::min(min_, box.min_);
     max_ = glm::max(max_, box.max_);
     return *this;

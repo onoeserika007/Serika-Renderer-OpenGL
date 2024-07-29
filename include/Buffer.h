@@ -12,20 +12,23 @@ class Buffer
     int width_{};
     int height_{};
 
-    Buffer() = default;
+    // Buffer() = default;
     Buffer(int w, int h): data_(w * h), width_(w), height_(h) {}
     Buffer(int _width, int _height, const T& value)
         : data_(_width * _height, value), width_(_width), height_(_height) {}
-    struct PassKey{};
-public:
+
     Buffer(const Buffer<T>& other) {
         width_ = other.width_;
         height_ = other.height_;
         data_ = other.data_;
     }
 
-    Buffer(PassKey _, int w, int h): Buffer(w, h) {}
-    static std::shared_ptr<Buffer<T>> makeDefault(int w, int h);
+    Buffer() = default;
+public:
+
+    template<typename... Args>
+    static std::shared_ptr<Buffer<T>> makeBuffer(Args&& ...args);
+
     static int calcIndex(int x, int y, int width) {
         return x + y * width;
     }
@@ -88,16 +91,37 @@ public:
         memset(data_.data(), 0, data_.size());
     }
 
-    int width() {
+    int width() const {
         return width_;
     }
 
-    int height() {
+    int height() const {
         return height_;
     }
 
     const T* rawData() {
         return data_.data();
+    }
+
+    [[nodiscard]] size_t size() const {
+        return data_.size();
+    }
+
+    template<typename Y>
+    Buffer<T>& copyFrom(const Buffer<Y>& other) {
+        width_ = other.width();
+        height_ = other.height();
+        data_.resize(width_ * height_);
+        for (int i = 0; i < width_; i++) {
+            for (int j = 0; j < height_; j++) {
+                set(i, j, T(other.getPixel(i, j)));
+            }
+        }
+        return *this;
+    }
+
+    int getComponentsNum() const {
+        return T::length();
     }
 
     void write_to_file() {
@@ -106,7 +130,9 @@ public:
 };
 
 template<typename T>
-inline std::shared_ptr<Buffer<T>> Buffer<T>::makeDefault(int w, int h)
-{
-    return std::make_shared<Buffer<T>>(PassKey(), w, h);
+template<typename ... Args>
+std::shared_ptr<Buffer<T>> Buffer<T>::makeBuffer(Args &&...args) {
+    return std::shared_ptr<Buffer<T>>(new Buffer<T>(std::forward<Args>(args)...));
 }
+
+

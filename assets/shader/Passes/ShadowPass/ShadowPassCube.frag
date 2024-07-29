@@ -33,5 +33,4 @@ void main()
     
     // write this as modified depth
     gl_FragDepth = lightDistance;
-    FragColor = vec4(1.f);
 }

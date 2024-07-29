@@ -1,10 +1,9 @@
 #pragma once
-#include <../../ThirdParty/glad/include/glad/glad.h>
+#include <glad/glad.h>
 #include <string>
-#include <vector>
 #include <memory>
-#include "../Base/Globals.h"
-#include "../Material/Shader.h"
+#include "Base/Globals.h"
+#include "Material/Shader.h"
 
 enum ShaderType{
     ShaderType_VertexShader,

@@ -23,6 +23,6 @@ void main()
 #ifdef DIFFUSE_MAP
     FragColor = texture(uDiffuseMap, vTexCoord);
 #else
-    FragColor = vec4(1.f);
+    FragColor = vec4(0.7f);
 #endif
 }

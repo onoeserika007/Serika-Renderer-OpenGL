@@ -1,18 +1,19 @@
 {
   "CameraAspect": 1,
   "CameraFOV": 45,
-  "CameraFar": 100,
+  "CameraFar": 120,
   "CameraNear": 0.10000000149011612,
   "CameraPitch": 0,
-  "CameraSpeed": 2.5,
+  "CameraSpeed": 250,
   "CameraYaw": -90,
   "CameraZoom": 45,
-  "CaptureRadius_ShadowMap": 5,
+  "CaptureRadius_ShadowMap": 10,
   "MouseSensitivity": 0.10000000149011612,
-  "RenderMode": 0,
+  "RenderMode": 4,
   "Resolution_ShadowMap": 1024,
-  "WindowHeight": 1080,
-  "WindowWidth": 1920,
+  "WindowHeight": 784,
+  "WindowWidth": 784,
   "bShadowMap": true,
-  "bSkybox": true
+  "bSkybox": false,
+  "bUseBVH": true
 }

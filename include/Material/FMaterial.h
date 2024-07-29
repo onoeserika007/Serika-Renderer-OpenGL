@@ -2,7 +2,6 @@
 #include <memory>
 #include <string>
 #include <vector>
-
 #include <unordered_map>
 #include "Base/Globals.h"
 #include "Texture.h"
@@ -70,6 +69,11 @@ public:
 	bool hasEmission() const;
 	glm::vec3 getEmission() const;
 	glm::vec3 getEmission(float u, float v) const;
+	glm::vec3 getDiffuse() const;
+	glm::vec3 getDiffuse(float u, float v) const;
+	glm::vec3 getSpecular(float u, float v) const;
+	void setEmission(const glm::vec3& color) { emission_ = color; }
+	void setDiffuse(const glm::vec3& color) { diffuse_ = color; }
 
 protected:
 
@@ -90,8 +94,10 @@ private:
 	bool shaderReady_ = false; // shader setupPipeline or not
 	bool texturesReady_ = false; // have textures been loaded to piepleine?
 
-	// Material Attributes
-	glm::vec3 emission {};
+	// Material Attributes // explicitly assigned, prior to texture
+	Serika::UUID<FMaterial> uuid_;
+	glm::vec3 emission_ {};
+	glm::vec3 diffuse_ {};
 };
 
 template<typename T>

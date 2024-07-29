@@ -47,8 +47,9 @@ Intersection Triangle::getIntersection(const Ray &ray) {
     if (auto&& mat = material_.lock()) {
         material_info_.emission = mat->getEmission();
         material_info_.shading_model = mat->shadingMode();
-        material_info_.Kd = glm::vec3(mat->sample2D<RGBA>(texCoord.x, texCoord.y, TextureType::TEXTURE_TYPE_DIFFUSE, FilterMode::Filter_NEAREST));
-        material_info_.Ks = glm::vec3(mat->sample2D<RGBA>(texCoord.x, texCoord.y, TextureType::TEXTURE_TYPE_SPECULAR, FilterMode::Filter_NEAREST));
+        // material_info_.Kd = material_->e
+        material_info_.Kd = mat->getDiffuse();
+        material_info_.Ks = mat->getSpecular(texCoord.x, texCoord.y);
         material_info_.specularExponent = 32.f;
     }
 
@@ -57,6 +58,7 @@ Intersection Triangle::getIntersection(const Ray &ray) {
     itsc.normal= normal_;
     itsc.impactPoint = ray.origin + ray.direction * trace_t;
     itsc.material = material_info_;
+    itsc.primitive = shared_from_this();
 
     return itsc;
 }
@@ -75,10 +77,11 @@ void Triangle::Sample(Intersection &pos, float &pdf) {
     if (auto&& mat = material_.lock()) {
         material_info_.emission = mat->getEmission();
         material_info_.shading_model = mat->shadingMode();
-        material_info_.Kd = glm::vec3(mat->sample2D<RGBA>(pos.texCoords.x, pos.texCoords.y, TextureType::TEXTURE_TYPE_DIFFUSE, FilterMode::Filter_NEAREST));
-        material_info_.Ks = glm::vec3(mat->sample2D<RGBA>(pos.texCoords.x, pos.texCoords.y, TextureType::TEXTURE_TYPE_SPECULAR, FilterMode::Filter_NEAREST));
+        material_info_.Kd = mat->getDiffuse();
+        material_info_.Ks = mat->getSpecular(pos.texCoords.x, pos.texCoords.y);
         material_info_.specularExponent = 32.f;
     }
+    pos.material = material_info_;
 }
 
 float Triangle::getArea() const {
@@ -87,4 +90,16 @@ float Triangle::getArea() const {
 
 bool Triangle::hasEmit() const {
     return material_info_.hasEmission();
+}
+
+void Triangle::transform(const glm::mat4 &modelMatrix) {
+    glm::vec4 tmp = modelMatrix * glm::vec4(v0_, 1.f);
+    v0_ = tmp;
+    v1_ = modelMatrix * glm::vec4(v1_, 1.f);
+    v2_ = modelMatrix * glm::vec4(v2_, 1.f);
+
+    e1_ = v1_ - v0_;
+    e2_ = v2_ - v0_;
+    normal_ = glm::normalize(glm::cross(e1_, e2_));
+    area_ = glm::length(glm::cross(e1_, e2_)) * 0.5f;
 }

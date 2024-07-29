@@ -1,4 +1,6 @@
+#pragma once
 #include "../Material/Texture.h"
+#include <glad/glad.h>
 
 class TextureOpenGL:public Texture {
 public:
@@ -29,5 +31,16 @@ public:
     TextureOpenGLCube(const TextureInfo& texInfo, const SamplerInfo& smInfo, const TextureData& texData);
 
     void setupPipeline();
-    virtual ~TextureOpenGLCube();
+
+    ~TextureOpenGLCube() override;
+};
+
+class TextureOpenGLBuffer: public TextureOpenGL {
+    TextureOpenGLBuffer(const TextureInfo& texInfo, const SamplerInfo& smInfo);
+    TextureOpenGLBuffer(const TextureInfo& texInfo, const SamplerInfo& smInfo, const TextureData& texData);
+
+    void setupPipeline();
+
+private:
+    GLuint TBO;
 };

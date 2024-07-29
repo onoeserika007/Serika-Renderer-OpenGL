@@ -15,50 +15,6 @@ class FMaterial;
 class FGeometry;
 class Renderer;
 
-const unsigned MAX_LIGHT_NUMS = 10;
-
-// struct PointLightData: LightData {
-//     glm::vec3 position;
-//
-//     glm::vec3 ambient;
-//     glm::vec3 diffuse;
-//     glm::vec3 specular;
-//
-//     float constant;
-//     float linear;
-//     float quadratic;
-// };
-//
-// struct DirectionalLightData: LightData {
-//     glm::vec3 direction;
-//
-//     glm::vec3 ambient;
-//     glm::vec3 diffuse;
-//     glm::vec3 specular;
-// };
-//
-// struct SpotLightData : LightData {
-//     glm::vec3 position;
-//     glm::vec3 direction;
-//     float cutoff;
-//     float outerCutoff;
-// };
-
-// struct PointLightUniformBlock {
-//     PointLightData PointLights[MAX_LIGHT_NUMS];
-//     int numPointLight;
-// };
-//
-// struct DirectionalLightUniformBlock {
-//     DirectionalLightData DirectionalLights[MAX_LIGHT_NUMS];
-//     int numDirectionalLight;
-// };
-//
-// struct SpotLightUniformBlock {
-//     SpotLightData SpotLights[MAX_LIGHT_NUMS];
-//     int numSpotLight;
-// };
-
 enum LightType: glm::uint {
     LightType_NoLight,
     LightType_PointLight,
@@ -84,7 +40,7 @@ struct LightDataUniformBlock { // uint好像和预想的数据不太一样
     alignas(4) glm::float32 uLightQuadratic;
 };
 
-class ULight: public UMesh{
+class ULight: public UObject {
 public:
     template<typename ...Args>
     static std::shared_ptr<ULight> makeLight(Args&&... args);
@@ -104,7 +60,7 @@ public:
     bool isDirectionalLight() const { return lightData_.uLightType == LightType_DirectionalLight; }
     bool isSpotLight () const { return lightData_.uLightType == LightType_SpotLight; }
 
-    virtual void updateFrame(Renderer& renderer) override;
+    virtual void updateFrame() override;
 
     static std::shared_ptr<ULight> generateDefaultPointLight();
     static std::shared_ptr<ULight> generateDefaultDirectionalLight();
@@ -117,11 +73,7 @@ public:
 private:
 
     ULight();
-    ULight(std::string name, glm::vec3 ambient, glm::vec3 diff, glm::vec3 spec);
-    explicit ULight(const std::shared_ptr<UMesh> &mesh);
-    ULight(std::shared_ptr<FGeometry> pgeometry, std::shared_ptr<FMaterial> pmaterial);
-    ULight(std::string name, std::shared_ptr<FGeometry> pgeometry, std::shared_ptr<FMaterial> pmaterial);
-    ULight(std::string name, glm::vec3 ambient, glm::vec3 diff, glm::vec3 spec, std::shared_ptr<FGeometry> pgeometry, std::shared_ptr<FMaterial> pmaterial);
+    // explicit ULight(const std::shared_ptr<UMesh>& mesh);
 
     mutable std::shared_ptr<FCamera> camera_;
     mutable std::shared_ptr<Texture> shadowMap_;

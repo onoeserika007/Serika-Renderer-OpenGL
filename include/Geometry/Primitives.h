@@ -2,6 +2,7 @@
 #include <memory>
 
 #include "Ray.h"
+#include "Utils/UUID.h"
 
 class BoundingBox;
 class UMesh;
@@ -19,16 +20,34 @@ public:
     // virtual bool intersect(const Ray& ray, float &, uint32_t &) const = 0;
     virtual Intersection getIntersection(const Ray &ray) = 0;
 
-    virtual BoundingBox getBounds() const = 0;
-    virtual float getArea() const = 0;
+    NO_DISCARD virtual BoundingBox getBounds() const = 0;
+    NO_DISCARD virtual float getArea() const = 0;
+
     // for lights' importance sampling
     // this kind of sampling wont't depends on uniform hemisphere sampling, so won't use intersction
     virtual void Sample(Intersection &pos, float &pdf) = 0; // for lights' importance sampling
     virtual bool hasEmit() const = 0;
+    virtual void transform(const glm::mat4& trans) = 0;
 };
 
-namespace Cube {
+struct FLine {
+    FLine(const glm::vec3& start, const glm::vec3& end): start_(start), end_(end) {}
+    FLine(const glm::vec3& start, const glm::vec3& end, float persistTime): start_(start), end_(end), persistentTime_(persistTime) {}
+
+    glm::vec3 start_ {};
+    glm::vec3 end_ {};
+
+    float persistentTime_ = 0.f;
+
+    unsigned VAO_ {}; // identify if a line has been loaded to pipeline
+    Serika::UUID<FLine> uuid_ {};
+
+    int getUUID() const { return uuid_.get(); }
+};
+
+namespace MeshMakers {
     std::shared_ptr<UMesh> loadCubeMesh(bool bReverseFace = false);
+    std::shared_ptr<UMesh> loadTriangleMesh(const glm::vec3& v0, const glm::vec3& v1, const glm::vec3& v2);
 
     constexpr float CubeVertices[] = {
         // 前面

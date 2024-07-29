@@ -3,16 +3,12 @@
 #include "glad/glad.h"
 #include <GLFW/glfw3.h>
 #include <filesystem>
-#include "Geometry/Primitives.h"
+#include <fstream>
 #include <memory>
-#include "Utils/UniversalUtils.h"
 #include "FCamera.h"
 #include "Geometry/BufferAttribute.h"
 #include "Geometry/Object.h"
-#include "Material/FMaterial.h"
-#include "Light.h"
-#include "Geometry/Model.h"
-#include "Utils/OpenGLUtils.h"
+#include "ULight.h"
 #include "Base/Config.h"
 #include "FScene.h"
 #include "Viewer.h"
@@ -28,9 +24,24 @@ void APIENTRY openglCallbackFunction(GLenum source,
                                      const GLchar *message,
                                      const void *userParam)
 {
-    fprintf(stderr, "GL CALLBACK: %s type = 0x%x, severity = 0x%x, message = %s\n",
+    char info[512];
+    snprintf(info, sizeof(info), "GL CALLBACK: %s type = 0x%x, severity = 0x%x, message = %s\n",
             (type == GL_DEBUG_TYPE_ERROR ? "** GL ERROR **" : ""),
             type, severity, message);
+    // // 打开文件
+    // std::ofstream file("error_log.txt", std::ios_base::app);
+    // if (!file.is_open()) {
+    //     std::cerr << "Failed to open file for logging" << std::endl;
+    //     return;
+    // }
+    // // 保存原来的缓冲区
+    // std::streambuf* originalCerrBuffer = std::cerr.rdbuf();
+    // // 重定向 std::cerr 到文件
+    // std::cerr.rdbuf(file.rdbuf());
+    // // 现在所有的 std::cerr 输出都会写入到 error_log.txt
+    // std::cerr << info << std::endl;
+    // // 恢复原来的缓冲区
+    // std::cerr.rdbuf(originalCerrBuffer);
 }
 
 class App
@@ -43,8 +54,9 @@ public:
 
     // callbacks
     static void framebuffer_size_callback(GLFWwindow* window, int width, int height);
-    static void mouse_callback(GLFWwindow* window, double xpos, double ypos);
+    static void mouse_move_callback(GLFWwindow* window, double xpos, double ypos);
     static void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
+    static void mouse_click_callback(GLFWwindow* window, int button, int action, int mods);
     void processInput();
 
     // tools
@@ -105,12 +117,7 @@ void App::mainLoop() {
         }
         processInput();
 
-        // render
-        // glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-        // glClear(GL_COLOR_BUFFER_BIT); // GL_COLOR_BUFFER_BIT, GL_DEPTH_BUFFER_BIT, 
-        // glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         draw();
-
         glfwSwapBuffers(window); // 交换(Swap)前缓冲和后缓冲
         glfwPollEvents();        // 检测事件
         counter = (counter + 1) % 100;
@@ -157,9 +164,10 @@ void App::setupWindow() {
     // called when resized
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
-    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-    glfwSetCursorPosCallback(window, mouse_callback);
+    // glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    glfwSetCursorPosCallback(window, mouse_move_callback);
     glfwSetScrollCallback(window, scroll_callback);
+    glfwSetMouseButtonCallback(window, mouse_click_callback);
 
     //camera = std::make_shared<Camera>(0, 0, 5);
     camera_ = std::make_shared<PerspectiveCamera>(50.0f, static_cast<float>(frameWidth) / frameHeight);
@@ -213,7 +221,7 @@ void App::processInput()
 // mouse callback
 // ----------------------------------------------------------------------
 
-void App::mouse_callback(GLFWwindow* window, double xpos, double ypos) {
+void App::mouse_move_callback(GLFWwindow* window, double xpos, double ypos) {
     App& app = getInstance();
     if (app.firstMouse) // 这个bool变量初始时是设定为true的
     {
@@ -238,18 +246,40 @@ void App::scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
     app.camera_->ProcessMouseScroll(yoffset);;
 }
 
+// mouse click callback
+// ----------------------------------------------------------------------
+
+void App::mouse_click_callback(GLFWwindow *window, int button, int action, int mods) {
+    App& app = getInstance();
+    if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
+        double xpos, ypos;
+        glfwGetCursorPos(window, &xpos, &ypos);
+        int width, height;
+        glfwGetWindowSize(window, &width, &height);
+
+        app.viewer_->drawCursorHitDebugLine(xpos, ypos, width, height);
+        app.viewer_->drawUnderCursorTraceDebugTriangle(xpos, ypos, width, height);
+    }
+}
+
 void App::setupScene()
 {
-    scene_ = FScene::generateDeaultScene();
-
     // camera pos
-    camera_->setPosition(-5, 5, -5);
-    camera_->lookAt(scene_->getFocus());
+    camera_->setPosition(2, 2, 2);
+    // scene_ = FScene::generateDeaultScene(camera_);;
+    // scene_ = FScene::generateRaytracingStanfordBunnyScene(camera_);
+    scene_ = FScene::generateRaytracingCornellBoxScene(camera_);
+    scene_->setupScene();
+    if (scene_) {
+        camera_->lookAt(scene_->getFocus());
+    }
+    viewer_->setScene(scene_);
+
 }
 
 void App::draw()
 {
-    viewer_->render(scene_);
+    viewer_->DrawFrame();
 }
 
 void App::printMaxVertexAttributeNum() {

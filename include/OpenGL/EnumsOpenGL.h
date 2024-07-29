@@ -58,6 +58,7 @@ namespace OpenGL {
             CASE_CVT_GL(TextureTarget_, TEXTURE_2D);
             CASE_CVT_GL(TextureTarget_, TEXTURE_2D_MULTISAMPLE);
             CASE_CVT_GL(TextureTarget_, TEXTURE_CUBE_MAP);
+            CASE_CVT_GL(TextureTarget_, TEXTURE_BUFFER);
             default:
                 break;
         }
