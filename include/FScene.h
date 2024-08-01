@@ -7,7 +7,6 @@
 #include "Geometry/BoundingBox.h"
 #include "Geometry/BVHAccel.h"
 
-
 class UObject;
 class FCamera;
 struct Intersection;
@@ -20,6 +19,7 @@ class FScene {
 public:
 	static std::shared_ptr<FScene> generateDeaultScene(const std::shared_ptr<FCamera> &camera);
 	static std::shared_ptr<FScene> generateRaytracingStanfordBunnyScene(const std::shared_ptr<FCamera> &camera);
+	static std::shared_ptr<FScene> generatePBRScene(const std::shared_ptr<FCamera> &camera);
 	static std::shared_ptr<FScene> generateRaytracingCornellBoxScene(const std::shared_ptr<FCamera> &camera);
 
 	void addObject(std::shared_ptr<UObject> obj);
@@ -45,13 +45,14 @@ public:
 
 	Intersection intersect(const Ray& ray) const;
 	void sampleLight(Intersection& outIsct, float &pdf) const ;
-	glm::vec3 castRay(const Ray& ray, int depth, float RussianRoulette = 0.6) const;
+	glm::vec3 castRay(const Ray& ray, int depth, int SobolIndex, float RussianRoulette = 0.6) const;
 
 	// rendering
 	void packMeshesFromScene();
 	void traverseToPackMesh(const std::shared_ptr<UObject>& obj, std::vector<std::shared_ptr<UMesh>> &cache_to_pack);
 
 	std::shared_ptr<UObject> skybox_;
+	ESceneType sceneType_;
 private:
 	std::vector<std::shared_ptr<UObject>> objects_;
 	std::vector<std::shared_ptr<ULight>> lights_;

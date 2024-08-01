@@ -5,7 +5,6 @@
 class TextureOpenGL:public Texture {
 public:
     //TextureOpenGL();
-    TextureOpenGL(const TextureInfo& texInfo, const SamplerInfo& smInfo);
     TextureOpenGL(const TextureInfo& texInfo, const SamplerInfo& smInfo, const TextureData& texData);
 
     virtual ~TextureOpenGL();
@@ -15,7 +14,6 @@ public:
 class TextureOpenGL2D : public TextureOpenGL {
 public:
     //TextureOpenGL2D();
-    TextureOpenGL2D(const TextureInfo& texInfo, const SamplerInfo& smInfo);
     TextureOpenGL2D(const TextureInfo& texInfo, const SamplerInfo& smInfo, const TextureData& texData);
 
     void setupPipeline();
@@ -26,8 +24,7 @@ public:
 
 class TextureOpenGLCube : public TextureOpenGL {
 public:
-    //TextureOpenGLCube();
-    TextureOpenGLCube(const TextureInfo& texInfo, const SamplerInfo& smInfo);
+
     TextureOpenGLCube(const TextureInfo& texInfo, const SamplerInfo& smInfo, const TextureData& texData);
 
     void setupPipeline();
@@ -36,10 +33,12 @@ public:
 };
 
 class TextureOpenGLBuffer: public TextureOpenGL {
-    TextureOpenGLBuffer(const TextureInfo& texInfo, const SamplerInfo& smInfo);
+public:
     TextureOpenGLBuffer(const TextureInfo& texInfo, const SamplerInfo& smInfo, const TextureData& texData);
 
     void setupPipeline();
+
+    ~TextureOpenGLBuffer() override;
 
 private:
     GLuint TBO;

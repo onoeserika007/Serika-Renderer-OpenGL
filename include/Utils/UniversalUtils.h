@@ -46,7 +46,9 @@ namespace MathUtils {
     void fresnel(const glm::vec3 &I, const glm::vec3 &N, const float &ior, float &kr);
 
     glm::vec3 toWorld(const glm::vec3 &local, const glm::vec3 &N);
-    void uniformHemisphereSample(glm::vec3& outWo, float& outPdf, const glm::vec3& inWi, const glm::vec3& inN);
+    void UniformHemisphereSample(glm::vec3& outWo, float& outPdf, const glm::vec3& inWi, const glm::vec3& inN, int depth, int SobolIndex);
+    void UniformHemisphereSampleByVolume(glm::vec3& outWo, float& outPdf, const glm::vec3& inWi, const glm::vec3& inN, bool
+                                         bNearOrigin, int depth, int SobolIndex);
     // normal distibution function 法线分布函数
     // a 一般用roughness
     float Trowbridge_Reitz_GGX_D(const glm::vec3& normal, const glm::vec3& halfVector, float a);
@@ -56,6 +58,24 @@ namespace MathUtils {
     float Schick_GGXSmith_G(const glm::vec3& N,const glm::vec3& V,const glm::vec3& L,float k);
     // 菲涅尔项的一种近似
     float Schick_Fresnel_F(float cosTheta,float F0);
+
+    /**
+     * Low Descrepancy
+     */
+    float IntegerRadicalInverse(int Base, int i);
+    double RadicalInverse(int Base, int i);
+    // Eratosthenes to generate prime
+    int NthPrimeNumber(int n);
+    std::vector<int> sieve_of_eratosthenes(int limit);
+    std::vector<int> generate_coprimes(int n);
+    double Halton(int Dimension, int Index);
+    double Hammersley(int Dimension, int Index, int NumSamples);
+
+    // sobel
+    glm::uint grayCode(glm::uint i);
+    // 生成第 dimension 维度的第 i 个 sobol 数
+    double Sobol(unsigned int Dimension, unsigned int i);
+    double SobolGlobalIndex(unsigned int Dimension);
 }
 
 namespace StringUtils {
@@ -70,5 +90,6 @@ namespace StringUtils {
     stmt; \
     auto end_##msg = std::chrono::steady_clock::now();\
     std::cout << #msg << " - Time cost: " << std::chrono::duration_cast<std::chrono::microseconds>(end_##msg - start_##msg).count() << "microseconds." << std::endl;\
+    std::cout << std::flush;\
 
 

@@ -23,7 +23,7 @@ enum LightType: glm::uint {
 };
 
 // 只能说你还没有理解std140
-#pragma pack(4)
+// #pragma pack(4)
 struct LightDataUniformBlock { // uint好像和预想的数据不太一样
     alignas(4) glm::int32 uLightType = LightType_PointLight;
 
@@ -50,6 +50,7 @@ public:
     void setAsSpotLight(glm::vec3 pos, glm::vec3 dir, float cutoff, float outerCutoff);
     void setToShader(std::shared_ptr<Shader> pshader, int index = -1) const;
     void setColor(const glm::vec3& color);
+    void setLightDiffuse(const glm::vec3& diff);
     void setPosition(const glm::vec3& position);
 
     LightDataUniformBlock serialize() const;

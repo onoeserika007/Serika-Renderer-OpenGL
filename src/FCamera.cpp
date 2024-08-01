@@ -12,21 +12,25 @@ FCamera::FCamera(glm::vec3 position, glm::vec3 up)
     MovementSpeed = config.CameraSpeed;
     MouseSensitivity = config.MouseSensitivity;
     Zoom = config.CameraZoom;
-    updateCameraVectors();;;
+    updateCameraVectors();;
 };
 
 FCamera::FCamera(float posX, float posY, float posZ, float upX, float upY, float upZ, float yaw, float pitch): FCamera({posX, posY, posZ}, {upX, upY, upZ}) {
 }
 
 void FCamera::lookAt(const glm::vec3 &target) {
-    const Rotator rotator {glm::normalize(target - position())};
+    // target和eye不能重合！！否则会出现除0错误
+    // 在normalize这一步就已经Nan了
+    glm::vec3 direction = target - position();
+    if (glm::length(direction) < M_EPSILON) direction = glm::vec3(0.f, 0.f, -1.f);
+    const Rotator rotator {glm::normalize(direction)};
     Yaw = rotator.Yaw;;
     Pitch = rotator.Pitch;
 
     glm::vec3 forward = glm::normalize(target - position());
 
     glm::mat4 rotation = glm::lookAt(position(), target - position(), Up);
-    glm::vec4 fVector = glm::transpose(rotation) * glm::vec4({0.f, 0.f, -1.f, 0.f});
+    glm::vec4 fVector = glm::inverse(rotation) * glm::vec4({0.f, 0.f, -1.f, 0.f});
     glm::vec3 res = glm::normalize(glm::vec3(fVector.x , fVector.y , fVector.z));
 
     // float sa = glm::length((res - forward));
@@ -34,7 +38,7 @@ void FCamera::lookAt(const glm::vec3 &target) {
     // printVec3("2: ", res);
     // std::cout << sa << std::endl;
 
-    updateCameraVectors();
+    updateCameraVectors();;
 }
 
 void FCamera::ProcessKeyboard(Camera_Movement direction, float deltaTime) {
@@ -67,7 +71,7 @@ void FCamera::ProcessMouseMovement(float xoffset, float yoffset, GLboolean const
 
     // update Front, Right and Up Vectors using the updated Euler angles
     updateCameraVectors();
-};;
+}
 
 void FCamera::ProcessMouseScroll(const float yoffset) {
     Zoom -= yoffset;

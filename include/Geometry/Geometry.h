@@ -10,7 +10,7 @@ class Triangle;
 class BoundingBox;
 class Renderer;
 
-class FGeometry {
+class FGeometry: public PipelineLoadable {
     enum MeshType {
         Mesh,
         Mesh_Indexed
@@ -18,7 +18,6 @@ class FGeometry {
 
     std::unordered_map<EBufferAttribute, BufferAttribute> data_map_;
     std::vector<unsigned> indices_;
-    unsigned EBO = 0;
     bool bReady_ = false;
     MeshType mesh_type_ = Mesh;
 
@@ -26,6 +25,9 @@ class FGeometry {
 
 public:
     FGeometry();
+
+    mutable unsigned EBO = 0;
+    mutable unsigned VAO = 0;
 
     static std::string getAttributeName(EBufferAttribute type);
 
@@ -36,7 +38,8 @@ public:
     void setEBO(unsigned id) { EBO = id; }
 
     const BufferAttribute &getBufferAttribute(EBufferAttribute attr);
-    const std::unordered_map<EBufferAttribute, BufferAttribute>& getBufferData() const { return data_map_; }
+
+    std::unordered_map<EBufferAttribute, BufferAttribute> &getBufferData() { return data_map_; }
     bool isMesh() const { return mesh_type_ == Mesh; }
     bool isMeshIndexed() const { return mesh_type_ == Mesh_Indexed; }
     bool isPipelineReady() const { return bReady_; }

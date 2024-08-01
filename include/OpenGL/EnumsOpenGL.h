@@ -24,12 +24,6 @@ namespace OpenGL {
                 ret.elemtype = GL_UNSIGNED_BYTE;
                 break;
             }
-            case TextureFormat_FLOAT32: {
-                ret.internalformat = GL_DEPTH_COMPONENT;
-                ret.format = GL_DEPTH_COMPONENT;
-                ret.elemtype = GL_FLOAT;
-                break;
-            }
             case TextureFormat_RGB8: {
                 ret.internalformat = GL_RGB;
                 ret.format = GL_RGB;
@@ -42,9 +36,33 @@ namespace OpenGL {
                 ret.elemtype = GL_FLOAT;
                 break;
             }
+            case TextureFormat_RGBA16F: {
+                ret.internalformat = GL_RGBA16F; // targetFormat
+                ret.format = GL_RGBA;    // srcFormat
+                ret.elemtype = GL_FLOAT;
+                break;
+            }
             case TextureFormat_RGB32F: {
                 ret.internalformat = GL_RGB32F; // targetFormat
                 ret.format = GL_RGB;    // srcFormat
+                ret.elemtype = GL_FLOAT;
+                break;
+            }
+            case TextureFormat_RGBA32F: {
+                ret.internalformat = GL_RGBA32F; // targetFormat
+                ret.format = GL_RGBA;    // srcFormat
+                ret.elemtype = GL_FLOAT;
+                break;
+            }
+            case TextureFormat_FLOAT32: {
+                ret.internalformat = GL_DEPTH_COMPONENT;
+                ret.format = GL_DEPTH_COMPONENT;
+                ret.elemtype = GL_FLOAT;
+                break;
+            }
+            case TextureFormat_R16F: {
+                ret.internalformat = GL_R16F;
+                ret.format = GL_RGB;
                 ret.elemtype = GL_FLOAT;
                 break;
             }

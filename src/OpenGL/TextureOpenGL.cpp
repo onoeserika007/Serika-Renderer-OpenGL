@@ -6,10 +6,6 @@
 #include "../../include/OpenGL/EnumsOpenGL.h"
 #include "../../include/Utils/OpenGLUtils.h"
 
-TextureOpenGL::TextureOpenGL(const TextureInfo& texInfo, const SamplerInfo& smInfo): Texture(texInfo, smInfo)
-{
-}
-
 TextureOpenGL::TextureOpenGL(const TextureInfo& texInfo, const SamplerInfo& smInfo, const TextureData& texData): Texture(texInfo, smInfo, texData)
 {
 }
@@ -30,11 +26,7 @@ std::shared_ptr<UniformSampler> TextureOpenGL::getUniformSampler(const Renderer 
 }
 
 
-TextureOpenGL2D::TextureOpenGL2D(const TextureInfo& texInfo, const SamplerInfo& smInfo) : TextureOpenGL(texInfo, smInfo)
-{
-	assert(texInfo.target == TextureTarget::TextureTarget_TEXTURE_2D);
-	setupPipeline();
-}
+
 
 TextureOpenGL2D::TextureOpenGL2D(const TextureInfo& texInfo, const SamplerInfo& smInfo, const TextureData& texData): TextureOpenGL(texInfo, smInfo, texData)
 {
@@ -66,8 +58,8 @@ void TextureOpenGL2D::setupPipeline()
 	// set borader sampler in case savalue_ptr(mpvalue_ptrvalue_ptr((ling out of bound
 	GL_CHECK(glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, glm::value_ptr(OpenGL::cvtBorderColor(samplerInfo.borderColor))));
 
-	auto textureData_ = getTextureData();
-	if (textureData_.dataArray.empty()) {
+	auto textureData_ = getTextureData();;
+	if (!textureData_.unitDataArray.empty()) {
 		// 第一个参数指定了纹理目标(Target)。设置为GL_TEXTURE_2D意味着会生成与当前绑定的纹理对象在同一个目标上的纹理（任何绑定到GL_TEXTURE_1D和GL_TEXTURE_3D的纹理不会受到影响）。
 		// 第二个参数为纹理指定多级渐远纹理的级别，如果你希望单独手动设置每个多级渐远纹理的级别的话。这里我们填0，也就是基本级别，也就是不手动设置
 		// 第三个参数告诉OpenGL我们希望把纹理储存为何种格式。我们的图像只有RGB值，因此我们也把纹理储存为RGB值。
@@ -75,11 +67,16 @@ void TextureOpenGL2D::setupPipeline()
 		// 下个参数应该总是被设为0（历史遗留的问题）。
 		// 第七第八个参数定义了源图的格式和数据类型。我们使用RGB值加载这个图像，并把它们储存为char(byte)数组，我们将会传入对应值。
 		// 最后一个参数是真正的图像数据。
-		GL_CHECK(glTexImage2D(target, 0, openglTextureInfo.internalformat, textureInfo.width, textureInfo.height, textureInfo.border, openglTextureInfo.format, openglTextureInfo.elemtype, nullptr));
+		GL_CHECK(glTexImage2D(target, 0, openglTextureInfo.internalformat, textureInfo.width, textureInfo.height, textureInfo.border, openglTextureInfo.format, openglTextureInfo.elemtype, textureData_.unitDataArray[0]->rawData()));
+		return;
 	}
-	else {
-		GL_CHECK(glTexImage2D(target, 0, openglTextureInfo.internalformat, textureInfo.width, textureInfo.height, textureInfo.border, openglTextureInfo.format, openglTextureInfo.elemtype, textureData_.dataArray[0]->rawData()));
+
+	if (!textureData_.floatDataArray.empty()) {
+		GL_CHECK(glTexImage2D(target, 0, openglTextureInfo.internalformat, textureInfo.width, textureInfo.height, textureInfo.border, openglTextureInfo.format, openglTextureInfo.elemtype, textureData_.floatDataArray[0]->rawData()));
+		return;
 	}
+
+	GL_CHECK(glTexImage2D(target, 0, openglTextureInfo.internalformat, textureInfo.width, textureInfo.height, textureInfo.border, openglTextureInfo.format, openglTextureInfo.elemtype, nullptr));
 }
 
 void TextureOpenGL2D::copyDataTo(Texture &other) {
@@ -108,11 +105,6 @@ TextureOpenGL2D::~TextureOpenGL2D()
 	GL_CHECK(glDeleteTextures(1, &textureId_));
 }
 
-TextureOpenGLCube::TextureOpenGLCube(const TextureInfo& texInfo, const SamplerInfo& smInfo): TextureOpenGL(texInfo, smInfo)
-{
-	assert(texInfo.target == TextureTarget::TextureTarget_TEXTURE_CUBE_MAP);
-	setupPipeline();
-}
 
 TextureOpenGLCube::TextureOpenGLCube(const TextureInfo& texInfo, const SamplerInfo& smInfo, const TextureData& texData): TextureOpenGL(texInfo, smInfo, texData)
 {
@@ -143,7 +135,7 @@ void TextureOpenGLCube::setupPipeline() {
 	GL_CHECK(glTexParameterfv(target, GL_TEXTURE_BORDER_COLOR, glm::value_ptr(OpenGL::cvtBorderColor(samplerInfo.borderColor))));
 
 	auto textureData_ = getTextureData();
-	if (textureData_.dataArray.empty()) {
+	if (textureData_.unitDataArray.empty()) {
 		// for point light shadow map case
 		for (int i = 0; i < 6; i++) {
 			GL_CHECK(glTexImage2D(
@@ -156,14 +148,14 @@ void TextureOpenGLCube::setupPipeline() {
 		}
 	}
 	else {
-		for (int i = 0; i < textureData_.dataArray.size(); i++) {
+		for (int i = 0; i < textureData_.unitDataArray.size(); i++) {
 			GL_CHECK(glTexImage2D(
 					GL_TEXTURE_CUBE_MAP_POSITIVE_X + i,
 					0,
 					openglTextureInfo.internalformat,
 					textureInfo.width, textureInfo.height,
 					textureInfo.border, openglTextureInfo.format, openglTextureInfo.elemtype,
-					textureData_.dataArray[i]->rawData()));
+					textureData_.unitDataArray[i]->rawData()));
 		}
 	}
 }
@@ -171,12 +163,9 @@ void TextureOpenGLCube::setupPipeline() {
 
 TextureOpenGLCube::~TextureOpenGLCube()
 {
+	GL_CHECK(glDeleteTextures(1, &textureId_));
 }
 
-TextureOpenGLBuffer::TextureOpenGLBuffer(const TextureInfo &texInfo, const SamplerInfo &smInfo): TextureOpenGL(texInfo, smInfo) {
-	assert(texInfo.target == TextureTarget::TextureTarget_TEXTURE_BUFFER);
-	setupPipeline();
-}
 
 TextureOpenGLBuffer::TextureOpenGLBuffer(const TextureInfo &texInfo, const SamplerInfo &smInfo,
 	const TextureData &texData): TextureOpenGL(texInfo, smInfo, texData) {
@@ -191,13 +180,13 @@ void TextureOpenGLBuffer::setupPipeline() {
 	auto target = OpenGL::cvtTextureTarget(static_cast<TextureTarget>(textureInfo.target));
 
 	// tbo
-	GLuint tbo;
-	glGenBuffers(1, &tbo);
-	glBindBuffer(target, tbo);
+	GLuint TBO;
+	GL_CHECK(glGenBuffers(1, &TBO));
+	GL_CHECK(glBindBuffer(target, TBO));
 
 	auto&& textureData_ = getTextureData();
 	if (!textureData_.bufferData.empty()) {
-		glBufferData(GL_TEXTURE_BUFFER, textureData_.bufferData.size() * sizeof(float), textureData_.bufferData.data(), GL_STATIC_DRAW);
+		GL_CHECK(glBufferData(GL_TEXTURE_BUFFER, textureData_.bufferData.size() * sizeof(float), textureData_.bufferData.data(), GL_STATIC_DRAW));
 	}
 
 	// tex id
@@ -206,5 +195,11 @@ void TextureOpenGLBuffer::setupPipeline() {
 	GL_CHECK(glGenTextures(1, &tex));
 	GL_CHECK(glActiveTexture(GL_TEXTURE0));
 	GL_CHECK(glBindTexture(target, tex));
-	glTexBuffer(GL_TEXTURE_BUFFER, GL_RGB32F, tbo);
+	// 注意你放进来的数据就是float32，还想怎么样
+	GL_CHECK(glTexBuffer(GL_TEXTURE_BUFFER, openglTextureInfo.internalformat, TBO));
+}
+
+TextureOpenGLBuffer::~TextureOpenGLBuffer() {
+	GL_CHECK(glDeleteTextures(1, &textureId_));
+	GL_CHECK(glDeleteBuffers(1, &TBO));
 }

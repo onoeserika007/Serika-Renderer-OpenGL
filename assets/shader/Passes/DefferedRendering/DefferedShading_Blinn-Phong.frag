@@ -9,11 +9,14 @@ layout(std140) uniform Model {
     mat4 uView;
     mat4 uProjection;
     mat4 uNormalToWorld;
-    mat4 uShadowMapMVP;
+    mat4 uShadowMapVP;
     vec3 uViewPos;
     bool uUseShadowMap;
     bool uUseShadowMapCube;
     bool uUseEnvMap;
+    bool uUsePureEmission;
+    float uNearPlaneCamera;
+	float uFarPlaneCamera;
 };
 
 layout(std140) uniform Light {
@@ -32,17 +35,23 @@ layout(std140) uniform Light {
     float uLightQuadratic;
 };
 
+layout(std140) uniform Scene {
+	int uScreenWidth;
+	int uScreenHeight;
+    bool uUseSSAO;
+    bool uIsFirstFrame;
+};
+
 layout(std140) uniform ShadowCube {
     mat4 uShadowVPs[6];
     float uFarPlane;
 };
 
-
 // gBuffers
-uniform sampler2D gPosition;
+// This Name Must be aligned with which in RenderPassGem=ometry.cpp!!!
+uniform sampler2D gPosition_ViewDepth;
 uniform sampler2D gDiffuse;
-uniform sampler2D gNormal;
-uniform sampler2D gSpecular;
+uniform sampler2D gNormal_Specular;
 
 // ShadowMap
 uniform sampler2D uShadowMap;
@@ -53,6 +62,9 @@ uniform samplerCube uShadowMapCube;
 // Skybox
 uniform samplerCube uCubeMap;
 
+// SSAO
+uniform sampler2D uSSAOTexture;
+
 #define NUM_RINGS 10
 #define MAX_LIGHT_NUM 4
 #define MAX_TEXTURE_NUM 16
@@ -62,6 +74,9 @@ uniform samplerCube uCubeMap;
 #define PI2 6.283185307179586
 
 #define NUM_SAMPLES 20
+
+// used to displace storedDisk
+uniform samplerBuffer uSSAOKernel;
 
 vec3 storedDisk[20] = vec3[]
 (
@@ -104,9 +119,9 @@ float PCSS(vec3 coords);
 float PCF(vec3 shadowCoord, float filterSize);
 
 /******************** GLOBALS ***************************/
-vec3 vWorldNormal = normalize(vec3(texture(gNormal, vTexCoord)));
-vec3 vFragPos = vec3(texture(gPosition, vTexCoord));
-vec4 vPositionFromLight = uShadowMapMVP * vec4(vFragPos, 1.f);
+vec3 vWorldNormal = normalize(vec3(texture(gNormal_Specular, vTexCoord)));
+vec3 vFragPos = texture(gPosition_ViewDepth, vTexCoord).xyz;
+vec4 vPositionFromLight = uShadowMapVP * vec4(vFragPos, 1.f);
 
 /*********************** MAIN **************************/
 void main()
@@ -178,7 +193,7 @@ vec3 calcPointLight(vec3 normal, vec3 fragPos, vec3 viewDir) {
 
     vec3 lightDir = normalize(uLightPosition - fragPos);
     vec3 baseColor = vec3(texture(gDiffuse, vTexCoord));
-    vec3 specCoef = vec3(texture(gSpecular, vTexCoord));
+    vec3 specCoef = vec3(texture(gNormal_Specular, vTexCoord).w);
 
     // 衰减
     float distance = length(uLightPosition - fragPos);
@@ -194,7 +209,7 @@ vec3 calcPointLight(vec3 normal, vec3 fragPos, vec3 viewDir) {
     float spec = pow(max(dot(halfVector, normal), 0.0), 16.f);
 
     // 合并结果
-    vec3 ambient  = uLightAmbient  * baseColor;
+    vec3 ambient  = uLightAmbient  * vec3(0.3) * (uUseSSAO? texture(uSSAOTexture, vTexCoord).x : 1.f) * (uIsFirstFrame? 1.f: 0.f);
     vec3 diffuse  = uLightDiffuse  * diff * baseColor;
     vec3 specular = uLightSpecular * spec * specCoef;
 
@@ -207,7 +222,7 @@ vec3 calcDirLight(vec3 normal, vec3 viewDir) {
 
     vec3 lightDir = normalize(-uLightDirection);
     vec3 baseColor = vec3(texture(gDiffuse, vTexCoord));
-    vec3 specCoef = vec3(texture(gSpecular, vTexCoord));
+    vec3 specCoef = vec3(texture(gNormal_Specular, vTexCoord).w);
 
     // 漫反射着色
     float diff = max(dot(normal, lightDir), 0.0);
@@ -218,7 +233,7 @@ vec3 calcDirLight(vec3 normal, vec3 viewDir) {
     float spec = pow(max(dot(halfVector, normal), 0.0), 16.f);
 
     // 合并结果
-    vec3 ambient  = uLightAmbient  * vec3(baseColor);
+    vec3 ambient  = uLightAmbient  * vec3(0.3) * (uUseSSAO? texture(uSSAOTexture, vTexCoord).x : 1.f) * (uIsFirstFrame? 1.f: 0.f);
     vec3 diffuse  = uLightDiffuse  * diff * vec3(baseColor);
     vec3 specular = uLightSpecular * spec * specCoef;
 
@@ -326,9 +341,10 @@ float PCF(vec3 shadowCoord, float filterSize) {
     else FragDepth = length(uLightPosition - vFragPos) / uFarPlane;
 
     for (int i = 0; i < NUM_SAMPLES; i++) {
+        vec3 randomVec = normalize(texelFetch(uSSAOKernel, i).xyz);
         float LightDepth = 0.f;
-        if (uUseShadowMap) LightDepth = sampleShadowMap2D(shadowCoord.xy + storedDisk[i].xy * filterSize);
-        else LightDepth = sampleShadowMapCube(vFragPos + storedDisk[i] * filterSize);
+        if (uUseShadowMap) LightDepth = sampleShadowMap2D(shadowCoord.xy + randomVec.xy * filterSize);
+        else LightDepth = sampleShadowMapCube(vFragPos + randomVec * filterSize);
         visibility += (LightDepth + EPSILON <= FragDepth - getBias() ? 0.0 : 1.0);
     }
     return visibility / num;

@@ -10,6 +10,8 @@
 class FMaterial;
 class Shader {
 public:
+    virtual ~Shader() = default;
+
     virtual GLuint getId() const = 0;
 
     virtual void addDefine(const std::string& define) = 0;

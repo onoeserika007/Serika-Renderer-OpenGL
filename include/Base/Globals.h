@@ -2,6 +2,7 @@
 // #define GLM_FORCE_ALIGNED
 #define GLM_FORCE_INLINE
 
+#include <functional>
 #include <glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
@@ -10,7 +11,8 @@ using RGBA = glm::u8vec4;
 #define DEBUG
 // #undef DEBUG
 
-constexpr float M_PI = 3.14159265358979323846f;
+constexpr float M_PI_DEFINED = 3.14159265358979323846;
+constexpr float M_EPSILON_BIGGER = 1e-2;
 constexpr float M_EPSILON = 1e-6;
 constexpr float FLOAT_MAX = std::numeric_limits<float>::max();
 // constexpr float FLOAT_MIN = std::numeric_limits<float>::min(); // 对这个理解错误了，这不是最小的值，这是最小的norm值
@@ -37,11 +39,21 @@ struct ModelUniformBlock{
 	alignas(4)	glm::int32 uUseShadowMap = false;
 	alignas(4)	glm::int32 uUseShadowMapCube = false;
 	alignas(4)	glm::int32 uUseEnvmap = false;
+	alignas(4)	glm::int32 uUsePureEmission = false;;
+	alignas(4)	glm::float32 uNearPlaneCamera;
+	alignas(4)	glm::float32 uFarPlaneCamera;
+};
+
+struct SceneUniformBlock {
+	alignas(4) glm::int32 uScreenWidth;
+	alignas(4) glm::int32 uScreenHeight;
+	alignas(4) glm::int32 uUseSSAO;
+	alignas(4) glm::int32 uIsFirstFrame;
 };
 
 struct ShadowCubeUniformBlock {
-	glm::mat4	uShadowVPs[6];
-	alignas(4)	glm::float32 uFarPlane;
+	glm::mat4	uShadowVPs[6] {};
+	alignas(4)	glm::float32 uFarPlaneCubeShadow {};
 };
 
 enum WrapMode {
@@ -78,4 +90,21 @@ enum class ShaderPass: uint8_t {
 	Shader_ForwardShading_Pass,
 	Shader_Geometry_Pass,
 	Shader_Light_Pass,
+};
+
+struct PipelineLoadable {
+	std::function<void()> deleter_;
+
+	virtual ~PipelineLoadable() {
+		if (deleter_) deleter_();
+	}
+};
+
+/**
+ * Scene Type
+ */
+enum ESceneType {
+	SceneType_Default,
+	SceneType_StandfordBunny,
+	SceneType_PBRTesting
 };

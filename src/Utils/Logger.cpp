@@ -6,6 +6,8 @@
 
 #include "Utils/Logger.h"
 
+#include <cstdio>
+
 namespace SerikaGL {
 
     void* Logger::logContext_ = nullptr;

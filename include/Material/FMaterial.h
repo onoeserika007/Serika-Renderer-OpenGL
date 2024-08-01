@@ -14,11 +14,38 @@ enum AlphaMode {
 	Alpha_Blend,
 };
 
+struct MaterialInfoBlock {
+	alignas(16) glm::vec3 uAlbedo {};
+	alignas(16) glm::vec3 uEmission {};
+	// Disney attributes
+	alignas(4) float uSubsurface = 0.0;
+	alignas(4) float uMetallic = 0.0;
+	alignas(4) float uSpecular = 0.0;
+	alignas(4) float uSpecularTint = 0.0;
+	alignas(4) float uRoughness = 0.0;
+	alignas(4) float uAnisotropic = 0.0;
+	alignas(4) float uSheen = 0.0;
+	alignas(4) float uSheenTint = 0.0;
+	alignas(4) float uClearcoat = 0.0;
+	alignas(4) float uClearcoatGloss = 0.0;
+	alignas(4) float uIOR = 1.0;
+	alignas(4) float uTransmission = 0.0;
+};
+
 
 class Shader;
 class ULight;
 class Uniform;
 class Renderer;
+
+struct MaterialResource {
+	std::vector<std::string> defines_;
+	std::unordered_map<int, TextureData> textureData_; // TextureType(int) -> textureData
+
+	// just find a place to throw textures in, managing its life-cycle
+	mutable std::unordered_map<int, std::shared_ptr<Texture>> texturesRuntime_;
+	bool texturesReady_ = false; // have textures been loaded to piepleine?
+};
 
 // 应该区分元信息和运行时资源
 // 比如shader是运行时资源，shadingMode是元信息，但是shader需要根据shadingMode的改变重新编译加载
@@ -28,6 +55,7 @@ class FMaterial {
 public:
 	FMaterial();
 	FMaterial(std::string name, std::shared_ptr<Shader> pshader);
+	FMaterial(const FMaterial& other);
 
 	// getters
 	bool shaderReady() const;
@@ -51,6 +79,7 @@ public:
 
 	// Texture Data
 	void setTextureData(TextureType textureType, const TextureData &texData);
+	void setTextureData(TextureType textureType, const std::string& texPath);
 	void setTexture_runtime(TextureType texType, const std::shared_ptr<Texture> &pTex);
 	void clearTextures_runtime();
 	void setShadingMode(EShadingModel mode);
@@ -62,6 +91,7 @@ public:
 
 	// use
 	void use(ShaderPass pass);
+	std::shared_ptr<MaterialResource> getMaterialObject() const;
 	void setupPipeline(Renderer& renderer);
 	virtual ~FMaterial() {}
 
@@ -72,42 +102,47 @@ public:
 	glm::vec3 getDiffuse() const;
 	glm::vec3 getDiffuse(float u, float v) const;
 	glm::vec3 getSpecular(float u, float v) const;
-	void setEmission(const glm::vec3& color) { emission_ = color; }
-	void setDiffuse(const glm::vec3& color) { diffuse_ = color; }
+	void setEmission(const glm::vec3& color) { material_info_.uEmission = color; }
+	void setDiffuse(const glm::vec3& color) { material_info_.uAlbedo = color; }
+
+	// wi represent ViewDir, incident // wo represents LightDir, goes off the place
+    glm::vec3 evalRadiance(const glm::vec3 &wi, const glm::vec3 &wo, const glm::vec3 &N, const float u = 0.f, const float v = 0.f) const;
+
+	// Disney attributes
+	MaterialInfoBlock material_info_;
+
+	/** Copy Instance*/
+	std::shared_ptr<FMaterial> Clone() const;
 
 protected:
 
 private:
-	EShadingModel shadingMode_ = EShadingModel::Shading_BaseColor;
+	EShadingModel shadingModel_ = EShadingModel::Shading_BaseColor;
+
+	std::shared_ptr<UniformBlock> materialInfoUniformBlock_;
 
 	// unifroms包括uniform block和sampler，每次渲染的时候都需要重新绑定到对应的shader
 	mutable std::shared_ptr<ShaderResources> shaderResources_;
-
-	std::unordered_map<int, TextureData> textureData_; // TextureType(int) -> textureData
-
-	// just find a place to throw textures in, managing its life-cycle
-	mutable std::unordered_map<int, std::shared_ptr<Texture>> texturesRuntime_;
+	mutable std::shared_ptr<MaterialResource> materialObject_;
 
 	// shaders
 	std::unordered_map<ShaderPass, std::shared_ptr<Shader>> shaders_;
-	std::vector<std::string> defines_;
 	bool shaderReady_ = false; // shader setupPipeline or not
-	bool texturesReady_ = false; // have textures been loaded to piepleine?
 
 	// Material Attributes // explicitly assigned, prior to texture
 	Serika::UUID<FMaterial> uuid_;
-	glm::vec3 emission_ {};
-	glm::vec3 diffuse_ {};
 };
 
 template<typename T>
 T FMaterial::sample2D(float u, float v, TextureType texType, FilterMode filterMode) const {
-	if (texturesRuntime_.contains(texType)) {
-		auto&& texture = texturesRuntime_[texType];
-		auto&& texData = texture->getTextureData();
-		if (!texData.dataArray.empty()) {
-			T ret = texData.dataArray[0]->sample2D(u, v, filterMode);
-			return ret;
+	if (materialObject_) {
+		if (materialObject_->texturesRuntime_.contains(texType)) {
+			auto&& texture = materialObject_->texturesRuntime_[texType];
+			auto&& texData = texture->getTextureData();
+			if (!texData.unitDataArray.empty()) {
+				T ret = texData.unitDataArray[0]->sample2D(u, v, filterMode);
+				return ret;
+			}
 		}
 	}
 	return {};

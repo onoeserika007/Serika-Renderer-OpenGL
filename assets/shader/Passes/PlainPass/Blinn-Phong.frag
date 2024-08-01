@@ -17,6 +17,9 @@ layout(std140) uniform Model {
     bool uUseShadowMap;
     bool uUseShadowMapCube;
     bool uUseEnvMap;
+    bool uUsePureEmission;
+    float uNearPlaneCamera;
+	float uFarPlaneCamera;
 };
 
 layout(std140) uniform Light {
@@ -34,6 +37,7 @@ layout(std140) uniform Light {
     float uLightLinear;
     float uLightQuadratic;
 };
+
 
 layout(std140) uniform ShadowCube {
     mat4 uShadowVPs[6];
@@ -159,12 +163,12 @@ vec3 calcPhong(vec3 normal, vec3 viewDir) {
     else if (uLightType == 1) {
         // vec3 emissive = vec3(texture(material.emissive, vTexCoord));
         radiance = calcPointLight(normal, vFragPos, viewDir);
-        radiance = radiance + DISTURBANCE * getDisturb();
+        // radiance = radiance + DISTURBANCE * getDisturb();
     }
     // directional light
     else if (uLightType == 2) {
         radiance = calcDirLight(normal, viewDir);
-        radiance = radiance + DISTURBANCE * getDisturb();
+        // radiance = radiance + DISTURBANCE * getDisturb();
     }
     // spot light
     else if (uLightType == 3) {

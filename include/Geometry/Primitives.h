@@ -1,4 +1,5 @@
 #pragma once
+#include <functional>
 #include <memory>
 
 #include "Ray.h"
@@ -30,14 +31,26 @@ public:
     virtual void transform(const glm::mat4& trans) = 0;
 };
 
-struct FLine {
-    FLine(const glm::vec3& start, const glm::vec3& end): start_(start), end_(end) {}
-    FLine(const glm::vec3& start, const glm::vec3& end, float persistTime): start_(start), end_(end), persistentTime_(persistTime) {}
+struct FPoint: public PipelineLoadable {
+    explicit FPoint(const glm::vec3& pos, float persistTime = 0.f): position_(pos), persistTime_(persistTime) {}
+
+    glm::vec3 position_ {};
+    float pointSize_ {1.f};
+    float persistTime_ = 0.f;
+
+    unsigned VAO_ {}; // identify if a line has been loaded to pipeline
+    Serika::UUID<FPoint> uuid_ {};
+
+    int getUUID() const { return uuid_.get(); }
+};
+
+struct FLine: public PipelineLoadable {
+    FLine(const glm::vec3& start, const glm::vec3& end, float persistTime = 0.f): start_(start), end_(end), persistTime_(persistTime) {}
 
     glm::vec3 start_ {};
     glm::vec3 end_ {};
 
-    float persistentTime_ = 0.f;
+    float persistTime_ = 0.f;
 
     unsigned VAO_ {}; // identify if a line has been loaded to pipeline
     Serika::UUID<FLine> uuid_ {};
@@ -48,6 +61,8 @@ struct FLine {
 namespace MeshMakers {
     std::shared_ptr<UMesh> loadCubeMesh(bool bReverseFace = false);
     std::shared_ptr<UMesh> loadTriangleMesh(const glm::vec3& v0, const glm::vec3& v1, const glm::vec3& v2);
+    std::shared_ptr<UMesh> loadSphereMesh(float radius = 1.f, int widthSegments = 64, int heightSegments = 64, float phiStart = 0.f, float phiLength = 2 * glm::pi<float>(), float
+                                          thetaStart = 0.f, float thetaLength = glm::pi<float>());
 
     constexpr float CubeVertices[] = {
         // 前面

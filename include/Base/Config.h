@@ -11,7 +11,7 @@ enum ERendererType {
 	RendererType_Vulkan,
 };
 
-enum class ERenderMode: int {
+enum ERenderMode {
 	RenderMode_ForwardRendering,
 	RenderMode_DefferedRendering,
 	RenderMode_TestRendering_OffScreen,
@@ -19,8 +19,14 @@ enum class ERenderMode: int {
 	RenderMode_PathTracing
 };
 
+struct ConfigReadGuard;
+struct ConfigWriteGuard;
+
+
 // 修改这里前要删掉config，不然会崩溃
 struct Config {
+
+	static const std::string defaultConfigPath;
 	// viewer
 	int WindowWidth = 1920;
 	int WindowHeight = 1080;
@@ -28,6 +34,8 @@ struct Config {
 	bool bSkybox = false;;
 	ERendererType RendererType = ERendererType::RendererType_OPENGL;
 	ERenderMode RenderMode = ERenderMode::RenderMode_ForwardRendering;
+	ESceneType SceneType = ESceneType::SceneType_Default;
+
 
 	// geometry
 	bool bUseBVH = false;
@@ -51,14 +59,40 @@ struct Config {
 	// Ortho camera
 	float CaptureRadius_ShadowMap = 60.f;
 
+	// Ray Tracing
+	int SPP;
+
+	// HDR
+	bool bUseHDR = true;
+	float Exposure = 1.f;
+
+	// Bloom
+	bool bUseBloom = true;
+
+	// SSAO
+	bool bUseSSAO = false;
+
 	void serialize(const std::string& path);
 	void deserialize(const std::string& path);
 	static Config& getInstance();
-	json11::Json to_json() const;
+	NO_DISCARD json11::Json to_json() const;
 	Config& from_json(const json11::Json & j);
+
+	Config(const Config&) = delete;
+	Config& operator=(const Config&) = delete;
 private:
 	Config() = default;
-	Config(const Config&) = default;
-	Config& operator=(const Config&) = default;
 
+	bool loaded_ = false;
+	std::mutex load_lock_;
+};
+
+struct ConfigReadGuard {
+
+};
+
+struct ConfigWriteGuard {
+
+	explicit ConfigWriteGuard(Config& config): config_((config)) {}
+	Config& config_;
 };

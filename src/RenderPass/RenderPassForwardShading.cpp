@@ -5,11 +5,17 @@
 
 #include "FrameBuffer.h"
 #include "Renderer.h"
-#include "Material/Uniform.h"
 #include "Base/Config.h"
 
-RenderPassForwardShading::RenderPassForwardShading(Renderer& renderer): RenderPass(renderer)
+RenderPassForwardShading::RenderPassForwardShading(const std::shared_ptr<Renderer>& renderer): RenderPass(renderer)
 {
+}
+
+RenderPassForwardShading::~RenderPassForwardShading() {
+	fboMain_ = nullptr;
+	texColorMain_ = nullptr;
+	texBlendResult_ = nullptr;
+	texDepthMain_ = nullptr;
 }
 
 void RenderPassForwardShading::render(FScene & scene)
@@ -19,7 +25,7 @@ void RenderPassForwardShading::render(FScene & scene)
 	// 为何这里的texture没有被回收？？ 懂了！！Frambuffer中的Attachment还保存有一份引用
 	setupBuffers();
 	fboMain_->bind();
-	RenderStates& renderStates = renderer_.renderStates_;
+	RenderStates& renderStates = renderer_->renderStates_;
 
 	BlendParameters blendParams;
 	blendParams.SetBlendFactor(BlendFactor_ONE, BlendFactor_ONE);
@@ -34,7 +40,7 @@ void RenderPassForwardShading::render(FScene & scene)
 		renderStates.depthTest = true;
 		renderStates.depthMask = true;
 		renderStates.cullFace = true;
-		renderer_.updateRenderStates(renderStates);
+		renderer_->updateRenderStates(renderStates);;
 	};
 
 	auto setupToScreen = [&renderStates, this]() {
@@ -42,12 +48,12 @@ void RenderPassForwardShading::render(FScene & scene)
 		renderStates.depthTest = false;;
 		renderStates.depthMask = false;
 		renderStates.cullFace = false;;
-		renderer_.updateRenderStates(renderStates);
+		renderer_->updateRenderStates(renderStates);
 	};
 
 	// setAttachment后会绑定到0 fbo，所以记得绑定回来
 	for (const auto& light: scene.getLights()) {
-		renderer_.updateLightUniformBlock(light);
+		renderer_->updateLightUniformBlock(light);;
 
 		// 关闭混合
 		setupComputeLight();
@@ -55,23 +61,23 @@ void RenderPassForwardShading::render(FScene & scene)
 		fboMain_->clearDepthBuffer();
 		// 渲染所有mesh时关闭混合，保证深度测试
 		for (const auto& model : scene.getPackedMeshes()) {
-			renderer_.drawMesh(model, shaderPass_, light); // may set shadow cast in updateModelUniformBlock called in draw()
+			renderer_->drawMesh(model, shaderPass_, light); // may set shadow cast in updateModelUniformBlock called in draw()
 		}
 
 		// 混合光照结果时打开混合
 		setupToScreen();
-		renderer_.dump(renderer_.getToScreenColorProgram(texColorMain_), true, fboMain_, 1); // to blend target
+		renderer_->dump(renderer_->getToScreenColorProgram(texColorMain_), true, fboMain_, 1); // to blend target
 	}
 
 	// 画光源时关闭混合
 	setupComputeLight();
 	fboMain_->setWriteBuffer(1, false); // to blend target
 	for (const auto& light: scene.getPackedLightMeshes()) {
-		renderer_.updateLightUniformBlock(nullptr);
-		renderer_.drawMesh(light, ShaderPass::Shader_ForwardShading_Pass, nullptr);
+		renderer_->updateLightUniformBlock(nullptr);
+		renderer_->drawMesh(light, ShaderPass::Shader_ForwardShading_Pass, nullptr);
 	}
 	if (scene.skybox_ && scene.skybox_->getMesh()) {
-		renderer_.drawMesh(scene.skybox_->getMesh(), ShaderPass::Shader_ForwardShading_Pass, nullptr);
+		renderer_->drawMesh(scene.skybox_->getMesh(), ShaderPass::Shader_ForwardShading_Pass, nullptr);;
 	}
 
 }
@@ -79,19 +85,25 @@ void RenderPassForwardShading::render(FScene & scene)
 void RenderPassForwardShading::setupBuffers()
 {
 
-	renderer_.setupColorBuffer(texColorMain_, renderer_.width(), renderer_.height(), false);
-	renderer_.setupColorBuffer(texBlendResult_, renderer_.width(), renderer_.height(), false);
-	renderer_.setupDepthBuffer(texDepthMain_, false, false);
-
 	// create fbo
 	if (!fboMain_) {
-		fboMain_ = renderer_.createFrameBuffer(true);
+		fboMain_ = renderer_->createFrameBuffer(true);
 	}
 
-	fboMain_->setColorAttachment(texColorMain_, 0, 0);
-	fboMain_->setColorAttachment(texBlendResult_, 0, 1);
-	fboMain_->setDepthAttachment(texDepthMain_);
-	fboMain_->isValid();
+	if (renderer_->setupColorBuffer(texColorMain_, renderer_->width(), renderer_->height(), false, false,
+		TextureTarget_TEXTURE_2D, TextureFormat_RGB16F)) {
+		fboMain_->setColorAttachment(texColorMain_, 0, 0);
+	}
+
+	if (renderer_->setupColorBuffer(texBlendResult_, renderer_->width(), renderer_->height(), false, false,
+		TextureTarget_TEXTURE_2D, TextureFormat_RGB16F)) {
+		fboMain_->setColorAttachment(texBlendResult_, 0, 1);
+	}
+
+	if (renderer_->setupDepthBuffer(texDepthMain_, false, false)) {
+		fboMain_->setDepthAttachment(texDepthMain_);
+	}
+
 }
 
 void RenderPassForwardShading::init()

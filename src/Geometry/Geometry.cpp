@@ -59,6 +59,13 @@ std::unique_ptr<Triangle> FGeometry::fetchTriangle(unsigned k) const {
             ret->t2_ = glm::vec2(tex[idx2 * 2], tex[idx2 * 2 + 1]);
         };
 
+        if (data_map_.contains(EBA_Normal)) {
+            auto&& normal = data_map_.at(EBA_Normal);
+            ret->n0_ = glm::vec3(normal[idx0 * 3], normal[idx0 * 3 + 1], normal[idx0 * 3 + 2]);
+            ret->n1_ = glm::vec3(normal[idx1 * 3], normal[idx1 * 3 + 1], normal[idx1 * 3 + 2]);
+            ret->n2_ = glm::vec3(normal[idx2 * 3], normal[idx2 * 3 + 1], normal[idx2 * 3 + 2]);
+        }
+
         return ret;
     }
     return {};;

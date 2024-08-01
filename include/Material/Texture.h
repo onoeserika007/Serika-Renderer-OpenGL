@@ -47,11 +47,14 @@ enum TextureTarget{
 };
 
 enum TextureFormat {
-    TextureFormat_RGBA8 = 0,      // RGBA8888
-    TextureFormat_FLOAT32 = 1,    // Float32
-    TextureFormat_RGB8 = 3,
-    TextureFormat_RGB16F = 4,
-    TextureFormat_RGB32F = 5
+    TextureFormat_RGBA8,     // RGBA8888
+    TextureFormat_RGB8,
+    TextureFormat_RGB16F,
+    TextureFormat_RGBA16F,
+    TextureFormat_RGB32F,
+    TextureFormat_RGBA32F,
+    TextureFormat_FLOAT32,    // Float32
+    TextureFormat_R16F
 };
 
 enum TextureUsage {
@@ -63,7 +66,8 @@ enum TextureUsage {
 };
 
 struct TextureData {
-    std::vector<std::shared_ptr<Buffer<RGBA>>> dataArray;
+    std::vector<std::shared_ptr<Buffer<RGBA>>> unitDataArray;
+    std::vector<std::shared_ptr<Buffer<glm::vec3>>> floatDataArray;
     std::vector<float> bufferData;
     std::string path;
     TextureType loadedTextureType = TEXTURE_TYPE_NONE;
@@ -101,14 +105,13 @@ protected:
 public:
     // static std::shared_ptr<Texture> createTexture2DDefault(int width, int height, TextureFormat format, TextureUsage usage);
     static const char* materialTexTypeStr(TextureType usage);
-    static const char* samplerDefine(TextureType usage);
+    static const char* samplerDefine(TextureType type);
     static const char* samplerName(TextureType usage);
     virtual ~Texture();
 
     //Texture();
     Texture(TextureType type);
     Texture(const TextureInfo& info);
-    Texture(const TextureInfo& texInfo, const SamplerInfo& smInfo);
     Texture(const TextureInfo& texInfo, const SamplerInfo& smInfo, const TextureData& texData);
 
     void loadTextureData(const std::string& picture);

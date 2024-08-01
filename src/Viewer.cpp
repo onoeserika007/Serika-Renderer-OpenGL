@@ -2,37 +2,37 @@
 
 #include <Base/Config.h>
 #include <omp.h>
+#include <thread>
 
+#include "app.h"
+#include "Base/Globals.h"
 #include "RenderPass/RenderPassGeometry.h"
 #include "RenderPass/RenderPassLight.h"
-
+#include "RenderPass/RenderPassShadow.h"
+#include "RenderPass/RenderPassForwardShading.h"
 #include "FCamera.h"
 #include "ULight.h"
 #include "Utils/Logger.h"
 #include "Renderer.h"
-#include "RenderPass/RenderPassForwardShading.h"
 #include "FScene.h"
+#include "GUIPanel.h"
+#include "OrbitController.h"
+#include "GLFW/glfw3.h"
 #include "OpenGL/RendererOpenGL.h"
-#include "RenderPass/RenderPassShadow.h"
 #include "Utils/ImageUtils.h"
 
-Viewer::Viewer(const std::shared_ptr<FCamera>& camera) : cameraMain_(camera) {
-}
-
-Viewer::~Viewer() {
-	// 程序退出时出现卡顿是因为出现了shared_ptr的相互引用！！
-	// lightPass_引用geometryPass_时应该使用weak_ptr
-	cameraDepth_ = nullptr;
-	renderer_ = nullptr;
-	plainPass_ = nullptr;
-	geometryPass_ = nullptr;
-	lightPass_ = nullptr;
-	// 好像也不是这个问题，将~Viewer声明为虚函数就解决了？
-}
-
-void Viewer::init(int width, int height, int outTexId)
+void Viewer::init(void *window, int width, int height, int outTexId)
 {
 	cleanup();
+
+	glfwWindow_ = static_cast<GLFWwindow*>(window);
+
+	auto && config = Config::getInstance();
+
+	if (!configPanel_) {
+		configPanel_ = std::make_shared<GUIPanel>();
+		configPanel_->init(window, width, height);
+	}
 
 	width_ = width;
 	height_ = height;
@@ -43,27 +43,41 @@ void Viewer::init(int width, int height, int outTexId)
 		cameraDepth_ = std::make_shared<OrthographicCamera>();
 	}
 
+	if (!cameraMain_) {
+		cameraMain_ = std::make_shared<PerspectiveCamera>(config.CameraFOV, static_cast<float>(config.WindowWidth) / config.WindowHeight);
+	}
+
+	if (!orbitController_) {
+		orbitController_ = std::make_shared<OrbitController>(*cameraMain_);
+	}
+
 	// renderer
 	if (!renderer_) {
-		renderer_ = createRenderer();
+		auto&& ret = createRenderer();
+		renderer_ = ret;
 	}
+
 	if (!renderer_) {
 		LOGE("Viewer::create failed: createRenderer error");
 	}
 
+	/** scene */
+	reloadScene();
+
 	setViewPort(0, 0, width_, height_);
 
 	// passes
-	plainPass_ = std::make_shared<RenderPassForwardShading>(*renderer_);
+	plainPass_ = std::make_shared<RenderPassForwardShading>(renderer_);
 	plainPass_->init();
 
-	geometryPass_ = std::make_shared<RenderPassGeometry>(*renderer_);
+	geometryPass_ = std::make_shared<RenderPassGeometry>(renderer_);
 	geometryPass_->init();
 
-	lightPass_ = std::make_shared<RenderPassLight>(*renderer_);
+	lightPass_ = nullptr;
+	lightPass_ = std::make_shared<RenderPassLight>(renderer_);
 	lightPass_->init();
 
-	shadowPass_ = std::make_shared<RenderPassShadow>(*renderer_);
+	shadowPass_ = std::make_shared<RenderPassShadow>(renderer_);
 	shadowPass_->init();
 }
 
@@ -85,13 +99,55 @@ void Viewer::cleanup()
 	}
 }
 
+void Viewer::reloadScene() {
+	auto&& config = Config::getInstance();
+	if (scene_ && scene_->sceneType_ == config.SceneType) return;
+
+	switch (config.SceneType) {
+		case SceneType_Default: {
+			scene_ = FScene::generateDeaultScene(cameraMain_);
+			scene_->sceneType_ = SceneType_Default;
+			break;
+		}
+		case SceneType_StandfordBunny: {
+			scene_ = FScene::generateRaytracingStanfordBunnyScene(cameraMain_);
+			scene_->sceneType_ = SceneType_StandfordBunny;
+			break;
+		}
+		case SceneType_PBRTesting: {
+			scene_ = FScene::generatePBRScene(cameraMain_);
+			scene_->sceneType_ = SceneType_PBRTesting;
+			break;
+		}
+		default: scene_ = FScene::generateDeaultScene(cameraMain_);
+		break;
+	}
+	cameraMain_->lookAt(scene_->getFocus());
+}
+
 void Viewer::DrawFrame() {
+	cleanup();
 	if (scene_) {
 		// pre setup
 		auto&& config = Config::getInstance();
+		if (renderer_->render_mode_ != config.RenderMode || scene_->sceneType_ != config.SceneType) {
+			// switch render mode, clear all debug primitives
+			renderer_->remove_all_debug_primitives_safe();
+		}
 		renderer_->render_mode_ = config.RenderMode;
+		reloadScene();
 		renderer_->setRenderingScene(scene_);
 		scene_->packMeshesFromScene();
+		// if (camera_mode_ == CameraMode_OrbitCamera) {
+		// 	if (bOrbitCenterDirty) {
+		// 		orbitController_->recalculateCenter();
+		// 		bOrbitCenterDirty = false;
+		// 	}
+		// 	orbitController_->update();
+		// }
+		// else if (camera_mode_ == CameraMode_FPSCamera) {
+		// 	bOrbitCenterDirty = true;
+		// }
 
 		// pipeline
 		if (config.RenderMode == ERenderMode::RenderMode_ForwardRendering) {
@@ -107,7 +163,7 @@ void Viewer::DrawFrame() {
 			drawScene_OnScreen(scene_);
 		}
 		else if (config.RenderMode == ERenderMode::RenderMode_PathTracing) {
-			drawScene_PathTracing_CPU(scene_);
+			TEST_TIME_COST(drawScene_PathTracing_CPU(scene_), Ray_Tracing);
 		}
 		else {
 			drawScene_ForwardRendering(scene_);
@@ -131,6 +187,8 @@ void Viewer::DrawFrame() {
 		renderer_->drawWorldAxis({});
 		renderer_->handleDebugs();
 		// renderer_->endRenderPass();
+
+		drawPanel();
 	}
 }
 
@@ -146,30 +204,45 @@ std::shared_ptr<FCamera> Viewer::createCamera(CameraType type)
 	return nullptr;
 }
 
+std::shared_ptr<FCamera> Viewer::getViewCamera() const {return cameraMain_; }
+
 std::shared_ptr<Renderer> Viewer::createRenderer() {
 	auto&& config = Config::getInstance();
-	std::shared_ptr<Renderer> renderer;
-	switch (config.RendererType) {
+	ERendererType rendererType = config.RendererType;
+
+	switch (rendererType) {
 		case RendererType_SOFT: {
+			return {};
 			break;
 		}
 		case RendererType_OPENGL: {
-			renderer = std::make_shared<RendererOpenGL>(cameraMain_);
+			auto&& renderer = std::make_shared<RendererOpenGL>(cameraMain_);
 			renderer->init();
+			return renderer;
 			break;
 		}
 		case RendererType_Vulkan: {
+			return {};
 			break;
 		}
 		default: break;
 	}
-	return renderer;
+	return {};
+}
+
+void Viewer::toggleShowConfigPanel() { bShowConfigPanel_ = !bShowConfigPanel_; }
+
+void Viewer::drawPanel() const {
+	if (bShowConfigPanel_) {
+		configPanel_->onDraw();
+	}
 }
 
 
 void Viewer::drawScene_ForwardRendering(const std::shared_ptr<FScene> &scene) const {
 
 	// clear framebuffer 0
+
 	/*
 	 * ShadowPass
 	 */
@@ -194,10 +267,9 @@ void Viewer::drawScene_ForwardRendering(const std::shared_ptr<FScene> &scene) co
 	/*
 	 * Forwarding Pass
 	 */
-
 	{
 		ClearStates clearStatesForwardingPass;
-		clearStatesForwardingPass.clearColor = BLACK_COLOR;
+		clearStatesForwardingPass.clearColor = clearColor;
 		clearStatesForwardingPass.colorFlag = true;
 		clearStatesForwardingPass.depthFlag = true;
 
@@ -221,6 +293,49 @@ void Viewer::drawScene_ForwardRendering(const std::shared_ptr<FScene> &scene) co
 }
 
 void Viewer::drawScene_TestPipeline(const std::shared_ptr<FScene> &scene) const {
+	ClearStates clear_states;
+	clear_states.colorFlag = true;
+	renderer_->beginRenderPass(0, clear_states);
+
+	static int counter = 0;
+	if (counter == 0) {
+		int NumSamples = 1024;
+		// halton
+		// for (int i = 0; i < NumSamples; i++) {
+		// 	renderer_->drawDebugPoint(glm::vec3(MathUtils::Halton(0, i), MathUtils::Halton(1, i), 1.f), 0.f, 10.f);
+		// }
+
+		// Hammersley
+		// for (int i = 0; i < NumSamples; i++) {
+		// 	renderer_->drawDebugPoint(glm::vec3(MathUtils::Hammersley(0, i, NumSamples), MathUtils::Hammersley(1, i, NumSamples), 1.f), 0.f, 5.f);
+		// }
+
+		// Sobol
+		// for (int i = 0; i < NumSamples; i++) {
+		// 	renderer_->drawDebugPoint(
+		// 		glm::vec3(
+		// 			MathUtils::Sobol(0, i),
+		// 			MathUtils::Sobol(1, i),
+		// 			1.f),
+		// 			0.f, 5.f);
+		// }
+
+		// real random
+		// for (int i = 0; i < NumSamples; i++) {
+		// 	renderer_->drawDebugPoint(glm::vec3(MathUtils::get_random_float(), MathUtils::get_random_float(), 1.f), 0.f, 5.f);
+		// }
+
+		for (int i = 0; i < NumSamples; i++) {
+			float pdf;
+			glm::vec3 wo;
+			MathUtils::UniformHemisphereSampleByVolume(wo, pdf, {}, {0.f, 1.f, 0.f}, true, 0, MathUtils::grayCode(i));
+			renderer_->drawDebugPoint(wo, 0.f, 5.f);
+		}
+
+		counter++;
+	}
+
+	renderer_->endRenderPass();
 }
 
 void Viewer::drawScene_OnScreen(const std::shared_ptr<FScene> &scene) const {
@@ -230,7 +345,8 @@ void Viewer::drawScene_PathTracing_CPU(const std::shared_ptr<FScene> &scene) con
 
 	int width = renderer_->width(), height = renderer_->height();
 	auto&& framebuffer = Buffer<glm::vec4>::makeBuffer(width, height, glm::vec4(0.f));
-	int spp = 128;
+	auto&& config = Config::getInstance();
+	int spp = config.SPP;;
 
 	std::cout << "SPP: " << spp << "\n";
 	uint32_t cpuNum= std::thread::hardware_concurrency();
@@ -248,27 +364,12 @@ void Viewer::drawScene_PathTracing_CPU(const std::shared_ptr<FScene> &scene) con
 		int i= p % height;
 		int j= p / height;
 
-		// generate primary ray direction
-		auto&& ray = screenToWorldRay(i, j, height, width, cameraMain_, false);
-
-		// glm::vec3 eye = cameraMain_->position();
-		// glm::mat4 cameraToWorld = glm::transpose(cameraMain_->GetViewMatrix());
-		//
-		// float tanHalfFOV = tan(glm::radians(cameraMain_->getFOV() * 0.5));
-		// float aspect = cameraMain_->getAspect();
-		//
-		// float x_offset = MathUtils::get_random_float(0.5f - M_EPSILON, 0.5f + M_EPSILON); // do msaa
-		// float y_offset = MathUtils::get_random_float(0.5f - M_EPSILON, 0.5f + M_EPSILON);
-		// float x = (2 * (i + x_offset) / (float)width - 1) *
-		// 		aspect * tanHalfFOV;
-		// float y = (1 - 2 * (j + y_offset) / (float)height) * tanHalfFOV;
-		//
-		// glm::vec3 dir = glm::normalize(glm::vec3(-x, y, 1));
-		// Ray ray {cameraMain_->position(), dir};
 
 		glm::vec4& pixel = framebuffer->getPixelRef(i, j);
 		for (int k = 0; k < spp; k++){
-			pixel += glm::vec4(scene->castRay(ray, 0) * 255.f, 255.f) / float(spp);
+			// generate primary ray direction
+			auto&& ray = screenToWorldRay(i, j, height, width, cameraMain_, false, 0.5f, p * spp + k);
+			pixel += glm::vec4(scene->castRay(ray, 0, p * spp + k, 0.8f) * 255.f, 255.f) / float(spp);
 		}
 
 		// progress = progress + i * j / float(hxw);
@@ -281,6 +382,7 @@ void Viewer::drawScene_PathTracing_CPU(const std::shared_ptr<FScene> &scene) con
 		}
 	}
 
+
 	auto&& outImg = Buffer<RGBA>::makeBuffer();
 	outImg->copyFrom(*framebuffer);
 	ImageUtils::writeImage("./raycasting_output.png", outImg->width(), outImg->height(), 4,  outImg->rawData(), 4 * outImg->width(), false);
@@ -288,18 +390,20 @@ void Viewer::drawScene_PathTracing_CPU(const std::shared_ptr<FScene> &scene) con
 }
 
 Ray Viewer::screenToWorldRay(int mouseX, int mouseY, int screenWidth, int screenHeight, const std::shared_ptr<FCamera> &camera, bool bUseDisturb, float
-                             disturbRadius) const {
+                             disturbRadius, int SobolIndex) const {
 
 	glm::vec3 eye = cameraMain_->position();
-	glm::mat4 cameraToWorld = glm::transpose(cameraMain_->GetViewMatrix());
+	glm::mat4 cameraToWorld = glm::inverse(cameraMain_->GetViewMatrix());
 
 	float tanHalfFOV = tan(glm::radians(cameraMain_->getFOV() * 0.5));
 	float aspect = cameraMain_->getAspect();
 
 	float x_offset, y_offset;
 	if (bUseDisturb) {
-		x_offset = MathUtils::get_random_float(0.5f - disturbRadius, 0.5f + disturbRadius);
-		y_offset = MathUtils::get_random_float(0.5f - disturbRadius, 0.5f + disturbRadius);
+		// x_offset = MathUtils::get_random_float(0.5f - disturbRadius, 0.5f + disturbRadius);
+		// y_offset = MathUtils::get_random_float(0.5f - disturbRadius, 0.5f + disturbRadius);
+		x_offset = 0.5f + (MathUtils::Sobol(0, SobolIndex) * 2.f - 1.f) * disturbRadius;
+		y_offset = 0.5f + (MathUtils::Sobol(1, SobolIndex) * 2.f - 1.f) * disturbRadius;
 	}
 	else {
 		x_offset = y_offset = 0.5f;
@@ -335,13 +439,70 @@ void Viewer::drawUnderCursorTraceDebugTriangle(int mouseX, int mouseY, int scree
 	}
 }
 
+void Viewer::listenKeyEvents() {
+	auto deltaFrameTime = App::getDeltaTime();
+	if (glfwGetKey(glfwWindow_, GLFW_KEY_W) == GLFW_PRESS)
+		cameraMain_->ProcessKeyboard(FORWARD, deltaFrameTime);
+	if (glfwGetKey(glfwWindow_, GLFW_KEY_S) == GLFW_PRESS)
+		cameraMain_->ProcessKeyboard(BACKWARD, deltaFrameTime);
+	if (glfwGetKey(glfwWindow_, GLFW_KEY_A) == GLFW_PRESS)
+		cameraMain_->ProcessKeyboard(LEFT, deltaFrameTime);
+	if (glfwGetKey(glfwWindow_, GLFW_KEY_D) == GLFW_PRESS)
+		cameraMain_->ProcessKeyboard(RIGHT, deltaFrameTime);
+
+	if (glfwGetKey(glfwWindow_, GLFW_KEY_SPACE) == GLFW_PRESS) {
+		cameraMain_->lookAt({0.f, 0.f, 0.f});
+	}
+}
+
+void Viewer::setCameraMode(ECameraMode camera_mode) {
+	camera_mode_ = camera_mode;
+	switch (camera_mode_) {
+		case CameraMode_None: {
+			glfwSetInputMode(glfwWindow_, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+			break;
+		}
+		case CameraMode_OrbitCamera: {
+			glfwSetInputMode(glfwWindow_, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+			break;
+		}
+		case CameraMode_FPSCamera: {
+			glfwSetInputMode(glfwWindow_, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+			break;
+		}
+		default: break;
+	}
+}
+
+void Viewer::updateOrbitZoom(float x, float y) {
+	orbitController_->zoomX = x;
+	orbitController_->zoomY = y;
+}
+
+void Viewer::updateOrbitRotate(float x, float y) {
+	orbitController_->rotateX = x;
+	orbitController_->rotateY = y;
+}
+
+void Viewer::updateOrbitPan(float x, float y) {
+	orbitController_->panX = x;
+	orbitController_->panY = y;
+}
+
+bool Viewer::wantCaptureKeyboard() const { return configPanel_->wantCaptureKeyboard(); }
+
+bool Viewer::wantCaptureMouse() const { return configPanel_->wantCaptureMouse(); }
+
+void Viewer::waitIdle() {
+}
+
 void Viewer::drawScene_DefferedRendering(const std::shared_ptr<FScene>& scene) {
 	/**
 	 * Beginning
 	 */
 	{
 		ClearStates clearStates;
-		clearStates.clearColor = BLACK_COLOR;
+		clearStates.clearColor = clearColor;
 		clearStates.colorFlag = true;
 		clearStates.depthFlag = true;
 
@@ -374,7 +535,7 @@ void Viewer::drawScene_DefferedRendering(const std::shared_ptr<FScene>& scene) {
 	 */
 	if (geometryPass_) {
 		ClearStates clearStateGeometryPass;
-		clearStateGeometryPass.clearColor = BLACK_COLOR;
+		clearStateGeometryPass.clearColor = clearColor;
 		clearStateGeometryPass.colorFlag = true;
 		clearStateGeometryPass.depthFlag = true;
 
@@ -389,6 +550,20 @@ void Viewer::drawScene_DefferedRendering(const std::shared_ptr<FScene>& scene) {
 		renderer_->endRenderPass();
 	}
 
+	// lightPass_->injectGeometryPass(geometryPass_);
+	// lightPass_->renderGBuffersToScreen();
+
+	/*
+	* ToScreenPass
+	*/
+	// ClearStates clearStatesToScreenPass;
+	// clearStatesToScreenPass.clearColor = clearColor;
+	// clearStatesToScreenPass.colorFlag = true;
+	// clearStatesToScreenPass.depthFlag = true;
+	//
+	// renderer_->beginRenderPass(nullptr, clearStatesToScreenPass);
+	// renderer_->dump(renderer_->getToScreenDepthProgram(geometryPass_->getSSAOResult()), false, nullptr, 1);
+	// renderer_->endRenderPass();
 	/**
 	 * Light Pass
 	 */
@@ -398,7 +573,7 @@ void Viewer::drawScene_DefferedRendering(const std::shared_ptr<FScene>& scene) {
 		lightPass_->injectGeometryPass(geometryPass_);
 
 		ClearStates clearStatesLightPass;
-		clearStatesLightPass.clearColor = BLACK_COLOR; // 防止blend的时候blend进背景色
+		clearStatesLightPass.clearColor = clearColor; // 防止blend的时候blend进背景色
 		clearStatesLightPass.colorFlag = true;
 		clearStatesLightPass.depthFlag = false;
 

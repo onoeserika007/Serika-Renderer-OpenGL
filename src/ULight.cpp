@@ -51,6 +51,10 @@ void ULight::setColor(const glm::vec3 &color) {
     lightData_.uLightSpecular = color;
 }
 
+void ULight::setLightDiffuse(const glm::vec3 &diff) {
+    lightData_.uLightDiffuse = diff;
+}
+
 void ULight::setPosition(const glm::vec3 &position) {
     UObject::setPosition(position);
     lightData_.uLightPosition = position;

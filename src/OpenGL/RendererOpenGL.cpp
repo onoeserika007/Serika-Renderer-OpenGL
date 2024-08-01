@@ -48,15 +48,47 @@ void RendererOpenGL::init()
 	modelUniformBlock_ = createUniformBlock("Model", sizeof(ModelUniformBlock));
 	shadowUniformBlock_ = createUniformBlock("ShadowCube", sizeof(ShadowCubeUniformBlock));
 	lightUniformBlock_ = createUniformBlock("Light", sizeof(LightDataUniformBlock));
+	sceneUniformBlock_ = createUniformBlock("Scene", sizeof(SceneUniformBlock));
 
 	// place holder
 	setupColorBuffer(envCubeMapPlaceholder_, 1, 1, false, true, TextureTarget_TEXTURE_CUBE_MAP, TextureFormat_RGBA8, TEXTURE_TYPE_CUBE);
+	setupColorBuffer(abientOcclusionPlaceholader_, 1, 1, false, false);
 	setupShadowMapBuffer(shadowMapPlaceholder_, 1, 1, false, false, false);
 	setupShadowMapBuffer(shadowMapCubePlaceholder_, 1, 1, false, true, false);
+
+	// generate ssao random vecs
+	std::vector<float> samples;
+	for (int i = 0; i < 64; i++) {
+		glm::vec3 wo;
+		float pdf;
+		MathUtils::UniformHemisphereSampleByVolume(wo, pdf, {}, {0.f, 1.f, 0.f}, true, 0, MathUtils::grayCode(i));
+		samples.push_back(wo.x);
+		samples.push_back(wo.y);
+		samples.push_back(wo.z);
+	}
+	ssaoKernelTexture_ = createBufferTexture(8, 8, samples, TextureFormat_RGB32F);
+	ssaoKernelUniformSampler_ = ssaoKernelTexture_->getUniformSampler(*this);
+	ssaoKernelUniformSampler_->setName("uSSAOKernel");
+
+	auto noisies = Buffer<glm::vec3>::makeBuffer(4, 4);
+	for (int i = 0; i < 4; i++) {
+		for (int j = 0; j < 4; j++) {
+			auto randomVec = glm::vec3(MathUtils::get_random_float(), 0.f, MathUtils::get_random_float());
+			noisies->getPixelRef(i, j) = randomVec;
+		}
+	}
+	TextureData randVecsData {};
+	randVecsData.floatDataArray.push_back(noisies);;
+	setupColorBuffer(noiseTexture_, 4, 4, false, false, TextureTarget_TEXTURE_2D, TextureFormat_RGB32F, TEXTURE_TYPE_NONE, randVecsData);
+	// noiseTexture_ = createBufferTexture(8, 8, noisies, TextureFormat_RGB32F);
+	noiseUniformSampler_ = noiseTexture_->getUniformSampler(*this);
+	noiseUniformSampler_->setName("uRandomVecs");
+
 	// in case uniform don't have a texture binding to it, then nsight will got error
 	envCubeMapUniformSampler_ = envCubeMapPlaceholder_->getUniformSampler(*this);
 	shadowMapUniformSampler_ = shadowMapPlaceholder_->getUniformSampler(*this);
 	shadowMapCubeUniformSampler_ = shadowMapCubePlaceholder_->getUniformSampler(*this);
+	abientOcclusionUniformSampler_ = abientOcclusionPlaceholader_->getUniformSampler(*this);
 }
 
 std::shared_ptr<UniformBlock> RendererOpenGL::createUniformBlock(const std::string& name, int size) const {
@@ -83,6 +115,9 @@ std::shared_ptr<Texture> RendererOpenGL::createTexture(const TextureInfo& texInf
 	else if(texInfo.target == TextureTarget::TextureTarget_TEXTURE_CUBE_MAP){
 		return std::make_shared<TextureOpenGLCube>(texInfo, smInfo, texData);
 	}
+	else if (texInfo.target == TextureTarget_TEXTURE_BUFFER) {
+		return std::make_shared<TextureOpenGLBuffer>(texInfo, smInfo, texData);
+	}
 	return nullptr;
 }
 
@@ -91,97 +126,8 @@ std::shared_ptr<FrameBuffer> RendererOpenGL::createFrameBuffer(bool offScreen)
 	return std::make_shared<FrameBufferOpenGL>(offScreen);
 }
 
-void RendererOpenGL::setupColorBuffer(std::shared_ptr<Texture> &outBuffer, int width, int height, bool force, bool bCubeMap, TextureTarget texTarget, TextureFormat
-                                      texFormat, TextureType texType) const {
-	if (outBuffer) {
-		const TextureInfo& texInfo = outBuffer->getTextureInfo();
-		force = force || texInfo.width != width || texInfo.height != height
-				|| texInfo.target != texTarget
-				|| texInfo.format != texFormat;
-	}
-
-	bool bMultisample = texTarget == TextureTarget_TEXTURE_2D_MULTISAMPLE;
-	if (!outBuffer || outBuffer->multiSample() != bMultisample || force) {
-		TextureInfo texInfo{};
-		texInfo.width = width;
-		texInfo.height = height;
-		texInfo.target = texTarget;
-		texInfo.format = texFormat;
-		texInfo.type = texType;
-		texInfo.usage = TextureUsage_AttachmentColor | TextureUsage_RendererOutput;
-		texInfo.multiSample = bMultisample;
-		texInfo.useMipmaps = false;
-
-		SamplerInfo smInfo{};
-		smInfo.filterMag = Filter_LINEAR;
-		smInfo.filterMin = Filter_LINEAR;
-
-		outBuffer = createTexture(texInfo, smInfo, {});
-	}
-}
-
-void RendererOpenGL::setupDepthBuffer(std::shared_ptr<Texture> &outBuffer, bool multiSample, bool force) const {
-	TextureTarget target = TextureTarget_TEXTURE_2D;
-	if (outBuffer) {
-		const TextureInfo& texInfo = outBuffer->getTextureInfo();
-		force = force || texInfo.width != width() || texInfo.height != height();
-		force = force || texInfo.target != target || texInfo.format != TextureFormat_FLOAT32;
-	}
-
-	if (!outBuffer || outBuffer->multiSample() != multiSample || force) {
-		TextureInfo texInfo{};
-		texInfo.width = width();
-		texInfo.height = height();
-		texInfo.target = target;
-		texInfo.format = TextureFormat::TextureFormat_FLOAT32;
-		texInfo.usage = TextureUsage::TextureUsage_AttachmentDepth;
-		texInfo.multiSample = multiSample;
-		texInfo.useMipmaps = false;
-
-		SamplerInfo smInfo{};
-		smInfo.filterMag = Filter_NEAREST;
-		smInfo.filterMin = Filter_NEAREST;
-
-		outBuffer = createTexture(texInfo, smInfo, {});
-	}
-}
-
-void RendererOpenGL::setupShadowMapBuffer(std::shared_ptr<Texture> &outBuffer, int width, int height,
-                                          bool multiSample, bool bCubeMap, bool force) const {
-	TextureTarget target = bCubeMap? TextureTarget_TEXTURE_CUBE_MAP: multiSample? TextureTarget_TEXTURE_2D_MULTISAMPLE : TextureTarget_TEXTURE_2D;
-	if (outBuffer) {
-		const TextureInfo& texInfo = outBuffer->getTextureInfo();
-		force = force || texInfo.width != width || texInfo.height != height
-				|| texInfo.target != target
-				|| texInfo.format != TextureFormat_FLOAT32;
-	}
-
-	if (!outBuffer || outBuffer->multiSample() != multiSample || force) {
-		TextureInfo texInfo{};
-		texInfo.width = width;
-		texInfo.height = height;
-		texInfo.target = target;
-		texInfo.format = TextureFormat::TextureFormat_FLOAT32;
-		texInfo.usage = TextureUsage::TextureUsage_AttachmentColor | TextureUsage::TextureUsage_Sampler;
-		texInfo.type = bCubeMap? TEXTURE_TYPE_SHADOWMAP_CUBE: TEXTURE_TYPE_SHADOWMAP;
-		texInfo.multiSample = multiSample;
-		texInfo.useMipmaps = false;
-
-		SamplerInfo smInfo{};
-		smInfo.filterMag = Filter_NEAREST;;
-		smInfo.filterMin = Filter_NEAREST;
-		// smInfo.wrapS = Wrap_CLAMP_TO_EDGE;
-		// smInfo.wrapT = Wrap_CLAMP_TO_EDGE;
-		smInfo.wrapS = bCubeMap? Wrap_CLAMP_TO_EDGE : Wrap_CLAMP_TO_BORDER;
-		smInfo.wrapT = bCubeMap? Wrap_CLAMP_TO_EDGE : Wrap_CLAMP_TO_BORDER;
-		smInfo.wrapR = bCubeMap? Wrap_CLAMP_TO_EDGE : Wrap_CLAMP_TO_BORDER;
-		smInfo.borderColor = BorderColor::Border_WHITE;
-
-		outBuffer = createTexture(texInfo, smInfo, {});
-	}
-}
-
-void RendererOpenGL::setupVertexAttribute(const BufferAttribute &vertexAttribute) const {
+void RendererOpenGL::setupVertexAttribute(BufferAttribute &vertexAttribute) const {
+	if (vertexAttribute.isPipelineSetup()) return;
 	// bind ref to
 	GLuint& VBO = vertexAttribute.VBO;
 	GL_CHECK(glGenBuffers(1, &VBO));
@@ -194,15 +140,24 @@ void RendererOpenGL::setupVertexAttribute(const BufferAttribute &vertexAttribute
 	// GL_STREAM_DRAW ：数据每次绘制时都会改变。
 	// 比如说一个缓冲中的数据将频繁被改变，那么使用的类型就是GL_DYNAMIC_DRAW或GL_STREAM_DRAW，这样就能确保显卡把数据放在能够高速写入的内存部分。
 	GL_CHECK(glBufferData(GL_ARRAY_BUFFER, vertexAttribute.byte_size(), vertexAttribute.data(), GL_STATIC_DRAW));
+	vertexAttribute.setPipelineReady(true);
+	vertexAttribute.deleter_ = [VBO = vertexAttribute.VBO] {
+		GL_CHECK(glDeleteBuffers(1, &VBO));
+	};
 }
 
 void RendererOpenGL::setupGeometry(FGeometry& geometry) const {
 	// realy return
 	if (geometry.isPipelineReady()) return;
 
+	// setup VAO
+	GLuint& VAO = geometry.VAO;
+	GL_CHECK(glGenVertexArrays(1, &VAO));
+	GL_CHECK(glBindVertexArray(VAO));
+
 	// setup attributes
 	for(auto&& [_, data]: geometry.getBufferData()) {
-		data.setupPipeline(*this);
+		setupVertexAttribute(data);
 	}
 
 	// setup indices
@@ -211,10 +166,44 @@ void RendererOpenGL::setupGeometry(FGeometry& geometry) const {
 		GL_CHECK(glGenBuffers(1, &EBO));
 		GL_CHECK(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO));
 		GL_CHECK(glBufferData(GL_ELEMENT_ARRAY_BUFFER, geometry.getIndicesNum() * sizeof(unsigned), geometry.getIndicesRawData(), GL_STATIC_DRAW));
+		GL_CHECK(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0));
 		geometry.setEBO(EBO);
 	}
 
+	// attrs
+	for (auto&& [attr, data]: geometry.getBufferData()) {
+		// if (auto pshader = ShaderGLSL::loadDefaultShader()) {
+		// 	// 错误的初始化shader，用于查找location，可能导致错误的顶点数据绑定，需要格外小心。
+		// 	// 当然最简单的方法就是直接硬编码顺序
+		// }
+		// now use enum as loc
+		const auto& VBO = data.VBO;;
+		GL_CHECK(glBindBuffer(GL_ARRAY_BUFFER, VBO));
+		// 指定顶点属性的解释方式（如何解释VBO中的数据）
+		// 1. glVertexAttribPointer
+		// attri的Location(layout location = 0) | item_size | 数据类型 | 是否Normalize to 0-1 | stride | 从Buffer起始位置开始的偏移
+		GL_CHECK(glVertexAttribPointer(attr, data.elem_size(), GL_FLOAT, GL_FALSE, data.elem_size() * sizeof(float), (void*)0));
+		// 以顶点属性位置值作为参数，启用顶点属性；顶点属性默认是禁用的
+		GL_CHECK(glEnableVertexAttribArray(attr));
+	}
+
+	// indices
+	if (geometry.isMeshIndexed()) {
+		auto EBO = geometry.getEBO();
+		GL_CHECK(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO));
+	}
+
+	// set back
+	GL_CHECK(glBindVertexArray(0));
+
 	geometry.setPipelineReady(true);
+
+	// LOGD("Geometry Setup - VAO: %d", geometry.VAO);
+	geometry.deleter_ = [VAO = geometry.VAO, EBO = geometry.EBO]() {
+		GL_CHECK(glDeleteBuffers(1, &EBO));
+		GL_CHECK(glDeleteVertexArrays(1, &VAO));
+		// LOGD("Geometry Teardown - VAO: %d", VAO);
+	};
 }
 
 // Each kind of shading is consist of multiple renderpass.
@@ -237,6 +226,10 @@ void RendererOpenGL::loadShaders(FMaterial& material) const {
 		material.setShader(ShaderPass::Shader_Shadow_Cube_Pass, ShaderGLSL::loadShadowCubePassShader());
 		break;
 	case Shading_PBR:
+		material.setShader(ShaderPass::Shader_ForwardShading_Pass, ShaderGLSL::loadBlinnPhongShader());
+		material.setShader(ShaderPass::Shader_Geometry_Pass, ShaderGLSL::loadGeometryShader());
+		material.setShader(ShaderPass::Shader_Shadow_Pass, ShaderGLSL::loadShadowPassShader());
+		material.setShader(ShaderPass::Shader_Shadow_Cube_Pass, ShaderGLSL::loadShadowCubePassShader());
 		break;
 	case Shading_Skybox:
 		material.setShader(ShaderPass::Shader_ForwardShading_Pass, ShaderGLSL::loadSkyBoxShader());
@@ -262,8 +255,8 @@ void RendererOpenGL::setupMaterial(FMaterial& material) const {
 		for (auto& [type, textureData] : material.getTextureData()) {
 			const bool bIsCubeMap = textureData.loadedTextureType == TEXTURE_TYPE_CUBE;
 			TextureInfo texInfo{};
-			texInfo.width = textureData.dataArray[0]->width();
-			texInfo.height = textureData.dataArray[0]->height();
+			texInfo.width = textureData.unitDataArray[0]->width();
+			texInfo.height = textureData.unitDataArray[0]->height();
 			texInfo.type = textureData.loadedTextureType;
 			texInfo.target = bIsCubeMap? TextureTarget_TEXTURE_CUBE_MAP: TextureTarget_TEXTURE_2D;
 			texInfo.format = TextureFormat_RGBA8;
@@ -281,11 +274,6 @@ void RendererOpenGL::setupMaterial(FMaterial& material) const {
 
 			auto texture = createTexture(texInfo, smInfo, textureData);
 			material.setTexture_runtime(texInfo.type, texture);
-
-			const auto& samplerName = Texture::samplerName(static_cast<TextureType>(type));
-			auto sampler = std::make_shared<UniformSamplerOpenGL>(samplerName, (TextureTarget)texInfo.target, (TextureFormat)texInfo.format);
-			sampler->setTexture(*texture);
-			material.setUniformSampler(sampler->name(), sampler);
 		}
 
 		material.setTexturesReady(true);
@@ -297,11 +285,22 @@ void RendererOpenGL::setupMaterial(FMaterial& material) const {
 		for (auto& [pass, shader] : material.getShaders()) {
 			shader->setupPipeline(material);
 		}
+
+		auto&& matobj = material.getMaterialObject();
+		for (auto&& [type, texture]: matobj->texturesRuntime_) {
+			/****这里是唯一正确装配sampler name的地方 **/
+			const auto& samplerName = Texture::samplerName(static_cast<TextureType>(type));
+			const auto& texInfo = texture->getTextureInfo();
+			auto sampler = std::make_shared<UniformSamplerOpenGL>(samplerName, (TextureTarget)texInfo.target, (TextureFormat)texInfo.format);
+			sampler->setTexture(*texture);
+			material.setUniformSampler(sampler->name(), sampler);
+		}
+
 		material.setShaderReady(true);
 	}
 }
 
-void RendererOpenGL::setupMesh(const std::shared_ptr<UMesh> &mesh, ShaderPass shaderPass) const {
+void RendererOpenGL::setupMesh(const std::shared_ptr<UMesh> &mesh, ShaderPass shaderPass) {
 	// return early
 	if (mesh->isPipelineReady()) return;
 
@@ -315,44 +314,7 @@ void RendererOpenGL::setupMesh(const std::shared_ptr<UMesh> &mesh, ShaderPass sh
 	} // material
 
 	if (auto pgeometry = mesh->getGeometry()) {
-
 		setupGeometry(*pgeometry);
-
-		// if VBO ready
-		if (mesh->isPipelineReady()) {
-			return;
-		}
-
-		GLuint& VAO = mesh->VAO;
-		GL_CHECK(glGenVertexArrays(1, &VAO));
-		GL_CHECK(glBindVertexArray(VAO));
-
-		// attrs
-		for (auto&& [attr, data]: pgeometry->getBufferData()) {
-			// if (auto pshader = ShaderGLSL::loadDefaultShader()) {
-			// 	// 错误的初始化shader，用于查找location，可能导致错误的顶点数据绑定，需要格外小心。
-			// 	// 当然最简单的方法就是直接硬编码顺序
-			// }
-			// now use enum as loc
-			const auto& VBO = data.VBO;;
-			GL_CHECK(glBindBuffer(GL_ARRAY_BUFFER, VBO));
-			// 指定顶点属性的解释方式（如何解释VBO中的数据）
-			// 1. glVertexAttribPointer
-			// attri的Location(layout location = 0) | item_size | 数据类型 | 是否Normalize to 0-1 | stride | 从Buffer起始位置开始的偏移
-			GL_CHECK(glVertexAttribPointer(attr, data.elem_size(), GL_FLOAT, GL_FALSE, data.elem_size() * sizeof(float), (void*)0));
-			// 以顶点属性位置值作为参数，启用顶点属性；顶点属性默认是禁用的
-			GL_CHECK(glEnableVertexAttribArray(attr));
-		}
-
-
-		// indices
-		if (pgeometry->isMeshIndexed()) {
-			auto EBO = pgeometry->getEBO();
-			GL_CHECK(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO));
-		}
-
-		// set back
-		GL_CHECK(glBindVertexArray(0));
 	} // geometry
 
 }
@@ -369,7 +331,7 @@ void RendererOpenGL::drawMesh(const std::shared_ptr<UMesh> &mesh, const ShaderPa
 	if (mesh->drawable()) {
 		setupMesh(mesh, pass);
 		// update model unifor
-		updateModelUniformBlock(mesh, mainCamera_, shadowLight);
+		updateMainUniformBlock(mesh, mainCamera_, shadowLight);
 
 		// use shader forcely and explicitly
 		if (overrideShader) {
@@ -383,8 +345,8 @@ void RendererOpenGL::drawMesh(const std::shared_ptr<UMesh> &mesh, const ShaderPa
 			pmaterial->use(pass); // bind shader resources
 		}
 
-		const auto VAO = mesh->VAO;
 		auto pgeometry = mesh->getGeometry();
+		const auto VAO = pgeometry->VAO;
 		GL_CHECK(glBindVertexArray(VAO));
 		if (pgeometry->isMesh()) {
 			// primitive | 顶点数组起始索引 | 绘制indices数量
@@ -476,7 +438,7 @@ void RendererOpenGL::drawDebugBBox(const BoundingBox &bbox, const std::shared_pt
 
 		// now this is not neccessary, we apply model matrix before build bvh
 		// updateModelUniformBlock(holdingMesh, mainCamera_, {}); // update model matrix if root mesh changed
-		updateModelUniformBlock({}, mainCamera_, {});
+		updateMainUniformBlock({}, mainCamera_, {});
 		loadGlobalUniforms(*debugShader);
 		debugShader->bindHoldingResources();
 		debugShader->setFloat("uLayerDepth", depth);
@@ -509,7 +471,7 @@ void RendererOpenGL::drawDebugBBox(const BoundingBox &bbox, const std::shared_pt
 void RendererOpenGL::drawWorldAxis(const std::shared_ptr<UMesh> &holdingMesh) {
 	// 设置顶点数据和缓冲
 	// 设置顶点数据和缓冲
-	float vertices[] = {
+	static constexpr float vertices[] = {
 		// X轴
 		0.0f,  0.0f,  0.0f,
 		1.0f,  0.0f,  0.0f,
@@ -541,7 +503,7 @@ void RendererOpenGL::drawWorldAxis(const std::shared_ptr<UMesh> &holdingMesh) {
 		0.05f, -0.05f,  0.9f,
    };
 
-	unsigned int indices[] = {
+	static const unsigned int indices[] = {
 		0, 1,        // X轴
 		2, 3, 2, 4,  // X箭头
 		2, 5, 2, 6,
@@ -572,13 +534,13 @@ void RendererOpenGL::drawWorldAxis(const std::shared_ptr<UMesh> &holdingMesh) {
 		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
 		glEnableVertexAttribArray(0);
 
-		glBindBuffer(GL_ARRAY_BUFFER, 0);
+		// glBindBuffer(GL_ARRAY_BUFFER, 0);
 		glBindVertexArray(0);
 	}
 
 	if (auto && debugShader = getDrawDebuglineProgram()) {
 		// update MVP
-		updateModelUniformBlock(holdingMesh, mainCamera_, {});
+		updateMainUniformBlock(holdingMesh, mainCamera_, {});
 		loadGlobalUniforms(*debugShader);
 		debugShader->bindHoldingResources();
 
@@ -608,14 +570,76 @@ void RendererOpenGL::drawWorldAxis(const std::shared_ptr<UMesh> &holdingMesh) {
 
 }
 
-void RendererOpenGL::drawDebugLine_Impl(FLine &line) {
-	if (line.VAO_ == 0) {
+void RendererOpenGL::drawDebugPoint_Impl(const std::shared_ptr<FPoint> &point) {
+	if (point->VAO_ == 0) {
 		GLuint VBO;
-		glm::vec3 lineVertex[2] = {line.start_, line.end_};
+		glm::vec3 pointVertices[1] = { point->position_ };
 
-		glGenVertexArrays(1, &line.VAO_);
+		glGenVertexArrays(1, &point->VAO_);
 		glGenBuffers(1, &VBO);
-		glBindVertexArray(line.VAO_);
+		glBindVertexArray(point->VAO_);
+
+		glBindBuffer(GL_ARRAY_BUFFER, VBO);
+		// size means byte size, prevent array from degradating to const ptr.
+		glBufferData(GL_ARRAY_BUFFER, sizeof(pointVertices), pointVertices, GL_STATIC_DRAW);
+		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid*)0);
+		glEnableVertexAttribArray(0);
+
+		glBindBuffer(GL_ARRAY_BUFFER, 0);
+		glBindVertexArray(0);
+
+		// if 0.f, do not remove point
+		if (point->persistTime_ > 0.f) {
+			std::weak_ptr<Renderer> self = shared_from_this();
+			auto releaseResource = [persistentTime = point->persistTime_, uuid = point->getUUID(), self]() {
+				std::this_thread::sleep_for(std::chrono::duration<double>(persistentTime));
+				if (auto&& renderer = self.lock())
+				{
+					renderer->remove_point_debug_task_safe(uuid);
+				}
+			};
+			point->deleter_ = [VBO = VBO, VAO = point->VAO_]() {
+				glDeleteBuffers(1, &VBO);
+				glDeleteVertexArrays(1, &VAO);
+			};
+			auto&& pool = FThreadPool::getInst();
+			pool.pushTask(releaseResource); //
+		}
+	}
+
+	// draw point
+	{
+		auto && debugShader = getDrawDebuglineProgram();
+		// update MVP
+		updateMainUniformBlock({}, mainCamera_, {});
+		loadGlobalUniforms(*debugShader);
+		debugShader->bindHoldingResources();
+
+		// set opengl state
+		glDisable(GL_DEPTH_TEST);
+		glDepthMask(GL_FALSE);
+
+		glBindVertexArray(point->VAO_);
+		debugShader->setVec3("uLineColor", glm::vec3(0.f, 1.f, 0.f));
+		glPointSize(point->pointSize_);
+		glDrawArrays(GL_POINTS, 0, 1);
+		glBindVertexArray(0);
+
+		// recover
+		glDepthMask(GL_TRUE);
+		glEnable(GL_DEPTH_TEST);
+	}
+}
+
+
+void RendererOpenGL::drawDebugLine_Impl(const std::shared_ptr<FLine> &line) {
+	if (line->VAO_ == 0) {
+		GLuint VBO;
+		glm::vec3 lineVertex[2] = {line->start_, line->end_};
+
+		glGenVertexArrays(1, &line->VAO_);
+		glGenBuffers(1, &VBO);
+		glBindVertexArray(line->VAO_);
 
 		glBindBuffer(GL_ARRAY_BUFFER, VBO);
 		// size means byte size, prevent array from degradating to const ptr.
@@ -627,14 +651,16 @@ void RendererOpenGL::drawDebugLine_Impl(FLine &line) {
 		glBindVertexArray(0);
 
 		// if 0.f, do not remove line
-		if (line.persistentTime_ > 0.f) {
+		if (line->persistTime_ > 0.f) {
 			std::weak_ptr<Renderer> self = shared_from_this();
-			auto releaseResource = [persistentTime = line.persistentTime_, VBO = VBO, VAO = line.VAO_, uuid = line.getUUID(), self]() {
+			auto releaseResource = [persistentTime = line->persistTime_, uuid = line->getUUID(), self]() {
 				std::this_thread::sleep_for(std::chrono::duration<double>(persistentTime));
 				if (auto&& renderer = self.lock())
 				{
 					renderer->remove_line_debug_task_safe(uuid);
 				}
+			};
+			line->deleter_ = [VBO = VBO, VAO = line->VAO_] {
 				glDeleteBuffers(1, &VBO);
 				glDeleteVertexArrays(1, &VAO);
 			};
@@ -648,7 +674,7 @@ void RendererOpenGL::drawDebugLine_Impl(FLine &line) {
 	{
 		auto && debugShader = getDrawDebuglineProgram();
 		// update MVP
-		updateModelUniformBlock({}, mainCamera_, {});
+		updateMainUniformBlock({}, mainCamera_, {});
 		loadGlobalUniforms(*debugShader);
 		debugShader->bindHoldingResources();
 
@@ -656,7 +682,7 @@ void RendererOpenGL::drawDebugLine_Impl(FLine &line) {
 		glDisable(GL_DEPTH_TEST);
 		glDepthMask(GL_FALSE);
 
-		glBindVertexArray(line.VAO_);
+		glBindVertexArray(line->VAO_);
 		debugShader->setVec3("uLineColor", glm::vec3(0.f, 1.f, 0.f));
 		glDrawArrays(GL_LINES, 0, 2);
 		glBindVertexArray(0);
@@ -668,15 +694,15 @@ void RendererOpenGL::drawDebugLine_Impl(FLine &line) {
 
 }
 
-void RendererOpenGL::drawDebugTriangle_Impl(Triangle &triangle) {
-	if (triangle.VAO_ == 0) {
+void RendererOpenGL::drawDebugTriangle_Impl(const std::shared_ptr<Triangle> &triangle) {
+	if (triangle->VAO_ == 0) {
 		GLuint VBO;
-		glm::vec3 triVertices[3] = {triangle.v0_, triangle.v1_, triangle.v2_};
+		glm::vec3 triVertices[3] = {triangle->v0_, triangle->v1_, triangle->v2_};
 
-		GL_CHECK(glGenVertexArrays(1, &triangle.VAO_));
+		GL_CHECK(glGenVertexArrays(1, &triangle->VAO_));
 
 		glGenBuffers(1, &VBO);
-		glBindVertexArray(triangle.VAO_);
+		glBindVertexArray(triangle->VAO_);
 
 		glBindBuffer(GL_ARRAY_BUFFER, VBO);
 		// size means byte size, prevent array from degradating to const ptr.
@@ -688,17 +714,19 @@ void RendererOpenGL::drawDebugTriangle_Impl(Triangle &triangle) {
 		glBindVertexArray(0);
 
 		// if 0.f, do not remove line
-		if (triangle.persistTime_ > 0.f) {
+		if (triangle->persistTime_ > 0.f) {
 			std::weak_ptr<Renderer> self = shared_from_this();
-			auto releaseResource = [persistTime = triangle.persistTime_, VBO = VBO, VAO = triangle.VAO_, uuid = triangle.getUUID(), self]() {
+			auto releaseResource = [persistTime = triangle->persistTime_, uuid = triangle->getUUID(), self]() {
 				std::this_thread::sleep_for(std::chrono::duration<double>(persistTime));
 				if (auto&& renderer = self.lock())
 				{
 					renderer->remove_triangle_debug_task_safe(uuid);
 				}
+			};
+
+			triangle->deleter_ = [VBO = VBO, VAO = triangle->VAO_] {
 				glDeleteBuffers(1, &VBO);
 				glDeleteVertexArrays(1, &VAO);
-
 			};
 
 			auto&& pool = FThreadPool::getInst();
@@ -711,7 +739,7 @@ void RendererOpenGL::drawDebugTriangle_Impl(Triangle &triangle) {
 	{
 		auto && debugShader = getDrawDebuglineProgram();
 		// update MVP
-		updateModelUniformBlock({}, mainCamera_, {});
+		updateMainUniformBlock({}, mainCamera_, {});
 		loadGlobalUniforms(*debugShader);
 		debugShader->bindHoldingResources();
 
@@ -721,7 +749,7 @@ void RendererOpenGL::drawDebugTriangle_Impl(Triangle &triangle) {
 		GL_CHECK(glPolygonMode(GL_FRONT_AND_BACK, GL_FILL));
 		GL_CHECK(glEnable(GL_CULL_FACE));
 
-		GL_CHECK(glBindVertexArray(triangle.VAO_));
+		GL_CHECK(glBindVertexArray(triangle->VAO_));
 		debugShader->setVec3("uLineColor", glm::vec3(0.f, 1.f, 0.f));
 		GL_CHECK(glDrawArrays(GL_TRIANGLES, 0, 3));
 		glBindVertexArray(0);
@@ -811,6 +839,7 @@ void RendererOpenGL::setRenderViewPort(int x, int y, int width, int height) {
 void RendererOpenGL::waitIdle()
 {
 	GL_CHECK(glFinish());
+	GL_CHECK(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
 }
 
 void RendererOpenGL::dump(const
@@ -868,27 +897,16 @@ void RendererOpenGL::dump(const
 			GL_CHECK(glClear(GL_COLOR_BUFFER_BIT));
 		}
 
-		GL_CHECK(glGenVertexArrays(1, &VAO));
-		GL_CHECK(glBindVertexArray(VAO));
-
-		GL_CHECK(glGenBuffers(1, &VBO));
-		GL_CHECK(glBindBuffer(GL_ARRAY_BUFFER, VBO));
-		GL_CHECK(glBufferData(GL_ARRAY_BUFFER, ToScreenRectangleVertices.size() * sizeof(float), ToScreenRectangleVertices.data(), GL_STATIC_DRAW));
-
-		GL_CHECK(glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), nullptr));
-		GL_CHECK(glEnableVertexAttribArray(0));
-		GL_CHECK(glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float))));
-		GL_CHECK(glEnableVertexAttribArray(1));
-
-		GL_CHECK(glGenBuffers(1, &EBO));
-		GL_CHECK(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO));
-		GL_CHECK(glBufferData(GL_ELEMENT_ARRAY_BUFFER, ToScreenRectangleIndices.size() * sizeof(GLuint), ToScreenRectangleIndices.data(), GL_STATIC_DRAW));
-
-		GL_CHECK(glBindVertexArray(GL_NONE));
-
 		// load Uniforms
 		loadGlobalUniforms(*program);
 		program->bindHoldingResources(); // where really 'use()'
+		if (!targetFrameBuffer) { // do tone mapping lastly
+			if (auto&& glslShader = std::dynamic_pointer_cast<ShaderGLSL>(program)) {
+				auto&& config = Config::getInstance();
+				glslShader->setFloat("uExposure", config.Exposure);
+				glslShader->setBool("uUseToneMapping", config.bUseHDR);
+			}
+		}
 
 		GL_CHECK(glBindVertexArray(VAO));
 		GL_CHECK(glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr));
@@ -916,26 +934,35 @@ std::shared_ptr<ShaderGLSL> RendererOpenGL::getToScreenColorProgram(const std::s
 	layout (location = 0) in vec3 aPos;
 	layout (location = 1) in vec2 aTexCoord;
 
-	out vec2 TexCoord;
+	out vec2 TexCoords;
 
 	void main()
 	{
 		gl_Position = vec4(aPos, 1.0);
-		TexCoord = vec2(aTexCoord.x, aTexCoord.y);
+		TexCoords = aTexCoord;
 	}
 	)";
 
 	static const char* FS = R"(
-	in vec2 TexCoord;
+	in vec2 TexCoords;
 	out vec4 FragColor;
 
 	uniform sampler2D uTexture;
+	uniform float uExposure;
+	uniform bool uUseToneMapping;
 
 	void main()
 	{
-		float gamma = 1.0;
-		FragColor = texture(uTexture, TexCoord);
-		FragColor.rgb = pow(FragColor.rgb, vec3(1.0/gamma));
+	    const float gamma = 2.2;
+	    vec3 hdrColor = texture(uTexture, TexCoords).rgb;
+
+	    // 曝光色调映射
+	    vec3 mapped = vec3(1.0) - exp(-hdrColor * uExposure);
+	    // Gamma校正
+	    mapped = pow(mapped, vec3(1.0 / gamma));
+		// hdrColor = pow(hdrColor, vec3(1.0 / gamma));
+		if (uUseToneMapping) FragColor = vec4(mapped, 1.0);
+		else FragColor = vec4(hdrColor, 1.0);
 	}
 	)";
 
@@ -1049,13 +1076,18 @@ std::shared_ptr<ShaderGLSL> RendererOpenGL::getDrawDebuglineProgram() const {
 	return program;
 }
 
-std::shared_ptr<ShaderGLSL> RendererOpenGL::getDefferedShadingProgram(const std::vector<std::shared_ptr<Texture>> &gBuffers) const {
-
-	static std::shared_ptr<ShaderGLSL> program;
+std::shared_ptr<ShaderGLSL> RendererOpenGL::getDefferedShadingProgram(const std::vector<std::shared_ptr<Texture>> &gBuffers, EShadingModel shadingModel) const {
+	static std::shared_ptr<ShaderGLSL> program;;
 	static Serika::UUID<ShaderResources> resourceUUID;
 
 	if (!program) {
-		program = ShaderGLSL::loadDefferedBlinnPhongShader();
+		if (shadingModel == Shading_BlinnPhong) {
+			program = ShaderGLSL::loadDefferedBlinnPhongShader();
+		}
+		else if (shadingModel == Shading_PBR) {
+			program = ShaderGLSL::loadDefferedPBRShader();
+		}
+
 		program->compileAndLink();
 
 		auto&& resources = noObjectContextShaderResources[resourceUUID.get()];
@@ -1072,6 +1104,56 @@ std::shared_ptr<ShaderGLSL> RendererOpenGL::getDefferedShadingProgram(const std:
 		sampler->setName(RenderPassGeometry::GBUFFER_NAMES[i]);
 		program->setUniformSampler(sampler->name(), sampler);
 	}
+
+	return program;
+}
+
+std::shared_ptr<ShaderGLSL> RendererOpenGL::
+getSSAOProgram(const std::vector<std::shared_ptr<Texture>> &gBuffers) const {
+	static std::shared_ptr<ShaderGLSL> program;
+	static Serika::UUID<ShaderResources> resourceUUID;
+
+	if (!program) {
+		program = ShaderGLSL::loadSSAOPassShader();
+		program->compileAndLink();
+
+		auto&& resources = noObjectContextShaderResources[resourceUUID.get()];
+		if (!resources) {
+			resources = std::make_shared<ShaderResources>();
+			program->setResources(resources);
+		}
+	}
+
+	// bind gbuffers
+	for(int i = 0; i < gBuffers.size(); i++) {
+		const auto& gbuffer = gBuffers[i];
+		auto&& sampler = gbuffer->getUniformSampler(*this);
+		sampler->setName(RenderPassGeometry::GBUFFER_NAMES[i]);
+		program->setUniformSampler(sampler->name(), sampler);
+	}
+
+	return program;
+}
+
+std::shared_ptr<ShaderGLSL> RendererOpenGL::getSSAOBlurProgram(const std::shared_ptr<Texture> &ssaoInput) const {
+	static std::shared_ptr<ShaderGLSL> program;
+	static Serika::UUID<ShaderResources> resourceUUID;
+
+	if (!program) {
+		program = ShaderGLSL::loadSSAOBlurShader();
+		program->compileAndLink();
+
+		auto&& resources = noObjectContextShaderResources[resourceUUID.get()];
+		if (!resources) {
+			resources = std::make_shared<ShaderResources>();
+			program->setResources(resources);
+		}
+	}
+
+	// bind
+	auto&& sampler = ssaoInput->getUniformSampler(*this);
+	sampler->setName("uSSAOInput");
+	program->setUniformSampler(sampler->name(), sampler);
 
 	return program;
 }

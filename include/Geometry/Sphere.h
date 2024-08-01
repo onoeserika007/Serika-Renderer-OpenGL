@@ -3,16 +3,16 @@
 #include "BoundingBox.h"
 #include "Geometry/Primitives.h"
 
-struct MaterialInfo;
+class FMaterial;
 
 class Sphere final : public Intersectable {
     glm::vec3 center_ = {};
     float radius = 0.f;
     float radius2 = 0.f;
-    MaterialInfo material_info_;
+    std::weak_ptr<FMaterial> material_;
     float area = 0.f;
 
-    Sphere(const glm::vec3 &center, float radius, const MaterialInfo& mt = {});
+    Sphere(const glm::vec3 &center, float radius, const std::shared_ptr<FMaterial>& mat = {});
 
     virtual ~Sphere() override;
 

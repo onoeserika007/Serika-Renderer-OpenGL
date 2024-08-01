@@ -7,7 +7,6 @@
 #include <memory>
 #include "RenderPass/RenderPass.h"
 
-
 class RenderPassGeometry;
 class Texture;
 class FrameBuffer;
@@ -16,14 +15,14 @@ class UObject;
 
 class RenderPassLight: public RenderPass{
 public:
-    RenderPassLight(Renderer& renderer);
+    RenderPassLight(const std::shared_ptr<Renderer>& renderer);
     virtual void render(FScene & scene) override;
     virtual void setupBuffers() override;
     virtual void init() override;
 
     std::shared_ptr<Texture> getOutTex();
     std::shared_ptr<FrameBuffer> getFramebufferMain();
-    void renderGBuffersToScreen(const std::shared_ptr<FrameBuffer>& gBuffer);
+    void renderGBuffersToScreen();
     void injectGeometryPass(const std::shared_ptr<RenderPassGeometry>& geometryPass) { geometryPass_ = geometryPass; }
 private:
     std::shared_ptr<FrameBuffer> fboMain_ = nullptr;
@@ -31,7 +30,5 @@ private:
     std::shared_ptr<Texture> texDepthMain_ = nullptr;
     std::weak_ptr<RenderPassGeometry> geometryPass_ {};
 };
-
-
 
 #endif //RENDERPASSLIGHT_H

@@ -5,16 +5,20 @@ layout(location = 2) in vec3 aNormal;
 
 out vec2 vTexCoord;
 out vec4 vFragDNCPos;
+
 layout(std140) uniform Model {
     mat4 uModel;
     mat4 uView;
     mat4 uProjection;
     mat4 uNormalToWorld;
-    mat4 uShadowMapMVP;
+    mat4 uShadowMapVP;
     vec3 uViewPos;
     bool uUseShadowMap;
     bool uUseShadowMapCube;
     bool uUseEnvMap;
+    bool uUsePureEmission;
+    float uNearPlaneCamera;
+    float uFarPlaneCamera;
 };
 
 void main() {

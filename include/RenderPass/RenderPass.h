@@ -12,11 +12,11 @@ class Texture;
 class RenderPass {
 private:
 protected:
-	std::shared_ptr<Shader> shaderProgram_;
-	Renderer& renderer_;
+	std::shared_ptr<Renderer> renderer_;
 	ShaderPass shaderPass_ = ShaderPass::Shader_ForwardShading_Pass;
 public:
-	RenderPass(Renderer& renderer) : renderer_(renderer) {}
+	explicit RenderPass(const std::shared_ptr<Renderer>& renderer) : renderer_(renderer) {}
+	virtual ~RenderPass() = default;
 	virtual void render(FScene & scene) = 0;
 	virtual void setupBuffers() = 0;
 	virtual void init() = 0;

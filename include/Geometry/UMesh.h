@@ -5,7 +5,6 @@
 #include "BoundingBox.h"
 #include "Primitives.h"
 #include "Geometry/Object.h"
-#include "Geometry/BVHAccel.h"
 
 class BVHAccel;
 class Triangle;
@@ -20,7 +19,7 @@ public:
     // 只保证clone出来的对象是子类，返回指针还是基类
     // virtual std::unique_ptr<UObject> Clone() const override { return std::unique_ptr<UMesh>(new UMesh(*this)); }
     // virtual void init() override;
-
+    std::shared_ptr<UMesh> Clone();
 
     // getters
     std::shared_ptr<FGeometry> getGeometry() const;
@@ -28,7 +27,7 @@ public:
     std::shared_ptr<UObject> getParentObject() const;
     const std::vector<std::shared_ptr<UMesh>>& getMeshes() const { return submeshes_; }
     glm::mat4 getWorldMatrix() const;
-    std::shared_ptr<UniformSampler> tryGetSkyboxSampler(const Renderer &renderer);
+    std::shared_ptr<UniformSampler> tryGetSkyboxSampler(Renderer &renderer);
     bool useCull() const  { return bUseCull; }
     bool drawable() const  { return pgeometry_ && pmaterial_; }
     bool castShadow() const { return bCastShadow; }
@@ -37,15 +36,20 @@ public:
     std::unique_ptr<Triangle> fetchTriangle(unsigned k) const;
 
     // setters
-    void setGeometry(const std::shared_ptr<FGeometry>& geo) { pgeometry_ = geo; }
-    void setMaterial(const std::shared_ptr<FMaterial>& mat) { pmaterial_ = mat; }
+    void setGeometry(const std::shared_ptr<FGeometry>& geo);
+
+    void setMaterial(const std::shared_ptr<FMaterial>& mat);
+
     void setParentObject(const std::shared_ptr<UObject>& obj);
-    void enableFaceCull(const bool bEnabled) { bUseCull = bEnabled; }
-    void enableCastShadow(bool enabled) { bCastShadow = enabled; }
-    void setShadingMode(EShadingModel shadingMode) { shadingMode_ = shadingMode; }
+    void enableFaceCull(const bool bEnabled);
+
+    void enableCastShadow(bool bEnabled);
+
+    void setShadingMode(EShadingModel shadingMode);
+
     void setEmission(const glm::vec3& EmissiveColor) const;
     void setDiffuse(const glm::vec3& DiffuseColor) const;
-    void addMesh(const std::shared_ptr<UMesh>& mesh) { submeshes_.emplace_back(mesh); }
+    void addMesh(const std::shared_ptr<UMesh>& mesh);
 
     bool isPipelineReady() const;
 
@@ -55,7 +59,6 @@ public:
     void updateWorldMatrix(const glm::mat4& worldMatrix) const { worldMatrix_ = worldMatrix; }
 
 public:
-    mutable unsigned VAO;
 
 protected:
     UMesh();

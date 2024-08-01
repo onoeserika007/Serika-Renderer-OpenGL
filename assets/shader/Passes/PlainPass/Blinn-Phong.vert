@@ -18,6 +18,9 @@ layout(std140) uniform Model {
     bool uUseShadowMap;
     bool uUseShadowMapCube;
     bool uUseEnvMap;
+    bool uUsePureEmission;
+    float uNearPlaneCamera;
+    float uFarPlaneCamera;
 };
 
 void main() {

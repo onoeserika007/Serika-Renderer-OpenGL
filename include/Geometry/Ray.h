@@ -1,9 +1,10 @@
 #pragma once
 #include <iostream>
 #include "Base/Globals.h"
+#include "Material/FMaterial.h"
 #include "Utils/UniversalUtils.h"
-#include "Material/MaterialInfo.h"
 
+class FMaterial;
 class Intersectable;
 
 struct Intersection {
@@ -12,8 +13,30 @@ struct Intersection {
     glm::vec2 texCoords {};
     glm::vec3 normal {};
     float traceDistance = FLOAT_MAX;
-    MaterialInfo material{};
-    std::weak_ptr<Intersectable> primitive;
+    std::weak_ptr<FMaterial> material{};
+    std::weak_ptr<Intersectable> primitive{};
+
+    NO_DISCARD bool hasEmission() const {
+        if (auto&& mat = material.lock()) {
+            return mat->hasEmission();
+        }
+        return false;
+    }
+
+    NO_DISCARD glm::vec3 getEmission() const {
+        if (auto&& mat = material.lock()) {
+            return mat->getEmission();
+        }
+        return {};
+    }
+
+    glm::vec3 evalRadiance(const glm::vec3 &wi, const glm::vec3 &wo, const glm::vec3 &N) {
+        if (auto&& mat = material.lock()) {
+            return mat->evalRadiance(wi, wo, N, texCoords.x, texCoords.y);
+        }
+        return {};
+    }
+
 };
 
 struct Ray{

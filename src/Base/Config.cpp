@@ -5,7 +5,9 @@
 #include "json11/json11.hpp"
 #include "Utils/Logger.h"
 
-using json = json11::Json;
+using json = json11::Json;;
+
+const std::string Config::defaultConfigPath = "./configs/renderConfig.json";
 
 void Config::serialize(const std::string &path) {
     json j = *this;
@@ -50,7 +52,17 @@ void Config::deserialize(const std::string &path) {
 
 Config & Config::getInstance() {
     static Config config;
-    return config;;
+    if (!config.loaded_) {
+
+        std::lock_guard<std::mutex> guard(config.load_lock_);
+        // prevent from loaded twice, already loaded other thread
+        if (!config.loaded_) {
+            config.deserialize(defaultConfigPath);
+            std::cout << "Rendering Mode: " << static_cast<int>(config.RenderMode) << std::endl;
+            config.loaded_ = true;
+        }
+    }
+    return config;
 }
 
 json Config::to_json() const {
@@ -71,7 +83,13 @@ json Config::to_json() const {
         {"WindowWidth", json(WindowWidth)},
         {"WindowHeight", json(WindowHeight)},
         {"bSkybox", json(bSkybox)},
-        {"bUseBVH", json(bUseBVH)}
+        {"bUseBVH", json(bUseBVH)},
+        {"SPP", json(SPP)},
+        {"Exposure", json(Exposure)},
+        {"bUseHDR", json(bUseHDR)},
+        {"bUseBloom", json(bUseBloom)},
+        {"bUseSSAO", json(bUseSSAO)},
+        {"SceneType", json(SceneType)}
     };;;
 }
 
@@ -93,5 +111,12 @@ Config & Config::from_json(const json &j) {
     WindowHeight = j["WindowHeight"].int_value();
     bSkybox = j["bSkybox"].bool_value();
     bUseBVH = j["bUseBVH"].bool_value();
-    return *this;;;;;;;;
+    SPP = j["SPP"].int_value();
+    bUseHDR = j["bUseHDR"].bool_value();
+    Exposure = j["Exposure"].number_value();
+    bUseBloom = j["bUseBloom"].bool_value();
+    bUseSSAO = j["bUseSSAO"].bool_value();
+    SceneType = static_cast<ESceneType>(j["SceneType"].int_value());
+    return *this;;;;;;
 }
+

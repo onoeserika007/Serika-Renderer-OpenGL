@@ -9,12 +9,13 @@ enum EBufferAttribute {
 	EBA_Normal
 };
 
-class BufferAttribute {
+class BufferAttribute: public PipelineLoadable {
 
 public:
-	BufferAttribute(){}
+	BufferAttribute()= default;
 
-	void setupPipeline(const Renderer &renderer) const { renderer.setupVertexAttribute(*this); }
+	void setPipelineReady(bool bReady) const { bIsPipelineSetup_ = bReady; }
+	bool isPipelineSetup() const { return bIsPipelineSetup_; }
 	const float* data() const {
 		if (data_) return data_->data();
 		return nullptr;
@@ -25,6 +26,7 @@ public:
 	}
 	size_t byte_size() const { return sizeof(float) * size(); }
 	size_t elem_size() const { return elem_size_; }
+	bool empty() const { return data_->empty(); }
 
 	float operator[](const unsigned index) const { return (*data_)[index]; }
 	float& operator[](const unsigned index) { return (*data_)[index]; }
@@ -38,4 +40,5 @@ public:
 private:
 	std::shared_ptr<std::vector<float>> data_;
 	size_t elem_size_ = 0;
+	mutable bool bIsPipelineSetup_ = false;
 };

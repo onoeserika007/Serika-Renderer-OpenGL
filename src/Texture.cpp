@@ -48,11 +48,11 @@ const char* Texture::materialTexTypeStr(TextureType usage)
 	return "";
 }
 
-const char* Texture::samplerDefine(TextureType usage)
+const char* Texture::samplerDefine(TextureType type)
 {
 	auto len = sizeof(SamplerDefinesToTextureType) / sizeof(const char*);
-	if (usage < len) {
-		return SamplerDefinesToTextureType[usage];
+	if (type < len) {
+		return SamplerDefinesToTextureType[type];
 	}
 	return "";
 }
@@ -105,12 +105,6 @@ Texture::Texture(const TextureInfo& info)
 	textureInfo_ = info;
 }
 
-Texture::Texture(const TextureInfo& texInfo, const SamplerInfo& smInfo)
-{
-	textureInfo_ = texInfo;
-	samplerInfo_ = smInfo;
-}
-
 Texture::Texture(const TextureInfo& texInfo, const SamplerInfo& smInfo, const TextureData& texData)
 {
 	textureInfo_ = texInfo;
@@ -122,7 +116,7 @@ void Texture::loadTextureData(const std::string& picture)
 {
 	auto bufferData = ResourceLoader::getInstance().loadTexture(picture);
 	TextureData texData;
-	texData.dataArray = { bufferData };
+	texData.unitDataArray = { bufferData };
 	texData.path = picture;
 	loadTextureData(texData);
 }
@@ -130,8 +124,8 @@ void Texture::loadTextureData(const std::string& picture)
 void Texture::loadTextureData(TextureData data)
 {
 	textureData_ = data;
-	textureInfo_.width = data.dataArray[0]->width();
-	textureInfo_.height = data.dataArray[0]->height();
+	textureInfo_.width = data.unitDataArray[0]->width();
+	textureInfo_.height = data.unitDataArray[0]->height();
 }
 
 //void Texture::setName(const std::string& name)
@@ -219,12 +213,12 @@ void Texture::copyDataTo(Texture &other) {
 	// if (!(width() == other.width() && height() == other.height())) {
 	// 	throw std::exception("Src and dist size not compatible, texture copy failed.");
 	// }
-	assert(textureInfo_.target == otherTexInfo.target && textureInfo_.format == otherTexInfo.format, "Src and dist format not compatible, texture copy failed.");
+	assert(textureInfo_.target == otherTexInfo.target && textureInfo_.format == otherTexInfo.format);
 
 	TextureData tmp;
 	tmp.path = textureData_.path;
-	for(const auto& elem: textureData_.dataArray) {
-		tmp.dataArray.emplace_back(Buffer<RGBA>::makeBuffer(*elem));
+	for(const auto& elem: textureData_.unitDataArray) {
+		tmp.unitDataArray.emplace_back(Buffer<RGBA>::makeBuffer(*elem));
 	}
 	other.textureData_ = std::move(tmp);
 }

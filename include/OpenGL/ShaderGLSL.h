@@ -39,6 +39,7 @@ class ShaderGLSL: public Shader
     ShaderGLSL(const std::string& vertexPath, const std::string& fragmentPath, const std::string& geometryPath = {});
     ShaderGLSL();
 public:
+    virtual ~ShaderGLSL();
     explicit ShaderGLSL(PassKey passkey, const std::string& vertexPath, const std::string& fragmentPath, const std::string& geometryPath = {}) : ShaderGLSL(vertexPath, fragmentPath, geometryPath) {}
     static std::shared_ptr<ShaderGLSL> loadShader(const std::string& vertexPath, const std::string& fragmentPath, const std::string& geometryPath = {});
 
@@ -50,6 +51,9 @@ public:
     static std::shared_ptr<ShaderGLSL> loadShadowPassShader();
     static std::shared_ptr<ShaderGLSL> loadShadowCubePassShader();
     static std::shared_ptr<ShaderGLSL> loadDefferedBlinnPhongShader();
+    static std::shared_ptr<ShaderGLSL> loadDefferedPBRShader();
+    static std::shared_ptr<ShaderGLSL> loadSSAOPassShader();
+    static std::shared_ptr<ShaderGLSL> loadSSAOBlurShader();
     static std::shared_ptr<ShaderGLSL> loadSkyBoxShader();
     static std::shared_ptr<ShaderGLSL> loadFromRawSource(const std::string& VS, const std::string& FS, const std::string &GS = {});
 

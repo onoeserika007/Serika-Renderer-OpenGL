@@ -5,7 +5,6 @@
 #include "Base/ResourceLoader.h"
 #include "Geometry/BufferAttribute.h"
 #include "Geometry/Primitives.h"
-#include "Geometry/Triangle.h"
 
 std::shared_ptr<FScene> FScene::generateDeaultScene(const std::shared_ptr<FCamera> &camera) {
 	auto scene = std::make_shared<FScene>();
@@ -14,13 +13,15 @@ std::shared_ptr<FScene> FScene::generateDeaultScene(const std::shared_ptr<FCamer
     glm::vec3 focus {};
 
     // nanosuit
-    // TEST_TIME_COST(auto nanosuit = loader.loadModel("./assets/models/nanosuit/nanosuit.obj", true), NANO_SUIT);
+    // TEST_TIME_COST(auto nanosuitMesh = loader.loadMesh("./assets/models/nanosuit/nanosuit.obj", true), NANO_SUIT);
+    // nanosuitMesh->setShadingMode(EShadingModel::Shading_BlinnPhong);
+    // nanosuitMesh->enableCastShadow(true);
+    // auto nanosuit = UObject::makeObject();
+    // nanosuit->setMesh(nanosuitMesh);
     // nanosuit->setScale(0.5, 0.5, 0.5);
     // nanosuit->setPosition(glm::vec3(0.f, -0.5f, 0.f));
-    // nanosuit->setShadingMode(EShadingModel::Shading_BlinnPhong);
-    // nanosuit->enableCastShadow(true);
-    // focus = nanosuit->getPosition();
-    // scene->addMesh(nanosuit);;
+    // focus = nanosuit->getWorldPosition();
+    // scene->addObject(nanosuit);;
 
     // floor
     auto floorMesh = loader.loadMesh("./assets/models/floor/floor.obj", false);
@@ -46,13 +47,6 @@ std::shared_ptr<FScene> FScene::generateDeaultScene(const std::shared_ptr<FCamer
         mary->lookAt({0.f, 0.f, 0.f});
         focus = mary->getWorldPosition();
         scene->addObject(mary);;
-
-        // auto mary2 = UModel::makeModel(*mary);
-        // mary2->setPosition({2.f, 0.f, 2.f});
-        // mary2->setShadingMode(EShadingModel::Shading_BlinnPhong);
-        // mary2->enableCastShadow(true);
-        // mary2->lookAt({0.f, 0.f, 0.f});
-        // scene->addMesh(mary2);;
     }
 
     // skybox
@@ -90,7 +84,7 @@ std::shared_ptr<FScene> FScene::generateDeaultScene(const std::shared_ptr<FCamer
     }
 
     scene->setFocus(focus);
-    return scene;
+    return scene;;
 }
 
 std::shared_ptr<FScene> FScene::generateRaytracingStanfordBunnyScene(const std::shared_ptr<FCamera> &camera) {
@@ -99,23 +93,28 @@ std::shared_ptr<FScene> FScene::generateRaytracingStanfordBunnyScene(const std::
     auto&& config = Config::getInstance();
     glm::vec3 focus {};
 
+    glm::vec3 lightColor = 15.6f * glm::vec3(0.740f+0.287f,0.740f+0.160f,0.740f);
     // point light
     {
-        // auto pointLight = ULight::makeLight(std::move(*MeshMakers::loadCubeMesh()));
-        // pointLight->setAsPointLight(glm::vec3(0, 0, 0), glm::vec3(0.f), glm::vec3(0.5f, 0.5f, 0.5f), glm::vec3(0.5f), 1.0, 0.045, 0.0075);
-        // pointLight->setScale({ 0.2, 0.2, 0.2 });
-        // pointLight->setPosition({-2, 2, -5});
-        // scene->addLight(pointLight);;
+        auto pointLightMesh = MeshMakers::loadCubeMesh();
+        pointLightMesh->setEmission(GREEN_COLOR);
+        auto pointLight = ULight::makeLight();
+        pointLight->setMesh(pointLightMesh);
+        pointLight->setAsPointLight(glm::vec3(0, 0, 0), glm::vec3(0.f), glm::vec3(0.5f, 0.5f, 0.5f), glm::vec3(0.5f), 1.0, 0.045, 0.0075);
+        pointLight->setScale({ 0.2, 0.2, 0.2 });
+        pointLight->setLightDiffuse(lightColor);
+        pointLight->setPosition({-2, 2, -5});
+        scene->addLight(pointLight);;
     }
 
     // {
-    auto dirLight = ULight::makeLight();
-    dirLight->setMesh(MeshMakers::loadCubeMesh());
-    glm::vec3 dirLightPos {6, 10, -6};
-    dirLight->setAsDirectionalLight(focus - dirLightPos, glm::vec3(0.1f), glm::vec3(0.5f), glm::vec3(0.5f));
-    dirLight->setScale({ 0.2, 0.2, 0.2 });
-    dirLight->setPosition(dirLightPos);
-    scene->addLight(dirLight);
+    // auto dirLight = ULight::makeLight();
+    // dirLight->setMesh(MeshMakers::loadCubeMesh());
+    // glm::vec3 dirLightPos {6, 10, -6};
+    // dirLight->setAsDirectionalLight(focus - dirLightPos, glm::vec3(0.1f), glm::vec3(0.5f), glm::vec3(0.5f));
+    // dirLight->setScale({ 0.2, 0.2, 0.2 });
+    // dirLight->setPosition(dirLightPos);
+    // scene->addLight(dirLight);
     // }
 
     // bunny
@@ -147,18 +146,55 @@ std::shared_ptr<FScene> FScene::generateRaytracingStanfordBunnyScene(const std::
         scene->addObject(floor);
     }
 
-    if (auto triangle = MeshMakers::loadTriangleMesh({0.f, 0.f, -1.f}, {1.f, 0.f, 0.f}, {0.f, 1.f, 0.f})) {
-        auto cube = ULight::makeLight();
-        cube->setMesh(MeshMakers::loadCubeMesh());
-        // auto cube = MeshMakers::loadCubeMesh();
-        cube->setScale(glm::vec3(0.1f));
-        cube->setPosition({0.f, 1.f, 0.f});
+    scene->setFocus(focus);
+    return scene;
+}
 
-        cube->setAsPointLight(glm::vec3(0, 0, 0), glm::vec3(0.f), glm::vec3(0.5f, 0.5f, 0.5f), glm::vec3(0.5f), 1.0, 0.045, 0.0075);
-        scene->addObject(cube);
+std::shared_ptr<FScene> FScene::generatePBRScene(const std::shared_ptr<FCamera> &camera) {
+    camera->setPosition({-2, 2, 1});
+    auto scene = std::make_shared<FScene>();
+    auto&& loader = ResourceLoader::getInstance();
+    auto&& config = Config::getInstance();
+    glm::vec3 focus {};
 
-        scene->addLight(cube);
+    auto material = std::make_shared<FMaterial>();
+    material->setTextureData(TEXTURE_TYPE_DIFFUSE, "assets/texture/pbr/rusted_iron/albedo.png");
+    material->setTextureData(TEXTURE_TYPE_AMBIENT_OCCLUSION, "assets/texture/pbr/rusted_iron/ao.png");
+    material->setTextureData(TEXTURE_TYPE_METALNESS, "assets/texture/pbr/rusted_iron/metallic.png");
+    material->setTextureData(TEXTURE_TYPE_NORMALS, "assets/texture/pbr/rusted_iron/normal.png");
+    material->setTextureData(TEXTURE_TYPE_DIFFUSE_ROUGHNESS, "assets/texture/pbr/rusted_iron/roughness.png");
+    auto sphereMesh = MeshMakers::loadSphereMesh();;
+    for (int i = 0; i < 6; i++) {
+        for (int j = 0; j < 6; j++) {
+            auto&& mesh = sphereMesh->Clone();
+            auto&& mat = material->Clone();
+            mat->material_info_.uMetallic = 0.2f * i;
+            mat->material_info_.uRoughness = 0.2f * j;
+            mesh->setMaterial(mat);
+            mesh->setDiffuse(RED_COLOR);
+            auto&& object = UObject::makeObject();
+            object->setMesh(mesh);
+            object->setPosition(glm::vec3(i, j, 0) * 0.5f);
+            object->setScale({0.2f, 0.2f, 0.2f});
+            scene->addObject(object);
+        }
+    }
+    // auto&& object = UObject::makeObject();
+    // object->setMesh(sphereMesh);
+    // scene->addObject(object);
 
+    glm::vec3 lightColor = 15.6f * glm::vec3(0.740f+0.287f,0.740f+0.160f,0.740f);
+    // point light
+    {
+        auto pointLightMesh = MeshMakers::loadCubeMesh();
+        pointLightMesh->setEmission(GREEN_COLOR);
+        auto pointLight = ULight::makeLight();
+        pointLight->setMesh(pointLightMesh);
+        pointLight->setAsPointLight(glm::vec3(0, 0, 0), glm::vec3(0.f), glm::vec3(0.5f, 0.5f, 0.5f), glm::vec3(0.5f), 1.0, 0.045, 0.0075);
+        pointLight->setScale({ 0.2, 0.2, 0.2 });
+        pointLight->setLightDiffuse({1.f, 1.f, 1.f});
+        pointLight->setPosition({-2, 2, -5});
+        scene->addLight(pointLight);;
     }
 
     scene->setFocus(focus);
@@ -238,19 +274,11 @@ std::shared_ptr<FScene> FScene::generateRaytracingCornellBoxScene(const std::sha
     return scene;
 }
 
-void FScene::addObject(std::shared_ptr<UObject> obj)
-{
-	objects_.emplace_back(std::move(obj));
-}
+void FScene::addObject(std::shared_ptr<UObject> obj) { objects_.emplace_back(std::move(obj)); }
 
-std::vector<std::shared_ptr<UObject>> &FScene::getObjects()
-{
-	return objects_;
-}
+std::vector<std::shared_ptr<UObject>> &FScene::getObjects() { return objects_; }
 
-void FScene::addLight(std::shared_ptr<ULight> light) {
-	lights_.emplace_back(std::move(light));;
-}
+void FScene::addLight(std::shared_ptr<ULight> light) { lights_.emplace_back(std::move(light)); }
 
 void FScene::addBBox(const BoundingBox &bbox) { bboxes_.emplace_back(bbox); }
 
@@ -266,9 +294,7 @@ const std::vector<std::shared_ptr<UMesh>> & FScene::getPackedLightMeshes() const
 
 glm::vec3 FScene::getFocus() const { return focus_; }
 
-std::vector<std::shared_ptr<ULight>>& FScene::getLights() {
-	return lights_;
-}
+std::vector<std::shared_ptr<ULight>>& FScene::getLights() { return lights_; }
 
 void FScene::buildBVH() {
     for(auto&& model: objects_) {
@@ -323,20 +349,19 @@ void FScene::sampleLight(Intersection &outIsct, float &pdf) const {
             break;;
         }
     }
-
     // if (emit_area_sum > 0.f) pdf = 1.f / emit_area_sum;
 }
 
-glm::vec3 FScene::castRay(const Ray &ray, int depth, float RussianRoulette) const {
-    if (depth > 2) return{};
+glm::vec3 FScene::castRay(const Ray &ray, int depth, int SobolIndex, float RussianRoulette) const {
+    if (depth > 4) return{};
 
     // Dont have Intersection In Scene
     Intersection intersToScene = intersect(ray);
     if (!intersToScene.bHit) return {}; // early return
 
     // hit light
-    if (intersToScene.material.hasEmission()) {
-        return intersToScene.material.emission;
+    if (intersToScene.hasEmission()) {
+        return intersToScene.getEmission();
     }
 
     // hit diffuse, compute L_directly & L_indirectly
@@ -353,11 +378,12 @@ glm::vec3 FScene::castRay(const Ray &ray, int depth, float RussianRoulette) cons
 
     // check if block by other object
     Intersection interToLight = intersect(rayToLight);
-    auto f_r = intersToScene.material.evalRadiance(ray.direction, LightDirNormal, intersToScene.normal);
-    if (interToLight.traceDistance + M_EPSILON > glm::length(LightDir))
+    auto f_r = intersToScene.evalRadiance(ray.direction, LightDirNormal, intersToScene.normal);
+    // 由于精度问题，可能会出现黑色条纹，请务必使用较大的偏移量
+    if (interToLight.traceDistance + 0.1f > glm::length(LightDir))
     {
         float dis2 = glm::dot(LightDir, LightDir);
-        L_dir = LightPos.material.emission * f_r * glm::dot(LightDirNormal, intersToScene.normal) * glm::dot(-LightDirNormal, LightPos.normal) / dis2 / lightpdf;
+        L_dir = LightPos.getEmission() * f_r * glm::dot(LightDirNormal, intersToScene.normal) * glm::dot(-LightDirNormal, LightPos.normal) / dis2 / lightpdf;
     }
 
     // RR exit
@@ -366,12 +392,14 @@ glm::vec3 FScene::castRay(const Ray &ray, int depth, float RussianRoulette) cons
     //Calculate the Intersection from point to point in order to calculate indirect Color
     glm::vec3 wo;
     float pdf;
-    MathUtils::uniformHemisphereSample(wo, pdf, ray.direction, intersToScene.normal);
+    MathUtils::UniformHemisphereSample(wo, pdf, ray.direction, intersToScene.normal, depth, SobolIndex);
     Ray indirRay {intersToScene.impactPoint, wo};
     Intersection intersToDiffuse = intersect(indirRay);
-    if( intersToDiffuse.bHit && !intersToDiffuse.material.hasEmission()) // 已经对光照采样过了，所以不能重复采样
+    if( intersToDiffuse.bHit && !intersToDiffuse.hasEmission()) // 已经对光照采样过了，所以不能重复采样
     {
-        L_indir = castRay(indirRay, depth + 1) * intersToScene.material.evalRadiance(ray.direction, wo, intersToScene.normal) * glm::dot(wo,intersToScene.normal) / RussianRoulette / pdf;
+        L_indir = castRay(indirRay, depth + 1, SobolIndex)
+        * intersToScene.evalRadiance(ray.direction, wo, intersToScene.normal)
+        * glm::dot(wo,intersToScene.normal) / RussianRoulette / pdf;
     }
 
     return L_dir + L_indir ;

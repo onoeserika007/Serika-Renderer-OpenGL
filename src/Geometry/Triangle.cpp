@@ -4,11 +4,38 @@ Triangle::Triangle() = default;
 
 Triangle::~Triangle() = default;
 
-Triangle::Triangle(const glm::vec3 &v0, const glm::vec3 &v1, const glm::vec3 &v2, const MaterialInfo &m): v0_(v0), v1_(v1), v2_(v2), material_info_(m) {
+Triangle::Triangle(const glm::vec3 &v0, const glm::vec3 &v1, const glm::vec3 &v2, const std::shared_ptr<FMaterial> &m)
+    : v0_(v0), v1_(v1), v2_(v2), material_(m)
+{
     e1_ = v1_ - v0_;
     e2_ = v2_ - v0_;
     normal_ = glm::normalize(glm::cross(e1_, e2_));
     area_ = glm::length(glm::cross(e1_, e2_)) * 0.5f;
+}
+
+Triangle_Encoded Triangle::encode() const {
+    Triangle_Encoded triangle_encoded{};
+    if (auto&& mat = material_.lock()) {
+        // geomerty
+        triangle_encoded.v0_ = v0_;
+        triangle_encoded.v1_ = v1_;
+        triangle_encoded.v2_ = v2_;
+        triangle_encoded.n0_ = n0_;
+        triangle_encoded.n1_ = n1_;
+        triangle_encoded.n2_ = n2_;
+        // matrial
+        triangle_encoded.emissive_ = mat->getEmission();
+        triangle_encoded.baseColor_ = mat->getDiffuse();
+
+    }
+    else {
+        LOGE("Triangle has no material when encoded!");
+    }
+    return {};;
+}
+
+Triangle & Triangle::deconde(const Triangle_Encoded &triangle_encoded) {
+    return *this;
 }
 
 bool Triangle::intersect(const Ray &ray) { return true; }
@@ -44,20 +71,12 @@ Intersection Triangle::getIntersection(const Ray &ray) {
     // Triangle hit, begin to sample from material, and update material info
     //
     glm::vec2 texCoord = (1 - u - v) * t0_ + u * t1_ + v * t2_;
-    if (auto&& mat = material_.lock()) {
-        material_info_.emission = mat->getEmission();
-        material_info_.shading_model = mat->shadingMode();
-        // material_info_.Kd = material_->e
-        material_info_.Kd = mat->getDiffuse();
-        material_info_.Ks = mat->getSpecular(texCoord.x, texCoord.y);
-        material_info_.specularExponent = 32.f;
-    }
 
     itsc.bHit = true;
     itsc.traceDistance = trace_t;
     itsc.normal= normal_;
     itsc.impactPoint = ray.origin + ray.direction * trace_t;
-    itsc.material = material_info_;
+    itsc.material = material_;
     itsc.primitive = shared_from_this();
 
     return itsc;
@@ -66,22 +85,15 @@ Intersection Triangle::getIntersection(const Ray &ray) {
 BoundingBox Triangle::getBounds() const { return BoundingBox(v0_, v1_).merge(v2_); }
 
 void Triangle::Sample(Intersection &pos, float &pdf) {
-    float x = std::sqrt(MathUtils::get_random_float()); // \sqrt(r1)
-    float y = MathUtils::get_random_float();    // r2
+    float x = std::sqrt(MathUtils::SobolGlobalIndex(0)); // \sqrt(r1)
+    float y = MathUtils::SobolGlobalIndex(0);    // r2
     pos.impactPoint = v0_ * (1.0f - x) + v1_ * (x * (1.0f - y)) + v2_ * (x * y);
     pos.texCoords = t0_ * (1.f - x) + t1_ * (x * (1.f - y)) + t2_ * (x * y);
     pos.normal = this->normal_;
     pdf = 1.0f / area_;
 
     // update material_info_ here
-    if (auto&& mat = material_.lock()) {
-        material_info_.emission = mat->getEmission();
-        material_info_.shading_model = mat->shadingMode();
-        material_info_.Kd = mat->getDiffuse();
-        material_info_.Ks = mat->getSpecular(pos.texCoords.x, pos.texCoords.y);
-        material_info_.specularExponent = 32.f;
-    }
-    pos.material = material_info_;
+    pos.material = material_;
 }
 
 float Triangle::getArea() const {
@@ -89,7 +101,10 @@ float Triangle::getArea() const {
 }
 
 bool Triangle::hasEmit() const {
-    return material_info_.hasEmission();
+    if (auto&& mat = material_.lock()) {
+        return mat->hasEmission();
+    }
+    return {};
 }
 
 void Triangle::transform(const glm::mat4 &modelMatrix) {

@@ -19,6 +19,130 @@ Renderer::Renderer(const std::shared_ptr<FCamera> &camera) {
 	viewCamera_ = camera;
 }
 
+std::shared_ptr<Texture> Renderer::createBufferTexture(int width, int height, const std::vector<float> &bufferData,
+                                                       TextureFormat texFormat) {
+	TextureInfo texInfo{};
+	texInfo.width = width;
+	texInfo.height = height;
+	texInfo.target = TextureTarget_TEXTURE_BUFFER;
+	texInfo.format = texFormat;
+	texInfo.type = TEXTURE_TYPE_NONE;
+	texInfo.usage = 0;
+	texInfo.multiSample = false;
+	texInfo.useMipmaps = false;
+
+	TextureData texData {};
+	texData.bufferData = bufferData;
+	return createTexture(texInfo, {}, texData);
+}
+
+bool Renderer::setupColorBuffer(std::shared_ptr<Texture> &outBuffer, int width, int height, bool force, bool bCubeMap,
+                                TextureTarget texTarget, TextureFormat texFormat, TextureType texType, const TextureData &texData) const {
+	if (outBuffer) {
+		const TextureInfo& texInfo = outBuffer->getTextureInfo();
+		force = force || texInfo.width != width || texInfo.height != height
+				|| texInfo.target != texTarget
+				|| texInfo.format != texFormat;
+	}
+
+	bool bMultisample = texTarget == TextureTarget_TEXTURE_2D_MULTISAMPLE;
+	if (!outBuffer || outBuffer->multiSample() != bMultisample || force) {
+		TextureInfo texInfo{};
+		texInfo.width = width;
+		texInfo.height = height;
+		texInfo.target = texTarget;
+		texInfo.format = texFormat;
+		texInfo.type = texType;
+		texInfo.usage = TextureUsage_AttachmentColor | TextureUsage_RendererOutput;
+		texInfo.multiSample = bMultisample;
+		texInfo.useMipmaps = false;
+
+		SamplerInfo smInfo{};
+		smInfo.filterMag = Filter_LINEAR;
+		smInfo.filterMin = Filter_LINEAR;
+
+		smInfo.wrapR = Wrap_MIRRORED_REPEAT;
+		smInfo.wrapS = Wrap_MIRRORED_REPEAT;
+		smInfo.wrapT = Wrap_MIRRORED_REPEAT;
+
+		outBuffer = createTexture(texInfo, smInfo, texData);
+
+		return true;;
+	}
+	return false;
+}
+
+bool Renderer::setupDepthBuffer(std::shared_ptr<Texture> &outBuffer, bool multiSample, bool force) const {
+	TextureTarget target = TextureTarget_TEXTURE_2D;
+	if (outBuffer) {
+		const TextureInfo& texInfo = outBuffer->getTextureInfo();
+		force = force || texInfo.width != width() || texInfo.height != height();
+		force = force || texInfo.target != target || texInfo.format != TextureFormat_FLOAT32;
+	}
+
+	if (!outBuffer || outBuffer->multiSample() != multiSample || force) {
+		TextureInfo texInfo{};
+		texInfo.width = width();
+		texInfo.height = height();
+		texInfo.target = target;
+		texInfo.format = TextureFormat::TextureFormat_FLOAT32;
+		texInfo.usage = TextureUsage::TextureUsage_AttachmentDepth;
+		texInfo.multiSample = multiSample;
+		texInfo.useMipmaps = false;
+
+		SamplerInfo smInfo{};
+		smInfo.filterMag = Filter_NEAREST;
+		smInfo.filterMin = Filter_NEAREST;
+
+		outBuffer = createTexture(texInfo, smInfo, {});
+		return true;
+	}
+	return false;
+}
+
+void Renderer::setupShadowMapBuffer(std::shared_ptr<Texture> &outBuffer, int width, int height, bool multiSample,
+	bool bCubeMap, bool force) const {
+	TextureTarget target = bCubeMap? TextureTarget_TEXTURE_CUBE_MAP: multiSample? TextureTarget_TEXTURE_2D_MULTISAMPLE : TextureTarget_TEXTURE_2D;
+	if (outBuffer) {
+		const TextureInfo& texInfo = outBuffer->getTextureInfo();
+		force = force || texInfo.width != width || texInfo.height != height
+				|| texInfo.target != target
+				|| texInfo.format != TextureFormat_FLOAT32;
+	}
+
+	if (!outBuffer || outBuffer->multiSample() != multiSample || force) {
+		TextureInfo texInfo{};
+		texInfo.width = width;
+		texInfo.height = height;
+		texInfo.target = target;
+		texInfo.format = TextureFormat::TextureFormat_FLOAT32;
+		texInfo.usage = TextureUsage::TextureUsage_AttachmentColor | TextureUsage::TextureUsage_Sampler;
+		texInfo.type = bCubeMap? TEXTURE_TYPE_SHADOWMAP_CUBE: TEXTURE_TYPE_SHADOWMAP;
+		texInfo.multiSample = multiSample;
+		texInfo.useMipmaps = false;
+
+		SamplerInfo smInfo{};
+		smInfo.filterMag = Filter_NEAREST;;
+		smInfo.filterMin = Filter_NEAREST;
+		// smInfo.wrapS = Wrap_CLAMP_TO_EDGE;
+		// smInfo.wrapT = Wrap_CLAMP_TO_EDGE;
+		smInfo.wrapS = bCubeMap? Wrap_CLAMP_TO_EDGE : Wrap_CLAMP_TO_BORDER;
+		smInfo.wrapT = bCubeMap? Wrap_CLAMP_TO_EDGE : Wrap_CLAMP_TO_BORDER;
+		smInfo.wrapR = bCubeMap? Wrap_CLAMP_TO_EDGE : Wrap_CLAMP_TO_BORDER;
+		smInfo.borderColor = BorderColor::Border_WHITE;
+
+		outBuffer = createTexture(texInfo, smInfo, {});
+	}
+}
+
+
+void Renderer::drawDebugPoint(const glm::vec3 &pos, float persistTime, float pointSize) {
+	std::lock_guard<std::mutex> guard(debug_point_task_lock_);
+	auto&& point = std::make_shared<FPoint>(pos, persistTime);
+	point->pointSize_ = pointSize;;
+	debug_point_tasks_[point->getUUID()] = point;
+}
+
 
 void Renderer::drawDebugLine(const glm::vec3 &start, const glm::vec3 &end, float persistTime) {
 	std::lock_guard<std::mutex> guard(debug_line_task_lock_);
@@ -30,15 +154,23 @@ void Renderer::drawDebugTriangle(const Triangle &inTri, float persistTime) {
 	std::lock_guard<std::mutex> guard(debug_triangle_task_lock_);
 	auto&& triangle = std::make_shared<Triangle>(inTri);
 	triangle->persistTime_ = persistTime;
-	debug_triangle_tasks_[triangle->getUUID()] = triangle;;
+	debug_triangle_tasks_[triangle->getUUID()] = triangle;
 }
 
 void Renderer::handleDebugs() {
+	// handle points
+	{
+		std::lock_guard<std::mutex> guard(debug_point_task_lock_);
+		for (auto &point: debug_point_tasks_ | std::views::values) {
+			drawDebugPoint_Impl(point);
+		}
+	}
+
 	// handle lines
 	{
 		std::lock_guard<std::mutex> guard(debug_line_task_lock_);
 		for (auto &line: debug_line_tasks_ | std::views::values) {
-			drawDebugLine_Impl(*line);
+			drawDebugLine_Impl(line);
 		}
 	}
 
@@ -46,7 +178,7 @@ void Renderer::handleDebugs() {
 	{
 		std::lock_guard<std::mutex> guard(debug_triangle_task_lock_);
 		for (auto &triangle: debug_triangle_tasks_ | std::views::values) {
-			drawDebugTriangle_Impl(*triangle);
+			drawDebugTriangle_Impl(triangle);
 		}
 	}
 
@@ -59,6 +191,7 @@ void Renderer::loadGlobalUniforms(const std::shared_ptr<UMesh> &mesh) const {
 	pmat->setUniformBlock(modelUniformBlock_->name(), modelUniformBlock_);
 	pmat->setUniformBlock(lightUniformBlock_->name(), lightUniformBlock_);
 	pmat->setUniformBlock(shadowUniformBlock_->name(), shadowUniformBlock_);
+	pmat->setUniformBlock(sceneUniformBlock_->name(), sceneUniformBlock_);
 	if (auto&& shadowMap = shadowMapUniformSampler_.lock()) {
 		pmat->setUniformSampler(shadowMap->name(), shadowMap);
 	}
@@ -68,12 +201,25 @@ void Renderer::loadGlobalUniforms(const std::shared_ptr<UMesh> &mesh) const {
 	if (auto&& cubeShadow = shadowMapCubeUniformSampler_.lock()) {
 		pmat->setUniformSampler(cubeShadow->name(), cubeShadow);
 	}
+	if (ssaoKernelUniformSampler_) {
+		pmat->setUniformSampler(ssaoKernelUniformSampler_->name(), ssaoKernelUniformSampler_);
+	}
+	if (noiseUniformSampler_) {
+		pmat->setUniformSampler(noiseUniformSampler_->name(), noiseUniformSampler_);
+	}
+	if (noiseUniformSampler_) {
+		pmat->setUniformSampler(noiseUniformSampler_->name(), noiseUniformSampler_);
+	}
+	if (auto&& ssao = abientOcclusionUniformSampler_.lock()) {
+		pmat->setUniformSampler(ssao->name(), ssao);
+	}
 }
 ;
 void Renderer::loadGlobalUniforms(const Shader &program) const {
 	program.setUniformBlock(modelUniformBlock_->name(), modelUniformBlock_);
 	program.setUniformBlock(lightUniformBlock_->name(), lightUniformBlock_);
 	program.setUniformBlock(shadowUniformBlock_->name(), shadowUniformBlock_);
+	program.setUniformBlock(sceneUniformBlock_->name(), sceneUniformBlock_);
 	if (auto&& envMap = envCubeMapUniformSampler_.lock()) {
 		program.setUniformSampler(envMap->name(), envMap);
 	}
@@ -83,56 +229,80 @@ void Renderer::loadGlobalUniforms(const Shader &program) const {
 	if (auto&& cubeShadow = shadowMapCubeUniformSampler_.lock()) {
 		program.setUniformSampler(cubeShadow->name(), cubeShadow);
 	}
+	if (ssaoKernelUniformSampler_) {
+		program.setUniformSampler(ssaoKernelUniformSampler_->name(), ssaoKernelUniformSampler_);
+	}
+	if (noiseUniformSampler_) {
+		program.setUniformSampler(noiseUniformSampler_->name(), noiseUniformSampler_);
+	}
+	if (auto&& ssao = abientOcclusionUniformSampler_.lock()) {
+		program.setUniformSampler(ssao->name(), ssao);
+	}
 }
 
-void Renderer::updateModelUniformBlock(const std::shared_ptr<UMesh> &mesh, const std::shared_ptr<FCamera> &camera, const std::shared_ptr<ULight> &shadowLight) const {
+void Renderer::updateMainUniformBlock(const std::shared_ptr<UMesh> &mesh, const std::shared_ptr<FCamera> &camera, const std::shared_ptr<ULight> &shadowLight) {
 	auto&& config = Config::getInstance();
 
-	ModelUniformBlock tmp{};
-	tmp.uModel = glm::mat4(1.f);
+	// Model Uniform Block
+	ModelUniformBlock modelBlock{};
+	modelBlock.uModel = glm::mat4(1.f);
 	if (mesh) {
-		tmp.uModel = mesh->getWorldMatrix();
-		tmp.uNormalToWorld = glm::transpose(glm::inverse(mesh->getWorldMatrix()));
+		modelBlock.uModel = mesh->getWorldMatrix();
+		modelBlock.uNormalToWorld = glm::transpose(glm::inverse(mesh->getWorldMatrix()));
+		if (auto&& material = mesh->getMaterial()) {
+			if (material->hasEmission()) {
+				modelBlock.uUsePureEmission = true;
+			}
+		}
 	}
 
 	if (camera) {
-		tmp.uProjection = camera->GetProjectionMatrix();
-		tmp.uView = camera->GetViewMatrix();
-		tmp.uViewPos = camera->position();;
+		modelBlock.uProjection = camera->GetProjectionMatrix();
+		modelBlock.uView = camera->GetViewMatrix();
+		modelBlock.uViewPos = camera->position();;
+		modelBlock.uNearPlaneCamera = camera->getNearPlane();
+		modelBlock.uFarPlaneCamera = camera->getFarPlane();
 	}
 	// shadow mapping
 	if ((mesh && mesh->castShadow() || !mesh) && config.bShadowMap && shadowLight) {
 		auto&& shadowCamera = shadowLight->getLightCamera();
 		auto&& shadowMapSampler = shadowLight->getShadowMap(*this)->getUniformSampler(*this);
 		if (shadowLight->isPointLight()) {
-			tmp.uUseShadowMap = false;
-			tmp.uUseShadowMapCube = true;
+			modelBlock.uUseShadowMap = false;
+			modelBlock.uUseShadowMapCube = true;
 			updateShadowCubeUniformBlock(shadowLight);
 			shadowMapCubeUniformSampler_ = shadowMapSampler;
 		}
 		else {
-			tmp.uUseShadowMap = true;
-			tmp.uUseShadowMapCube = false;
+			modelBlock.uUseShadowMap = true;
+			modelBlock.uUseShadowMapCube = false;
 			// model项将在shader中指定，方便gbuffer!!!!
-			tmp.uShadowMapVP = shadowCamera->GetProjectionMatrix() * shadowCamera->GetViewMatrix() * glm::mat4(1.f);
+			modelBlock.uShadowMapVP = shadowCamera->GetProjectionMatrix() * shadowCamera->GetViewMatrix() * glm::mat4(1.f);
 			// set ShadowMap
 			shadowMapUniformSampler_ = shadowMapSampler;
 		}
 	}
 	else {
-		tmp.uUseShadowMap = false;
-		tmp.uUseShadowMapCube = false;
+		modelBlock.uUseShadowMap = false;;
+		modelBlock.uUseShadowMapCube = false;
 	}
 	// eviroment mapping
 	auto&& scene = renderingScene_.lock();
 	if (config.bSkybox && scene && scene->skybox_ && scene->skybox_->getMesh()) {
 		envCubeMapUniformSampler_ = scene->skybox_->getMesh()->tryGetSkyboxSampler(*this);
-		tmp.uUseEnvmap = true;
+		modelBlock.uUseEnvmap = true;
 	}
 	else {
-		tmp.uUseEnvmap = false;
+		modelBlock.uUseEnvmap = false;
 	}
-	modelUniformBlock_->setData(&tmp, sizeof(ModelUniformBlock));
+	modelUniformBlock_->setData(&modelBlock, sizeof(ModelUniformBlock));
+
+	// Scene Uniform Block
+	SceneUniformBlock sceneBlock{};
+	sceneBlock.uScreenWidth = width();
+	sceneBlock.uScreenHeight = height();
+	sceneBlock.uUseSSAO = config.bUseSSAO;
+	sceneUniformBlock_->setData(&sceneBlock, sizeof(SceneUniformBlock));
 };;
 
 void Renderer::updateShadowCubeUniformBlock(const std::shared_ptr<ULight> &shadowLight) const {
@@ -152,7 +322,7 @@ void Renderer::updateShadowCubeUniformBlock(const std::shared_ptr<ULight> &shado
 			block.uShadowVPs[5] = proj * lightCamera->GetViewMatrix({0.f, 0.f, -1.f}, {0.f, -1.f, 0.f});	// negative z
 		}
 		// far plane
-		block.uFarPlane = lightCamera->getFarPlane();
+		block.uFarPlaneCubeShadow = lightCamera->getFarPlane();
 	}
 	shadowUniformBlock_->setData(&block, sizeof(ShadowCubeUniformBlock));
 }
@@ -164,7 +334,7 @@ void Renderer::updateLightUniformBlock(const std::shared_ptr<ULight>& light) con
 		tmp = light->serialize();
 	}
 	else {
-		tmp.uLightType = LightType_NoLight;
+		tmp.uLightType = LightType_NoLight;;
 	}
 	lightUniformBlock_->setData(&tmp, sizeof(LightDataUniformBlock));
 }
@@ -214,6 +384,26 @@ int Renderer::height() const {
 	return height_;
 }
 
+void Renderer::remove_all_debug_primitives_safe() {
+	{
+		std::lock_guard<std::mutex> guard(debug_point_task_lock_);
+		debug_point_tasks_.clear();
+	}
+	{
+		std::lock_guard<std::mutex> guard(debug_line_task_lock_);
+		debug_point_tasks_.clear();
+	}
+	{
+		std::lock_guard<std::mutex> guard(debug_triangle_task_lock_);
+		debug_point_tasks_.clear();
+	}
+}
+
+void Renderer::remove_point_debug_task_safe(int uuid) {
+	std::lock_guard<std::mutex> guard(debug_point_task_lock_);
+	debug_point_tasks_.erase(uuid);
+}
+
 void Renderer::remove_line_debug_task_safe(int uuid) {
 	std::lock_guard<std::mutex> guard(debug_line_task_lock_);
 	debug_line_tasks_.erase(uuid);
@@ -223,4 +413,5 @@ void Renderer::remove_triangle_debug_task_safe(int uuid) {
 	std::lock_guard<std::mutex> guard(debug_triangle_task_lock_);
 	debug_triangle_tasks_.erase(uuid);
 }
+
 

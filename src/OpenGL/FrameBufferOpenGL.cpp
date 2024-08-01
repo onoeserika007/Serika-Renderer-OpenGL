@@ -29,7 +29,7 @@ bool FrameBufferOpenGL::isValid() const {
     GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
     if (status != GL_FRAMEBUFFER_COMPLETE) {
         LOGE("glCheckFramebufferStatus: %x", status);
-        throw std::exception("FrameBuffer not complete!");
+        throw std::exception();
         return false;
     }
     GL_CHECK(glBindFramebuffer(GL_FRAMEBUFFER, 0));

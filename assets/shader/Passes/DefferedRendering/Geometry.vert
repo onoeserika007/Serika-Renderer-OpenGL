@@ -12,14 +12,18 @@ layout(std140) uniform Model {
     mat4 uView;
     mat4 uProjection;
     mat4 uNormalToWorld;
-    mat4 uShadowMapMVP;
+    mat4 uShadowMapVP;
     vec3 uViewPos;
     bool uUseShadowMap;
     bool uUseShadowMapCube;
     bool uUseEnvMap;
+    bool uUsePureEmission;
+    float uNearPlaneCamera;
+    float uFarPlaneCamera;
 };
 
 void main() {
+    // pos normal Now all in view space
     vFragPos = vec3(uModel * vec4(aPos, 1.0));
     vTexCoord = aTexCoord;
     vWorldNormal = vec3(uNormalToWorld * vec4(aNormal, 1.0));

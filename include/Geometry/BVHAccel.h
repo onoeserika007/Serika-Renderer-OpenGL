@@ -33,7 +33,7 @@ public:
     explicit BVHAccel(const std::vector<std::shared_ptr<Intersectable>>& primitives, int maxPrimsInNode = 1, SplitMethod splitMethod = SplitMethod::NAIVE);
 
     NO_DISCARD Intersection Intersect(const Ray &ray) const;
-    NO_DISCARD Intersection IntersectImpl(const std::shared_ptr<BVHNode> &node, const Ray& ray)const;
+    NO_DISCARD Intersection IntersectImpl(const std::shared_ptr<BVHNode> &node, const Ray& ray) const;
     NO_DISCARD BoundingBox WorldBound() const;
     void Sample(Intersection &pos, float &pdf);
 

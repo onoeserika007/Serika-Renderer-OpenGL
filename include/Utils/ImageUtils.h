@@ -1,12 +1,8 @@
 #pragma once
-#include <complex.h>
-#include <complex.h>
 
 #include "Buffer.h"
 #include <memory>
 
-#include "Buffer.h"
-#include "Buffer.h"
 #include "Base/Globals.h"
 
 class ImageUtils {
