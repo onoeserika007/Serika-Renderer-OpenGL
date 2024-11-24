@@ -1,4 +1,4 @@
-#include "GUIPanel.h"
+#include "ConfigPanel.h"
 
 #include <imgui.h>
 
@@ -9,7 +9,7 @@
 #include "GLFW/glfw3.h"
 
 
-bool GUIPanel::init(void *window, int width, int height) {
+bool ConfigPanel::init(void *window, int width, int height) {
     frameWidth_ = width;
     frameHeight_ = height;
 
@@ -31,11 +31,11 @@ bool GUIPanel::init(void *window, int width, int height) {
     return true;
 }
 
-GUIPanel::~GUIPanel() {
+ConfigPanel::~ConfigPanel() {
     destroy();
 }
 
-void GUIPanel::onDraw() {
+void ConfigPanel::onDraw() {
     // Start the Dear ImGui frame
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();
@@ -54,11 +54,11 @@ void GUIPanel::onDraw() {
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 }
 
-void GUIPanel::update() {
+void ConfigPanel::update() {
     // TODO:
 }
 
-void GUIPanel::drawSettings() {
+void ConfigPanel::drawSettings() {
     auto&& config = Config::getInstance();
     // fps
     ImGui::Separator();
@@ -74,13 +74,27 @@ void GUIPanel::drawSettings() {
     ImGui::Checkbox("Use ShadowMap", &config.bShadowMap);
 
     ImGui::Separator();
+    ImGui::Checkbox("Use Mipmaps", &config.bUseMipmaps);
+
+    ImGui::Separator();
     ImGui::InputFloat("Exposue", &config.Exposure, 0.1f, 1.0f, "%.2f");
 
     ImGui::Separator();
     const char* renderModes[] = { "Forward", "Deffered", "Test" };
-    int currentMode = config.RenderMode;
-    if (ImGui::Combo("Pipeline Type", &currentMode, renderModes, IM_ARRAYSIZE(renderModes))) {
-        config.RenderMode = static_cast<ERenderMode>(currentMode);
+    int currentPipeline = config.RenderPipeline;
+    if (ImGui::Combo("Pipeline Type", &currentPipeline, renderModes, IM_ARRAYSIZE(renderModes))) {
+        config.RenderPipeline = static_cast<ERenderPipeline>(currentPipeline);
+    }
+
+    if (config.RenderPipeline == RenderMode_DeferredRendering) {
+        const char* shadingModels[] = { "Base Color", "Blinn-Phong", "PBR" };
+        int currentModel = config.ShadingModelForDeferredRendering;
+        if (ImGui::Combo("Shading For Deferred Rendering", &currentModel, shadingModels, IM_ARRAYSIZE(shadingModels))) {
+            config.ShadingModelForDeferredRendering = static_cast<EShadingModel>(currentModel);
+        }
+        // if (ImGui::TreeNode("Shading For Deferred Rendering")) {
+        //     ImGui::TreePop()
+        // }
     }
 
     ImGui::Separator();
@@ -92,34 +106,34 @@ void GUIPanel::drawSettings() {
 
 }
 
-void GUIPanel::updateSize(int width, int height) {
+void ConfigPanel::updateSize(int width, int height) {
     frameWidth_ = width;
     frameHeight_ = height;
 }
 
-bool GUIPanel::wantCaptureKeyboard() {
+bool ConfigPanel::wantCaptureKeyboard() {
     ImGuiIO &io = ImGui::GetIO();
     return io.WantCaptureKeyboard;
 }
 
-bool GUIPanel::wantCaptureMouse() {
+bool ConfigPanel::wantCaptureMouse() {
     ImGuiIO &io = ImGui::GetIO();
     return io.WantCaptureMouse;
 }
 
-bool GUIPanel::loadConfig() {
+bool ConfigPanel::loadConfig() {
     return true;
 }
 
-bool GUIPanel::reloadModel(const std::string &name) {
+bool ConfigPanel::reloadModel(const std::string &name) {
     return true;
 }
 
-bool GUIPanel::reloadSkybox(const std::string &name) {
+bool ConfigPanel::reloadSkybox(const std::string &name) {
     return true;
 }
 
-void GUIPanel::destroy() {
+void ConfigPanel::destroy() {
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
     ImGui::DestroyContext();

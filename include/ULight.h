@@ -38,6 +38,8 @@ struct LightDataUniformBlock { // uint好像和预想的数据不太一样
     alignas(4) glm::float32 uLightConstant;
     alignas(4) glm::float32 uLightLinear;
     alignas(4) glm::float32 uLightQuadratic;
+
+    alignas(4) glm::float32 uLightWidth;
 };
 
 class ULight: public UObject {
@@ -52,6 +54,7 @@ public:
     void setColor(const glm::vec3& color);
     void setLightDiffuse(const glm::vec3& diff);
     void setPosition(const glm::vec3& position);
+    void setLightRadius(float radius) { lightData_.uLightWidth = radius; }
 
     LightDataUniformBlock serialize() const;
     ULight& deserialize(const LightDataUniformBlock &block);

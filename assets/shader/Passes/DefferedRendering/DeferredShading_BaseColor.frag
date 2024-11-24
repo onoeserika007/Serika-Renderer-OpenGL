@@ -1,9 +1,6 @@
 #version 430 core
 
 in vec2 vTexCoord;
-in vec3 vWorldNormal;
-in vec3 vFragPos;
-in vec4 vPositionFromLight;
 
 layout(location = 0) out vec4 FragColor;
 
@@ -19,7 +16,7 @@ layout(std140) uniform Model {
     bool uUseEnvMap;
     bool uUsePureEmission;
     float uNearPlaneCamera;
-	float uFarPlaneCamera;
+    float uFarPlaneCamera;
 };
 
 layout(std140) uniform Light {
@@ -38,27 +35,24 @@ layout(std140) uniform Light {
     float uLightQuadratic;
 };
 
+layout(std140) uniform Scene {
+    int uScreenWidth;
+    int uScreenHeight;
+    bool uUseSSAO;
+    bool uIsFirstFrame;
+};
 
 layout(std140) uniform ShadowCube {
     mat4 uShadowVPs[6];
     float uFarPlane;
 };
 
-#ifdef DIFFUSE_MAP
-    uniform sampler2D uDiffuseMap;
-#endif
-
-#ifdef SPECULAR_MAP
-    uniform sampler2D uSpecularMap;
-#endif
-
-#ifdef HEIGHT_MAP
-    uniform sampler2D uHeightMap;
-#endif
-
-#ifdef AMBIENT_MAP
-    uniform sampler2D uAmbientMap;  // use abient map as reflection map
-#endif
+// gBuffers
+// This Name Must be aligned with which in RenderPassGem=ometry.cpp!!!
+uniform sampler2D gPosition_ViewDepth;
+uniform sampler2D gDiffuse;
+uniform sampler2D gNormal_Specular;
+uniform sampler2D gAo_Metal_Roughness;
 
 // ShadowMap
 uniform sampler2D uShadowMap;
@@ -68,6 +62,9 @@ uniform samplerCube uShadowMapCube;
 
 // Skybox
 uniform samplerCube uCubeMap;
+
+// SSAO
+uniform sampler2D uSSAOTexture;
 
 #define NUM_RINGS 10
 #define MAX_LIGHT_NUM 4
@@ -79,13 +76,16 @@ uniform samplerCube uCubeMap;
 
 #define NUM_SAMPLES 20
 
+// used to displace storedDisk
+uniform samplerBuffer uSSAOKernel;
+
 vec3 storedDisk[20] = vec3[]
 (
-   vec3( 1,  1,  1), vec3( 1, -1,  1), vec3(-1, -1,  1), vec3(-1,  1,  1), 
-   vec3( 1,  1, -1), vec3( 1, -1, -1), vec3(-1, -1, -1), vec3(-1,  1, -1),
-   vec3( 1,  1,  0), vec3( 1, -1,  0), vec3(-1, -1,  0), vec3(-1,  1,  0),
-   vec3( 1,  0,  1), vec3(-1,  0,  1), vec3( 1,  0, -1), vec3(-1,  0, -1),
-   vec3( 0,  1,  1), vec3( 0, -1,  1), vec3( 0, -1, -1), vec3( 0,  1, -1)
+    vec3( 1,  1,  1), vec3( 1, -1,  1), vec3(-1, -1,  1), vec3(-1,  1,  1),
+    vec3( 1,  1, -1), vec3( 1, -1, -1), vec3(-1, -1, -1), vec3(-1,  1, -1),
+    vec3( 1,  1,  0), vec3( 1, -1,  0), vec3(-1, -1,  0), vec3(-1,  1,  0),
+    vec3( 1,  0,  1), vec3(-1,  0,  1), vec3( 1,  0, -1), vec3(-1,  0, -1),
+    vec3( 0,  1,  1), vec3( 0, -1,  1), vec3( 0, -1, -1), vec3( 0,  1, -1)
 );
 
 vec3 calcDirLight(vec3 normal, vec3 viewDir);
@@ -103,7 +103,7 @@ float getDisturb() {
 float rand_1to1(float x) {
     // -1 -1
     return rand() * 2.f - 1.f;
-//    return fract(sin(x) * 10000.0);
+    //    return fract(sin(x) * 10000.0);
 }
 
 float rand_2to1(vec2 uv) {
@@ -113,143 +113,52 @@ float rand_2to1(vec2 uv) {
     return fract(sin(sn) * c);
 }
 
-vec3 calcPhong(vec3 normal, vec3 viewDir);
-
 float calcStandardShadowMap(vec3 shadowCoord);
 float PCSS(vec3 coords);
 float PCF(vec3 shadowCoord, float filterSize);
+
+/******************** GLOBALS ***************************/
+vec3 vWorldNormal = normalize(vec3(texture(gNormal_Specular, vTexCoord)));
+vec3 vFragPos = texture(gPosition_ViewDepth, vTexCoord).xyz;
+vec4 vPositionFromLight = uShadowMapVP * vec4(vFragPos, 1.f);
 
 /*********************** MAIN **************************/
 void main()
 {
     vec3 norm = normalize(vWorldNormal);
     vec3 viewDir = normalize(uViewPos - vFragPos);
-    vec3 phongColor = calcPhong(norm, viewDir);
+    vec3 DiffuseColor = texture(gDiffuse, vTexCoord).xyz;
 
     // shadow Map
-    float visibility = 1.f;
+    float visibility = 0.5f;
     vec3 shadowCoords = (vPositionFromLight.xyz / vPositionFromLight.w + 1.0f) / 2.0f;
     if (uUseShadowMap || uUseShadowMapCube) {
-        // visibility = calcStandardShadowMap(shadowCoords);
-//        visibility = PCF(shadowCoords, 1.f / 1024.f);
-        visibility = PCSS(shadowCoords);
-        phongColor *= visibility;
+        //  visibility = calcStandardShadowMap(shadowCoords);
+        if (uUseShadowMap) visibility = PCF(shadowCoords, 1.f / 1024.f);
+        else visibility = PCF(shadowCoords, 0.05f);
+        //        visibility = PCSS(shadowCoords);
+        DiffuseColor *= visibility;
     }
 
     // evironment mapping
-    if (uUseEnvMap) {
-        vec3 reflectDir = reflect(-viewDir, vWorldNormal);
-        vec3 mappingColor = vec3(texture(uCubeMap, reflectDir));
-#ifdef AMBIENT_MAP
-        vec3 reflCoef = vec3(texture(uAmbientMap, vTexCoord));
-#else
-        vec3 reflCoef = vec3(0.02);
-#endif
-        phongColor += mappingColor * reflCoef;
-    }
+//    if (uUseEnvMap) {
+//        vec3 reflectDir = reflect(-viewDir, vWorldNormal);
+//        vec3 mappingColor = vec3(texture(uCubeMap, reflectDir));
+//        #ifdef AMBIENT_MAP
+//        vec3 reflCoef = vec3(texture(uAmbientMap, vTexCoord));
+//        #else
+//        vec3 reflCoef = vec3(0.02);
+//        #endif
+//        DiffuseColor += mappingColor * reflCoef;
+//    }
 
-    FragColor = vec4(phongColor, 1.f);
+    float ao = texture(gAo_Metal_Roughness, vTexCoord).x;
+    if (uUseSSAO) ao *= texture(uSSAOTexture, vTexCoord).x;
+
+    FragColor = vec4(DiffuseColor * ao , 1.f);
 }
 
 /*********************** PHONG SHADING **************************/
-
-vec3 calcPhong(vec3 normal, vec3 viewDir) {
-    vec3 radiance = vec3(0.f);
-    if (uLightType == 0) {
-        FragColor = vec4(0.0f);
-    }
-    // point light
-    else if (uLightType == 1) {
-        // vec3 emissive = vec3(texture(material.emissive, vTexCoord));
-        radiance = calcPointLight(normal, vFragPos, viewDir);
-        // radiance = radiance + DISTURBANCE * getDisturb();
-    }
-    // directional light
-    else if (uLightType == 2) {
-        radiance = calcDirLight(normal, viewDir);
-        // radiance = radiance + DISTURBANCE * getDisturb();
-    }
-    // spot light
-    else if (uLightType == 3) {
-        radiance = radiance * calcSpotLight(vFragPos);
-    }
-    else {
-        radiance = vec3(1.0f);
-    }
-    return radiance;
-}
-
-vec3 calcPointLight(vec3 normal, vec3 fragPos, vec3 viewDir) {
-
-    float constant = uLightConstant; // cannot modify a uniform
-    if(abs(constant) < EPSILON) {
-        constant = 1.0f;
-    }
-
-    vec3 lightDir = normalize(uLightPosition - fragPos);
-    vec3 baseColor = vec3(1.0f);
-    vec3 specCoef = vec3(0.f);
-#ifdef DIFFUSE_MAP
-    baseColor = vec3(texture(uDiffuseMap, vTexCoord));
-#endif
-
-#ifdef SPECULAR_MAP
-    specCoef = vec3(texture(uSpecularMap, vTexCoord));
-#endif
-
-    // 衰减
-    float distance = length(uLightPosition - fragPos);
-    // division by zero problem here!
-    float attenuation = 1.0f / (constant + uLightLinear * distance + uLightQuadratic * (distance * distance));
-
-    // 漫反射着色
-    float diff = max(dot(normal, lightDir), 0.0);
-
-    // 镜面光着色
-    vec3 reflectDir = reflect(-lightDir, normal); // here I gets in, O gets out;
-    vec3 halfVector = normalize(lightDir + viewDir);
-    float spec = pow(max(dot(halfVector, normal), 0.0), 16.f);
-
-    // 合并结果
-    vec3 ambient  = uLightAmbient  * baseColor;
-    vec3 diffuse  = uLightDiffuse  * diff * baseColor;
-    vec3 specular = uLightSpecular * spec * specCoef;
-
-    vec3 result = ambient + diffuse + specular;
-
-    return result * attenuation;
-}
-
-vec3 calcDirLight(vec3 normal, vec3 viewDir) {
-
-    vec3 lightDir = normalize(-uLightDirection);
-    vec3 baseColor = vec3(1.0f);
-    vec3 specCoef = vec3(0.2f);
-#ifdef DIFFUSE_MAP
-    baseColor = vec3(texture(uDiffuseMap, vTexCoord));
-#endif
-
-#ifdef SPECULAR_MAP
-    specCoef = vec3(texture(uSpecularMap, vTexCoord));
-#endif
-
-    // 漫反射着色
-    float diff = max(dot(normal, lightDir), 0.0);
-
-    // 镜面光着色
-    vec3 reflectDir = reflect(-lightDir, normal);
-    vec3 halfVector = normalize(lightDir + viewDir);
-    float spec = pow(max(dot(halfVector, normal), 0.0), 16.f);
-
-    // 合并结果
-    vec3 ambient  = uLightAmbient  * vec3(baseColor);
-    vec3 diffuse  = uLightDiffuse  * diff * vec3(baseColor);
-    vec3 specular = uLightSpecular * spec * specCoef;
-
-    vec3 result = ambient + diffuse + specular;
-
-    return result;
-}
 
 float calcSpotLight(vec3 fragPos) {
     vec3 lightDir = normalize(uLightPosition - fragPos); // from frag to light
@@ -304,7 +213,7 @@ void uniformDiskSamples(const in vec2 randomSeed) {
     }
 }
 
-#define LIGHT_WIDTH 1.0
+#define LIGHT_WIDTH 70.0
 #define RESOLUTION 2048.0
 float getBias() {
     vec3 LightDir = normalize(uLightPosition - vFragPos);
@@ -320,16 +229,14 @@ float sampleShadowMapCube(vec3 fragPos) {
     vec3 lightDir = uLightPosition - fragPos;
     return texture(uShadowMapCube, -lightDir).x;
 }
-    
+
 float findBlocker(vec2 uv, float zReceiver) {
     float avgBlockerDepth = 0.0;
     float blockerNUM = 0.0;
     float blockerSearchRange = 5.0 / RESOLUTION;
     // poissonDiskSamples(uv);
     for(int i=0; i<NUM_SAMPLES; i++) {
-        float blockerDepth = 0.f;
-        if (uUseShadowMap) blockerDepth = sampleShadowMap2D(uv + blockerSearchRange * storedDisk[i].xy);
-        else blockerDepth = sampleShadowMapCube(vFragPos + blockerSearchRange * uFarPlane * storedDisk[i]);
+        float blockerDepth = texture(uShadowMap, uv + blockerSearchRange * storedDisk[i].xy).x;
         if(blockerDepth + EPSILON <= zReceiver) {
             avgBlockerDepth += blockerDepth;
             blockerNUM += 1.0;
@@ -347,13 +254,15 @@ float PCF(vec3 shadowCoord, float filterSize) {
     //  uniformDiskSamples(randomSeed);
     // poissonDiskSamples(randomSeed);
 
-    float FragDepth = shadowCoord.z;
-    if (uUseShadowMapCube) FragDepth = length(uLightPosition - vFragPos) / uFarPlane;
+    float FragDepth = 0.f;
+    if (uUseShadowMap) FragDepth = shadowCoord.z;
+    else FragDepth = length(uLightPosition - vFragPos) / uFarPlane;
 
     for (int i = 0; i < NUM_SAMPLES; i++) {
+        vec3 randomVec = normalize(texelFetch(uSSAOKernel, i).xyz);
         float LightDepth = 0.f;
-        if (uUseShadowMap) LightDepth = sampleShadowMap2D(shadowCoord.xy + storedDisk[i].xy * filterSize);
-        else LightDepth = sampleShadowMapCube(vFragPos + storedDisk[i] * filterSize * uFarPlane);
+        if (uUseShadowMap) LightDepth = sampleShadowMap2D(shadowCoord.xy + randomVec.xy * filterSize);
+        else LightDepth = sampleShadowMapCube(vFragPos + randomVec * filterSize);
         visibility += (LightDepth + EPSILON <= FragDepth - getBias() ? 0.0 : 1.0);
     }
     return visibility / num;
@@ -361,9 +270,8 @@ float PCF(vec3 shadowCoord, float filterSize) {
 
 float PCSS(vec3 coords) {
     float zReceiver = coords.z;
-    if (uUseShadowMapCube) zReceiver = length(uLightPosition - vFragPos) / uFarPlane;
     // STEP 1: avgblocker depth
-    float avgBlockerDepth = findBlocker(coords.xy, zReceiver);
+    float avgBlockerDepth = findBlocker(coords.xy, coords.z);
     // STEP 2: penumbra size
     float penumbraSize;
     if(avgBlockerDepth == 1.0) penumbraSize = 0.0;
@@ -374,15 +282,16 @@ float PCSS(vec3 coords) {
 }
 
 float calcStandardShadowMap(vec3 shadowCoord) {
-    
+
     float LightDepth = 0.f;
     if (uUseShadowMap) LightDepth = sampleShadowMap2D(shadowCoord.xy);
     else LightDepth = sampleShadowMapCube(vFragPos);
 
-    return LightDepth;
+    // return LightDepth;
+
     float FragDepth = 0.f;
-    if (uUseShadowMap) FragDepth = shadowCoord.z / uFarPlane; // mapping to 0~1
-    else FragDepth = length(uLightPosition - vFragPos) / uFarPlane; // mapping to 0~1
+    if (uUseShadowMap) FragDepth = shadowCoord.z;
+    else FragDepth = length(uLightPosition - vFragPos) / uFarPlane;
 
     if (FragDepth > 1.f) FragDepth = 0.f;
     return LightDepth + EPSILON <= FragDepth - getBias() ? 0.0 : 1.0;

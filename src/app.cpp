@@ -79,7 +79,7 @@ void App::mainLoop() {
         if (counter % 1000 == 55) {
             LOGI(("FPS: " + std::to_string(1.0f / deltaTime_)).c_str());
         }
-        processInput();
+        processInput();;
 
         viewer_->DrawFrame();
         glfwSwapBuffers(window); // 交换(Swap)前缓冲和后缓冲
@@ -92,7 +92,7 @@ void App::setupWindow() {
     // render config
     Config& config = Config::getInstance();
     // config.deserialize(defaultConfigPath);
-    std::cout << "Rendering Mode: " << static_cast<int>(config.RenderMode) << std::endl;
+    std::cout << "Rendering Mode: " << static_cast<int>(config.RenderPipeline) << std::endl;
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);                 // OpenGL 主版本号
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);                 // OpenGL 次版本号

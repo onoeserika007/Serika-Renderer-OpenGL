@@ -73,15 +73,15 @@ enum FilterMode {
 };
 
 enum EShadingModel {
-	Shading_Unknown = 0,
 	Shading_BaseColor,
-	Shading_Lambertian,
 	Shading_BlinnPhong,
 	Shading_PBR,
+	Shading_Lambertian,
 	Shading_Skybox,
 	Shading_IBL_Irradiance,
 	Shading_IBL_Prefilter,
 	Shading_FXAA,
+	Shading_Unknown
 };
 
 enum class ShaderPass: uint8_t {
@@ -107,4 +107,12 @@ enum ESceneType {
 	SceneType_Default,
 	SceneType_StandfordBunny,
 	SceneType_PBRTesting
+};
+
+enum EShaderStage{
+	ShaderStage_VertexShader,
+	ShaderStage_FragmentShader,
+	ShaderStage_TessControlShader,
+	ShaderStage_TessEvaluationShader,
+	ShaderStage_GeometryShader
 };

@@ -112,16 +112,16 @@ void main()
     // ao map
     // ao and albedo need to be transformed from sRGB to linear
 #ifdef AMBIENT_OCCLUSION_MAP
-    Ao_Metal_RoughnessOut.y = pow(texture(uAmbientOcclusionMap, vTexCoord).x, 2.2);
+    Ao_Metal_RoughnessOut.x = pow(texture(uAmbientOcclusionMap, vTexCoord).x, 2.2);
 #else
-    Ao_Metal_RoughnessOut.y = 1.f;
+    Ao_Metal_RoughnessOut.x = 1.f;
 #endif
 
     // metalness
 #ifdef METALNESS_MAP
-    Ao_Metal_RoughnessOut.x = texture(uMetalnessMap, vTexCoord).x;
+    Ao_Metal_RoughnessOut.y = texture(uMetalnessMap, vTexCoord).x;
 #else
-    Ao_Metal_RoughnessOut.x = uMetallic;
+    Ao_Metal_RoughnessOut.y = uMetallic;
 #endif
 
 // roughness

@@ -14,6 +14,7 @@ RenderPassLight::RenderPassLight(const std::shared_ptr<Renderer>& renderer): Ren
 }
 
 void RenderPassLight::render(FScene & scene) {
+    auto&& config = Config::getInstance();
     setupBuffers();
     fboMain_->bind();;;
     if (auto&& geometryPass = geometryPass_.lock()) {
@@ -39,7 +40,32 @@ void RenderPassLight::render(FScene & scene) {
             renderer_->updateMainUniformBlock({}, renderer_->getViewCamera(), light);
             renderer_->updateShadowCubeUniformBlock(light);
             enableBlending(true);
-            renderer_->dump(renderer_->getDefferedShadingProgram(geometryPass->getGBuffers(), Shading_PBR), true, fboMain_, 0);
+            switch (config.ShadingModelForDeferredRendering) {
+                case EShadingModel::Shading_BaseColor: {
+                    renderer_->dump(
+                    renderer_->getDefferedShadingProgram(geometryPass->getGBuffers(),
+                    Shading_BaseColor), true, fboMain_, 0);
+                    break;
+                }
+                case EShadingModel::Shading_BlinnPhong: {
+                    renderer_->dump(
+                    renderer_->getDefferedShadingProgram(geometryPass->getGBuffers(),
+                    Shading_BlinnPhong), true, fboMain_, 0);
+                    break;
+                }
+                case EShadingModel::Shading_PBR: {
+                    renderer_->dump(
+                        renderer_->getDefferedShadingProgram(geometryPass->getGBuffers(),
+                        Shading_PBR), true, fboMain_, 0);
+                    break;
+                }
+                default: {
+                renderer_->dump(
+                    renderer_->getDefferedShadingProgram(geometryPass->getGBuffers(),
+                    Shading_BlinnPhong), true, fboMain_, 0);
+                    break;
+                }
+            }
         }
 
         // draw Lights

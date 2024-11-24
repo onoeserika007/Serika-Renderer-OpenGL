@@ -1,11 +1,11 @@
 #pragma once
 #include <memory>
 #include "FCamera.h"
-#include "GUIPanel.h"
+#include "ConfigPanel.h"
 #include "GLFW/glfw3.h"
 
 class OrbitController;
-class GUIPanel;
+class ConfigPanel;
 class RenderPassLight;
 class RenderPassShadow;
 class RenderPassGeometry;
@@ -78,7 +78,7 @@ private:
 	GLFWwindow* glfwWindow_ = nullptr;
 
 	// config panel
-	std::shared_ptr<GUIPanel> configPanel_ = nullptr;
+	std::shared_ptr<ConfigPanel> configPanel_ = nullptr;
 	bool bShowConfigPanel_ = true;
 
 	// camera

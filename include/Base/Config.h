@@ -1,5 +1,8 @@
 #pragma once
-#include "Material/FMaterial.h"
+#include <mutex>
+#include <string>
+
+#include "Globals.h"
 
 namespace json11 {
 	class Json;
@@ -11,9 +14,9 @@ enum ERendererType {
 	RendererType_Vulkan,
 };
 
-enum ERenderMode {
+enum ERenderPipeline {
 	RenderMode_ForwardRendering,
-	RenderMode_DefferedRendering,
+	RenderMode_DeferredRendering,
 	RenderMode_TestRendering_OffScreen,
 	RenderMode_TestRendering_OnScreen,
 	RenderMode_PathTracing
@@ -30,12 +33,11 @@ struct Config {
 	// viewer
 	int WindowWidth = 1920;
 	int WindowHeight = 1080;
-	bool bShadowMap = false;
 	bool bSkybox = false;;
 	ERendererType RendererType = ERendererType::RendererType_OPENGL;
-	ERenderMode RenderMode = ERenderMode::RenderMode_ForwardRendering;
+	ERenderPipeline RenderPipeline = ERenderPipeline::RenderMode_ForwardRendering;
+	EShadingModel ShadingModelForDeferredRendering = EShadingModel::Shading_BlinnPhong;
 	ESceneType SceneType = ESceneType::SceneType_Default;
-
 
 	// geometry
 	bool bUseBVH = false;
@@ -48,6 +50,7 @@ struct Config {
 	float CameraZoom = 90.0f;
 
 	// shadow map
+	bool bShadowMap = false;
 	int Resolution_ShadowMap = 1024;
 	float CameraNear = 0.1f;
 	float CameraFar = 50.f;
@@ -71,6 +74,9 @@ struct Config {
 
 	// SSAO
 	bool bUseSSAO = false;
+
+	// Mipmaps
+	bool bUseMipmaps = false;
 
 	void serialize(const std::string& path);
 	void deserialize(const std::string& path);

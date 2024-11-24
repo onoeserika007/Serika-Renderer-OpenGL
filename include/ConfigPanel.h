@@ -2,10 +2,10 @@
 #include <functional>
 #include <string>
 
-class GUIPanel {
+class ConfigPanel {
 public:
-    GUIPanel() = default;
-    ~GUIPanel();
+    ConfigPanel() = default;
+    ~ConfigPanel();
     bool init(void *window, int width, int height);
     void onDraw();
 

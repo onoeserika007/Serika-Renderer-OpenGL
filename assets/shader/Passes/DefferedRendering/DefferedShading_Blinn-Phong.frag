@@ -78,15 +78,6 @@ uniform sampler2D uSSAOTexture;
 // used to displace storedDisk
 uniform samplerBuffer uSSAOKernel;
 
-vec3 storedDisk[20] = vec3[]
-(
-    vec3( 1,  1,  1), vec3( 1, -1,  1), vec3(-1, -1,  1), vec3(-1,  1,  1),
-    vec3( 1,  1, -1), vec3( 1, -1, -1), vec3(-1, -1, -1), vec3(-1,  1, -1),
-    vec3( 1,  1,  0), vec3( 1, -1,  0), vec3(-1, -1,  0), vec3(-1,  1,  0),
-    vec3( 1,  0,  1), vec3(-1,  0,  1), vec3( 1,  0, -1), vec3(-1,  0, -1),
-    vec3( 0,  1,  1), vec3( 0, -1,  1), vec3( 0, -1, -1), vec3( 0,  1, -1)
-);
-
 vec3 calcDirLight(vec3 normal, vec3 viewDir);
 vec3 calcPointLight(vec3 normal, vec3 fragPos, vec3 viewDir);
 float calcSpotLight(vec3 fragPos);
@@ -135,9 +126,9 @@ void main()
     vec3 shadowCoords = (vPositionFromLight.xyz / vPositionFromLight.w + 1.0f) / 2.0f;
     if (uUseShadowMap || uUseShadowMapCube) {
         //  visibility = calcStandardShadowMap(shadowCoords);
-       if (uUseShadowMap) visibility = PCF(shadowCoords, 1.f / 1024.f);
-       else visibility = PCF(shadowCoords, 0.05f);
-        //        visibility = PCSS(shadowCoords);
+//        visibility = PCF(shadowCoords, 1.f / 1024.f);
+//       if (uUseShadowMapCube) visibility = PCF(shadowCoords, 1.f / 1024.f * uFarPlane);
+        visibility = PCSS(shadowCoords);
         phongColor *= visibility;
     }
 
@@ -257,44 +248,6 @@ float calcSpotLight(vec3 fragPos) {
 
 /*********************** SHADOW MAP **************************/
 
-vec2 poissonDisk[NUM_SAMPLES];
-
-void poissonDiskSamples(const in vec2 randomSeed) {
-
-    float ANGLE_STEP = PI2 * float(NUM_RINGS) / float(NUM_SAMPLES);
-    float INV_NUM_SAMPLES = 1.0 / float(NUM_SAMPLES);
-
-    float angle = rand_2to1(randomSeed) * PI2;
-    float radius = INV_NUM_SAMPLES;
-    float radiusStep = radius;
-
-    for (int i = 0; i < NUM_SAMPLES; i++) {
-        poissonDisk[i] = vec2(cos(angle), sin(angle)) * pow(radius, 0.75);
-        radius += radiusStep;
-        angle += ANGLE_STEP;
-    }
-}
-
-void uniformDiskSamples(const in vec2 randomSeed) {
-
-    float randNum = rand_2to1(randomSeed);
-    float sampleX = rand_1to1(randNum);
-    float sampleY = rand_1to1(sampleX);
-
-    float angle = sampleX * PI2;
-    float radius = sqrt(sampleY);
-
-    for (int i = 0; i < NUM_SAMPLES; i++) {
-        poissonDisk[i] = vec2(radius * cos(angle), radius * sin(angle));
-
-        sampleX = rand_1to1(sampleY);
-        sampleY = rand_1to1(sampleX);
-
-        angle = sampleX * PI2;
-        radius = sqrt(sampleY);
-    }
-}
-
 #define LIGHT_WIDTH 70.0
 #define RESOLUTION 2048.0
 float getBias() {
@@ -318,7 +271,9 @@ float findBlocker(vec2 uv, float zReceiver) {
     float blockerSearchRange = 5.0 / RESOLUTION;
     // poissonDiskSamples(uv);
     for(int i=0; i<NUM_SAMPLES; i++) {
-        float blockerDepth = texture(uShadowMap, uv + blockerSearchRange * storedDisk[i].xy).x;
+        vec3 randomVec = normalize(texelFetch(uSSAOKernel, i).xyz);
+        float blockerDepth = sampleShadowMap2D(uv + blockerSearchRange * normalize(randomVec.xy));
+        if (uUseShadowMapCube) blockerDepth = sampleShadowMapCube(vFragPos + blockerSearchRange * randomVec * uFarPlane);
         if(blockerDepth + EPSILON <= zReceiver) {
             avgBlockerDepth += blockerDepth;
             blockerNUM += 1.0;
@@ -332,9 +287,6 @@ float PCF(vec3 shadowCoord, float filterSize) {
     if(filterSize == 0.0) return 1.0f;
     float visibility = 0.0;
     float num = float(NUM_SAMPLES);
-    // vec2 randomSeed = shadowCoord.xy;
-    //  uniformDiskSamples(randomSeed);
-    // poissonDiskSamples(randomSeed);
 
     float FragDepth = 0.f;
     if (uUseShadowMap) FragDepth = shadowCoord.z;
@@ -352,8 +304,9 @@ float PCF(vec3 shadowCoord, float filterSize) {
 
 float PCSS(vec3 coords) {
     float zReceiver = coords.z;
+    if (uUseShadowMapCube) zReceiver = length(uLightPosition - vFragPos) / uFarPlane;
     // STEP 1: avgblocker depth
-    float avgBlockerDepth = findBlocker(coords.xy, coords.z);
+    float avgBlockerDepth = findBlocker(coords.xy, zReceiver);
     // STEP 2: penumbra size
     float penumbraSize;
     if(avgBlockerDepth == 1.0) penumbraSize = 0.0;

@@ -132,7 +132,7 @@ public:
 	ERendererType rendererType() const { return renderer_type_; }
 
 	/** State Variables*/
-	ERenderMode render_mode_;
+	ERenderPipeline render_mode_;
 	RenderStates renderStates_;
 
 	void setSSAOSampler(const std::shared_ptr<UniformSampler>& sampler) const { abientOcclusionUniformSampler_ = sampler; }

@@ -88,7 +88,9 @@ void RendererOpenGL::init()
 	envCubeMapUniformSampler_ = envCubeMapPlaceholder_->getUniformSampler(*this);
 	shadowMapUniformSampler_ = shadowMapPlaceholder_->getUniformSampler(*this);
 	shadowMapCubeUniformSampler_ = shadowMapCubePlaceholder_->getUniformSampler(*this);
-	abientOcclusionUniformSampler_ = abientOcclusionPlaceholader_->getUniformSampler(*this);
+	auto&& aoSampler = abientOcclusionPlaceholader_->getUniformSampler(*this);
+	aoSampler->setName("uSSAOTexture");
+	abientOcclusionUniformSampler_ = aoSampler;
 }
 
 std::shared_ptr<UniformBlock> RendererOpenGL::createUniformBlock(const std::string& name, int size) const {
@@ -246,14 +248,16 @@ void RendererOpenGL::loadShaders(FMaterial& material) const {
 }
 
 void RendererOpenGL::setupMaterial(FMaterial& material) const {
+	material.checkMipmaps();
 	if (material.isPipelineReady()) return;
 
 	// textures
 	if (!material.texturesReady()) {
-
 		material.clearTextures_runtime();
+		material.setSamplerReady(false);
 		for (auto& [type, textureData] : material.getTextureData()) {
 			const bool bIsCubeMap = textureData.loadedTextureType == TEXTURE_TYPE_CUBE;
+			const bool bUseMipmap = Config::getInstance().bUseMipmaps;
 			TextureInfo texInfo{};
 			texInfo.width = textureData.unitDataArray[0]->width();
 			texInfo.height = textureData.unitDataArray[0]->height();
@@ -262,11 +266,12 @@ void RendererOpenGL::setupMaterial(FMaterial& material) const {
 			texInfo.format = TextureFormat_RGBA8;
 			texInfo.usage = TextureUsage_Sampler;
 			texInfo.multiSample = false;;
-			texInfo.useMipmaps = false;
+			// only textures need mipmap
+			texInfo.useMipmaps = bUseMipmap;
 
 			SamplerInfo smInfo{};
 			smInfo.filterMag = Filter_LINEAR;
-			smInfo.filterMin = Filter_LINEAR;
+			smInfo.filterMin = bUseMipmap? Filter_LINEAR_MIPMAP_LINEAR: Filter_LINEAR;
 			// for skybox
 			smInfo.wrapR = bIsCubeMap? Wrap_CLAMP_TO_EDGE : Wrap_REPEAT;
 			smInfo.wrapS = bIsCubeMap? Wrap_CLAMP_TO_EDGE : Wrap_REPEAT;
@@ -285,7 +290,12 @@ void RendererOpenGL::setupMaterial(FMaterial& material) const {
 		for (auto& [pass, shader] : material.getShaders()) {
 			shader->setupPipeline(material);
 		}
+		material.setShaderReady(true);
+	}
 
+	// samplers
+	if (!material.samplerReady()) {
+		material.clearUniformSamplers(); // clear old samplers
 		auto&& matobj = material.getMaterialObject();
 		for (auto&& [type, texture]: matobj->texturesRuntime_) {
 			/****这里是唯一正确装配sampler name的地方 **/
@@ -295,16 +305,13 @@ void RendererOpenGL::setupMaterial(FMaterial& material) const {
 			sampler->setTexture(*texture);
 			material.setUniformSampler(sampler->name(), sampler);
 		}
-
-		material.setShaderReady(true);
 	}
 }
 
 void RendererOpenGL::setupMesh(const std::shared_ptr<UMesh> &mesh, ShaderPass shaderPass) {
 	// return early
-	if (mesh->isPipelineReady()) return;
+	// if (mesh->isPipelineReady()) return;
 
-	auto pmaterial = mesh->getMaterial();
 	if (auto pmaterial = mesh->getMaterial()) {
 
 		// set shading mode
@@ -1079,22 +1086,27 @@ std::shared_ptr<ShaderGLSL> RendererOpenGL::getDrawDebuglineProgram() const {
 std::shared_ptr<ShaderGLSL> RendererOpenGL::getDefferedShadingProgram(const std::vector<std::shared_ptr<Texture>> &gBuffers, EShadingModel shadingModel) const {
 	static std::shared_ptr<ShaderGLSL> program;;
 	static Serika::UUID<ShaderResources> resourceUUID;
+	static EShadingModel storedShadingModel;
 
-	if (!program) {
+	if (!program || storedShadingModel != shadingModel) {
 		if (shadingModel == Shading_BlinnPhong) {
 			program = ShaderGLSL::loadDefferedBlinnPhongShader();
 		}
 		else if (shadingModel == Shading_PBR) {
 			program = ShaderGLSL::loadDefferedPBRShader();
 		}
+		else if (shadingModel == Shading_BaseColor) {
+			program = ShaderGLSL::loadDeferredBaseColorShader();
+		}
+		storedShadingModel = shadingModel;
 
 		program->compileAndLink();
 
 		auto&& resources = noObjectContextShaderResources[resourceUUID.get()];
 		if (!resources) {
 			resources = std::make_shared<ShaderResources>();
-			program->setResources(resources);
 		}
+		program->setResources(resources);
 	}
 
 	// bind gbuffers

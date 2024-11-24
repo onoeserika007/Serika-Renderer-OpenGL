@@ -216,12 +216,12 @@ vec3 calcPBR(vec3 normal, vec3 viewDir) {
 
     // PBR begin
     vec3 F0 = vec3(0.04f);
-    vec3 albedo = texture(gAo_Metal_Roughness, vTexCoord).xyz;
+    vec3 albedo = texture(gDiffuse, vTexCoord).xyz;
     float ao = texture(gAo_Metal_Roughness, vTexCoord).x;
     float metallic = texture(gAo_Metal_Roughness, vTexCoord).y;
     float roughness = texture(gAo_Metal_Roughness, vTexCoord).z;
     F0 = mix(F0, albedo, metallic);
-    vec3 F = fresnelSchlick(max(dot(halfVector, viewDir), 0.0), F0); // fresnel item
+    vec3 F = fresnelSchlick(max(dot(normal, viewDir), 0.0), F0); // fresnel item
 
     // micro facet
     float NDF = DistributionGGX(normal, halfVector, roughness);

@@ -12,7 +12,7 @@ FCamera::FCamera(glm::vec3 position, glm::vec3 up)
     MovementSpeed = config.CameraSpeed;
     MouseSensitivity = config.MouseSensitivity;
     Zoom = config.CameraZoom;
-    updateCameraVectors();;
+    updateCameraVectors();
 };
 
 FCamera::FCamera(float posX, float posY, float posZ, float upX, float upY, float upZ, float yaw, float pitch): FCamera({posX, posY, posZ}, {upX, upY, upZ}) {

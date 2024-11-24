@@ -112,6 +112,10 @@ std::shared_ptr<ShaderGLSL> ShaderGLSL::loadDefferedPBRShader() {
     return loadShader("assets/shader/Passes/DefferedRendering/DefferredShading_PBR.vert", "assets/shader/Passes/DefferedRendering/DefferredShading_PBR.frag");
 }
 
+std::shared_ptr<ShaderGLSL> ShaderGLSL::loadDeferredBaseColorShader() {
+    return loadShader("assets/shader/Passes/DefferedRendering/DeferredShading_BaseColor.vert", "assets/shader/Passes/DefferedRendering/DeferredShading_BaseColor.frag");
+}
+
 std::shared_ptr<ShaderGLSL> ShaderGLSL::loadSSAOPassShader() {
     return loadShader("assets/shader/Passes/SSAO/SSAO.vert", "assets/shader/Passes/SSAO/SSAO.frag");
 }

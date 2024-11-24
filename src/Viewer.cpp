@@ -15,7 +15,7 @@
 #include "Utils/Logger.h"
 #include "Renderer.h"
 #include "FScene.h"
-#include "GUIPanel.h"
+#include "ConfigPanel.h"
 #include "OrbitController.h"
 #include "GLFW/glfw3.h"
 #include "OpenGL/RendererOpenGL.h"
@@ -30,7 +30,7 @@ void Viewer::init(void *window, int width, int height, int outTexId)
 	auto && config = Config::getInstance();
 
 	if (!configPanel_) {
-		configPanel_ = std::make_shared<GUIPanel>();
+		configPanel_ = std::make_shared<ConfigPanel>();
 		configPanel_->init(window, width, height);
 	}
 
@@ -130,11 +130,11 @@ void Viewer::DrawFrame() {
 	if (scene_) {
 		// pre setup
 		auto&& config = Config::getInstance();
-		if (renderer_->render_mode_ != config.RenderMode || scene_->sceneType_ != config.SceneType) {
+		if (renderer_->render_mode_ != config.RenderPipeline || scene_->sceneType_ != config.SceneType) {
 			// switch render mode, clear all debug primitives
 			renderer_->remove_all_debug_primitives_safe();
 		}
-		renderer_->render_mode_ = config.RenderMode;
+		renderer_->render_mode_ = config.RenderPipeline;
 		reloadScene();
 		renderer_->setRenderingScene(scene_);
 		scene_->packMeshesFromScene();
@@ -150,19 +150,19 @@ void Viewer::DrawFrame() {
 		// }
 
 		// pipeline
-		if (config.RenderMode == ERenderMode::RenderMode_ForwardRendering) {
+		if (config.RenderPipeline == ERenderPipeline::RenderMode_ForwardRendering) {
 			drawScene_ForwardRendering(scene_);
 		}
-		else if (config.RenderMode == ERenderMode::RenderMode_DefferedRendering) {
+		else if (config.RenderPipeline == ERenderPipeline::RenderMode_DeferredRendering) {
 			drawScene_DefferedRendering(scene_);
 		}
-		else if (config.RenderMode == ERenderMode::RenderMode_TestRendering_OffScreen) {
+		else if (config.RenderPipeline == ERenderPipeline::RenderMode_TestRendering_OffScreen) {
 			drawScene_TestPipeline(scene_);
 		}
-		else if (config.RenderMode == ERenderMode::RenderMode_TestRendering_OnScreen) {
+		else if (config.RenderPipeline == ERenderPipeline::RenderMode_TestRendering_OnScreen) {
 			drawScene_OnScreen(scene_);
 		}
-		else if (config.RenderMode == ERenderMode::RenderMode_PathTracing) {
+		else if (config.RenderPipeline == ERenderPipeline::RenderMode_PathTracing) {
 			TEST_TIME_COST(drawScene_PathTracing_CPU(scene_), Ray_Tracing);
 		}
 		else {

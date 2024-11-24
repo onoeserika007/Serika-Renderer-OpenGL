@@ -14,7 +14,7 @@ FMaterial::FMaterial() {
 
 void FMaterial::setShader(ShaderPass pass, std::shared_ptr<Shader> pshader) {
     shaders_[pass] = pshader;
-    shaderReady_ = false;
+    bShaderReady_ = false;
 }
 
 std::shared_ptr<Shader> FMaterial::getShader(ShaderPass pass) {
@@ -32,17 +32,17 @@ std::unordered_map<ShaderPass, std::shared_ptr<Shader> > &FMaterial::getShaders(
 FMaterial::FMaterial(const FMaterial &other)
     : materialInfoUniformBlock_(), shaderResources_(), shaders_(), uuid_()  {
     shadingModel_ = other.shadingModel_;
-    shaderReady_ = false;
+    bShaderReady_ = false;
     material_info_ = other.material_info_;
     materialObject_ = other.materialObject_;
 }
 
 bool FMaterial::shaderReady() const {
-    return shaderReady_;
+    return bShaderReady_;
 }
 
 void FMaterial::setShaderReady(bool setValue) {
-    shaderReady_ = setValue;
+    bShaderReady_ = setValue;
 }
 
 bool FMaterial::texturesReady() const {
@@ -60,6 +60,10 @@ void FMaterial::setTexturesReady(bool ready) {
 
 void FMaterial::setUniformSampler(const std::string &name, const std::shared_ptr<UniformSampler> &uniform) {
     getShaderResources()->samplers[name] = uniform;
+}
+
+void FMaterial::clearUniformSamplers() {
+    getShaderResources()->samplers.clear();
 }
 
 void FMaterial::setUniformBlock(const std::string &name, const std::shared_ptr<UniformBlock> &uniform) {
@@ -131,6 +135,12 @@ void FMaterial::setTexture_runtime(TextureType texType, const std::shared_ptr<Te
     }
 }
 
+void FMaterial::checkMipmaps() const {
+    if (auto &&matobj = getMaterialObject()) {
+        matobj->checkMipmapSetting();
+    }
+}
+
 void FMaterial::clearTextures_runtime() {
     if (auto &&matobj = getMaterialObject()) {
         matobj->texturesRuntime_.clear();
@@ -174,10 +184,6 @@ std::shared_ptr<MaterialResource> FMaterial::getMaterialObject() const {
         materialObject_ = std::make_shared<MaterialResource>();
     }
     return materialObject_;
-}
-
-void FMaterial::setupPipeline(Renderer &renderer) {
-    renderer.setupMaterial(*this);
 }
 
 bool FMaterial::hasEmission() const {

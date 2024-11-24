@@ -10,10 +10,11 @@
   "CaptureRadius_ShadowMap": 10,
   "Exposure": 1,
   "MouseSensitivity": 0.10000000149011612,
-  "RenderMode": 1,
+  "RenderPipeline": 1,
+  "ShadingModelForDeferredRendering": 0,
   "Resolution_ShadowMap": 1024,
   "SPP": 128,
-  "SceneType": 2,
+  "SceneType": 0,
   "WindowHeight": 784,
   "WindowWidth": 784,
   "bShadowMap": false,
@@ -21,5 +22,6 @@
   "bUseBVH": false,
   "bUseBloom": false,
   "bUseHDR": true,
-  "bUseSSAO": false
+  "bUseSSAO": false,
+  "bUseMipmaps": false
 }

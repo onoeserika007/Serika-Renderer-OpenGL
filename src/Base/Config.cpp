@@ -1,6 +1,7 @@
 #include "Base/Config.h"
 
 #include <fstream>
+#include <iostream>
 
 #include "json11/json11.hpp"
 #include "Utils/Logger.h"
@@ -58,7 +59,7 @@ Config & Config::getInstance() {
         // prevent from loaded twice, already loaded other thread
         if (!config.loaded_) {
             config.deserialize(defaultConfigPath);
-            std::cout << "Rendering Mode: " << static_cast<int>(config.RenderMode) << std::endl;
+            std::cout << "Rendering RenderPipeline: " << static_cast<int>(config.RenderPipeline) << std::endl;;
             config.loaded_ = true;
         }
     }
@@ -68,7 +69,7 @@ Config & Config::getInstance() {
 json Config::to_json() const {
     return json::object {
         {"bShadowMap", json(bShadowMap) },
-        {"RenderMode", json(static_cast<int>(RenderMode))},
+        {"RenderPipeline", json(static_cast<int>(RenderPipeline))},
         {"CameraYaw", json(CameraYaw)},
         {"CameraPitch", json(CameraPitch)},
         {"CameraSpeed", json(CameraSpeed)},
@@ -89,13 +90,15 @@ json Config::to_json() const {
         {"bUseHDR", json(bUseHDR)},
         {"bUseBloom", json(bUseBloom)},
         {"bUseSSAO", json(bUseSSAO)},
-        {"SceneType", json(SceneType)}
-    };;;
+        {"SceneType", json(SceneType)},
+        {"ShadingModelForDeferredRendering", json(ShadingModelForDeferredRendering)},
+        {"bUseMipmaps", json(bUseMipmaps)}
+    };;
 }
 
 Config & Config::from_json(const json &j) {
     bShadowMap = j["bShadowMap"].bool_value();
-    RenderMode = static_cast<ERenderMode>(j["RenderMode"].int_value());
+    RenderPipeline = static_cast<ERenderPipeline>(j["RenderPipeline"].int_value());
     CameraYaw = j["CameraYaw"].number_value();
     CameraPitch = j["CameraPitch"].number_value();
     CameraSpeed = j["CameraSpeed"].number_value();
@@ -104,7 +107,7 @@ Config & Config::from_json(const json &j) {
     CameraNear = j["CameraNear"].number_value();
     CameraFar = j["CameraFar"].number_value();
     Resolution_ShadowMap = j["Resolution_ShadowMap"].int_value();
-    CaptureRadius_ShadowMap = j["CaptureRadius_ShadowMap"].number_value();
+    CaptureRadius_ShadowMap = j["CaptureRadius_ShadowMap"].number_value();;
     CameraAspect = j["CameraAspect"].number_value();
     CameraFOV = j["CameraFOV"].number_value();
     WindowWidth = j["WindowWidth"].int_value();
@@ -117,6 +120,8 @@ Config & Config::from_json(const json &j) {
     bUseBloom = j["bUseBloom"].bool_value();
     bUseSSAO = j["bUseSSAO"].bool_value();
     SceneType = static_cast<ESceneType>(j["SceneType"].int_value());
+    ShadingModelForDeferredRendering = static_cast<EShadingModel>(j["ShadingModelForDeferredRendering"].int_value());
+    bUseMipmaps = j["bUseMipmaps"].bool_value();
     return *this;;;;;;
 }
 

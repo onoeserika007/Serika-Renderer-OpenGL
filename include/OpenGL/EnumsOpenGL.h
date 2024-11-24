@@ -2,7 +2,6 @@
 #include "Base/RenderStates.h"
 #include <glad/glad.h>
 #include "../Material/Texture.h"
-#include "Utils/Logger.h"
 
 namespace OpenGL {
 
@@ -201,6 +200,18 @@ namespace OpenGL {
         case Primitive_TRIANGLE:    return GL_TRIANGLES;
         default:
             break;
+        }
+        return 0;
+    }
+
+    static inline GLint cvtShaderStage(EShaderStage stage) {
+        switch (stage) {
+            case ShaderStage_VertexShader: return GL_VERTEX_SHADER;
+            case ShaderStage_FragmentShader: return GL_FRAGMENT_SHADER;
+            case ShaderStage_TessControlShader: return GL_TESS_CONTROL_SHADER;
+            case ShaderStage_GeometryShader: return GL_GEOMETRY_SHADER;
+            case ShaderStage_TessEvaluationShader: return GL_TESS_EVALUATION_SHADER;
+            default: break;
         }
         return 0;
     }

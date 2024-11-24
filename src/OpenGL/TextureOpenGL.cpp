@@ -68,15 +68,17 @@ void TextureOpenGL2D::setupPipeline()
 		// 第七第八个参数定义了源图的格式和数据类型。我们使用RGB值加载这个图像，并把它们储存为char(byte)数组，我们将会传入对应值。
 		// 最后一个参数是真正的图像数据。
 		GL_CHECK(glTexImage2D(target, 0, openglTextureInfo.internalformat, textureInfo.width, textureInfo.height, textureInfo.border, openglTextureInfo.format, openglTextureInfo.elemtype, textureData_.unitDataArray[0]->rawData()));
-		return;
 	}
-
-	if (!textureData_.floatDataArray.empty()) {
+	else if (!textureData_.floatDataArray.empty()) {
 		GL_CHECK(glTexImage2D(target, 0, openglTextureInfo.internalformat, textureInfo.width, textureInfo.height, textureInfo.border, openglTextureInfo.format, openglTextureInfo.elemtype, textureData_.floatDataArray[0]->rawData()));
-		return;
+	}
+	else {
+		GL_CHECK(glTexImage2D(target, 0, openglTextureInfo.internalformat, textureInfo.width, textureInfo.height, textureInfo.border, openglTextureInfo.format, openglTextureInfo.elemtype, nullptr));
 	}
 
-	GL_CHECK(glTexImage2D(target, 0, openglTextureInfo.internalformat, textureInfo.width, textureInfo.height, textureInfo.border, openglTextureInfo.format, openglTextureInfo.elemtype, nullptr));
+	if (textureInfo.useMipmaps) {
+		GL_CHECK(glGenerateMipmap(target));
+	}
 }
 
 void TextureOpenGL2D::copyDataTo(Texture &other) {

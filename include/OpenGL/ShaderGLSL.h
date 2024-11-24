@@ -5,11 +5,6 @@
 #include "Base/Globals.h"
 #include "Material/Shader.h"
 
-enum ShaderType{
-    ShaderType_VertexShader,
-    ShaderType_FragmentShader
-};
-
 class ShaderGLSL: public Shader
 {
     struct PassKey {
@@ -52,6 +47,7 @@ public:
     static std::shared_ptr<ShaderGLSL> loadShadowCubePassShader();
     static std::shared_ptr<ShaderGLSL> loadDefferedBlinnPhongShader();
     static std::shared_ptr<ShaderGLSL> loadDefferedPBRShader();
+    static std::shared_ptr<ShaderGLSL> loadDeferredBaseColorShader();
     static std::shared_ptr<ShaderGLSL> loadSSAOPassShader();
     static std::shared_ptr<ShaderGLSL> loadSSAOBlurShader();
     static std::shared_ptr<ShaderGLSL> loadSkyBoxShader();

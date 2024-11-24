@@ -6,6 +6,7 @@
 #include "Base/Globals.h"
 #include "Texture.h"
 #include "Uniform.h"
+#include "Base/Config.h"
 
 class ShaderResources;
 
@@ -22,7 +23,7 @@ struct MaterialInfoBlock {
 	alignas(4) float uMetallic = 0.0;
 	alignas(4) float uSpecular = 0.0;
 	alignas(4) float uSpecularTint = 0.0;
-	alignas(4) float uRoughness = 0.0;
+	alignas(4) float uRoughness = 1.0;
 	alignas(4) float uAnisotropic = 0.0;
 	alignas(4) float uSheen = 0.0;
 	alignas(4) float uSheenTint = 0.0;
@@ -45,6 +46,14 @@ struct MaterialResource {
 	// just find a place to throw textures in, managing its life-cycle
 	mutable std::unordered_map<int, std::shared_ptr<Texture>> texturesRuntime_;
 	bool texturesReady_ = false; // have textures been loaded to piepleine?
+	bool loadMipmap = false;
+	void checkMipmapSetting() {
+		auto&& config = Config::getInstance();
+		if (config.bUseMipmaps != loadMipmap) {
+			texturesReady_ = false;
+			loadMipmap = config.bUseMipmaps;
+		}
+	}
 };
 
 // 应该区分元信息和运行时资源
@@ -59,8 +68,9 @@ public:
 
 	// getters
 	bool shaderReady() const;
+	bool samplerReady() const { return bSamplerReady_; }
 	bool texturesReady() const;
-	bool isPipelineReady() const { return shaderReady() && texturesReady(); }
+	bool isPipelineReady() const { return shaderReady() && texturesReady() && samplerReady(); }
 	std::shared_ptr<Shader> getShader(ShaderPass pass);
 	std::unordered_map<ShaderPass, std::shared_ptr<Shader>>& getShaders();
 	std::shared_ptr<ShaderResources> getShaderResources() const;
@@ -71,16 +81,19 @@ public:
 
 	// setters and adders
 	void setUniformSampler(const std::string& name, const std::shared_ptr<UniformSampler>& uniform);
+	void clearUniformSamplers();
 	void setUniformBlock(const std::string& name, const std::shared_ptr<UniformBlock> &uniform);
 	void setShaderResources(const std::shared_ptr<ShaderResources>& shader_resources);
 	void setShader(ShaderPass pass, std::shared_ptr<Shader> pshader);
 	void setShaderReady(bool setValue);
+	void setSamplerReady(bool bState) { bSamplerReady_ = bState; }
 	void setTexturesReady(bool ready);
 
 	// Texture Data
 	void setTextureData(TextureType textureType, const TextureData &texData);
 	void setTextureData(TextureType textureType, const std::string& texPath);
 	void setTexture_runtime(TextureType texType, const std::shared_ptr<Texture> &pTex);
+	void checkMipmaps() const;
 	void clearTextures_runtime();
 	void setShadingMode(EShadingModel mode);
 	void addDefine(const std::string& define);
@@ -92,8 +105,8 @@ public:
 	// use
 	void use(ShaderPass pass);
 	std::shared_ptr<MaterialResource> getMaterialObject() const;
-	void setupPipeline(Renderer& renderer);
-	virtual ~FMaterial() {}
+
+	virtual ~FMaterial() = default;
 
 	// attributes
 	bool hasEmission() const;
@@ -127,7 +140,8 @@ private:
 
 	// shaders
 	std::unordered_map<ShaderPass, std::shared_ptr<Shader>> shaders_;
-	bool shaderReady_ = false; // shader setupPipeline or not
+	bool bShaderReady_ = false; // shader setupPipeline or not
+	bool bSamplerReady_ = false; // has samplers bound to material
 
 	// Material Attributes // explicitly assigned, prior to texture
 	Serika::UUID<FMaterial> uuid_;

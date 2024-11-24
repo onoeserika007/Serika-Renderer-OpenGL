@@ -96,7 +96,10 @@ void RenderPassGeometry::render(FScene & scene) {
 		enableDepth(false);
 		auto&& ssaoBlurProgram = renderer_->getSSAOBlurProgram(ssaoMid_);
 		renderer_->dump(ssaoBlurProgram, false, ssaoFbo_, 1);
-		renderer_->setSSAOSampler(ssaoResult_->getUniformSampler(*renderer_));
+		// remenber to set sampler name
+		auto ssaoSampler =  ssaoResult_->getUniformSampler(*renderer_);
+		ssaoSampler->setName("uSSAOTexture");
+		renderer_->setSSAOSampler(ssaoSampler);
 	}
 }
 
