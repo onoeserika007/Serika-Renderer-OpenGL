@@ -1,9 +1,9 @@
 ﻿#include "app.h"
 #include "Base/Config.h"
-#include "Utils/Logger.h"
+#include "Utils/SRKLogger.h"
 
 int main(){
-    SerikaGL::Logger::setLogLevel(SerikaGL::LogLevel::LOG_DEBUG);
+    SerikaGL::SRKLogger::setLogLevel(SerikaGL::LogLevel::LOG_DEBUG);
     App& app = App::getInstance();
     app.init();
     app.mainLoop();

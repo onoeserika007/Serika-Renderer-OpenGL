@@ -5,7 +5,7 @@
 #include "Utils/UUID.h"
 #include "Texture.h"
 #include "FrameBuffer.h"
-#include "Utils/Logger.h"
+#include "Utils/SRKLogger.h"
 
 enum UniformBlockType {
     UniformBlock_Scene,

@@ -2,13 +2,16 @@
 
 #include <cstdarg>
 #include <mutex>
-;
+
+#include <exception>
+#include <functional>
+
 namespace SerikaGL {
 
-#define LOGI(...) SerikaGL::Logger::log(SerikaGL::LOG_INFO,     __FILE__, __LINE__, __VA_ARGS__)
-#define LOGD(...) SerikaGL::Logger::log(SerikaGL::LOG_DEBUG,    __FILE__, __LINE__, __VA_ARGS__)
-#define LOGW(...) SerikaGL::Logger::log(SerikaGL::LOG_WARNING,  __FILE__, __LINE__, __VA_ARGS__)
-#define LOGE(...) SerikaGL::Logger::log(SerikaGL::LOG_ERROR,    __FILE__, __LINE__, __VA_ARGS__)
+#define LOGI(...) SerikaGL::SRKLogger::log(SerikaGL::LOG_INFO,     __FILE__, __LINE__, __VA_ARGS__)
+#define LOGD(...) SerikaGL::SRKLogger::log(SerikaGL::LOG_DEBUG,    __FILE__, __LINE__, __VA_ARGS__)
+#define LOGW(...) SerikaGL::SRKLogger::log(SerikaGL::LOG_WARNING,  __FILE__, __LINE__, __VA_ARGS__)
+#define LOGE(...) SerikaGL::SRKLogger::log(SerikaGL::LOG_ERROR,    __FILE__, __LINE__, __VA_ARGS__)
 
 	static constexpr int MAX_LOG_LENGTH = 1024;
 
@@ -21,7 +24,7 @@ namespace SerikaGL {
 		LOG_ERROR,
 	};
 
-	class Logger {
+	class SRKLogger {
 	public:
 		static void setLogFunc(void* ctx, LogFunc func);
 		static void setLogLevel(LogLevel level);
@@ -35,5 +38,8 @@ namespace SerikaGL {
 		static char buf_[MAX_LOG_LENGTH];
 		static std::mutex mutex_;
 	};
+
+	void printStackTrace();
+	void protectedCall(void* context, int level, const char* file, int line, const char* message);
 
 }

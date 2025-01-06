@@ -4,31 +4,31 @@
  *
  */
 
-#include "Utils/Logger.h"
+#include "Utils/SRKLogger.h"
 
 #include <cstdio>
 
 namespace SerikaGL {
 
-    void* Logger::logContext_ = nullptr;
-    LogFunc Logger::logFunc_ = nullptr;
+    void* SRKLogger::logContext_ = nullptr;
+    LogFunc SRKLogger::logFunc_ = nullptr;
 
     // default level: LOG_INFO
-    LogLevel Logger::minLevel_ = LOG_INFO;
+    LogLevel SRKLogger::minLevel_ = LOG_INFO;
 
-    char Logger::buf_[MAX_LOG_LENGTH] = {};
-    std::mutex Logger::mutex_;
+    char SRKLogger::buf_[MAX_LOG_LENGTH] = {};
+    std::mutex SRKLogger::mutex_;
 
-    void Logger::setLogFunc(void* ctx, LogFunc func) {
+    void SRKLogger::setLogFunc(void* ctx, LogFunc func) {
         logContext_ = ctx;
         logFunc_ = func;
     }
 
-    void Logger::setLogLevel(LogLevel level) {
+    void SRKLogger::setLogLevel(LogLevel level) {
         minLevel_ = level;
     }
 
-    void Logger::log(LogLevel level, const char* file, int line, const char* message, ...) {
+    void SRKLogger::log(LogLevel level, const char* file, int line, const char* message, ...) {
         std::lock_guard<std::mutex> lock_guard(mutex_);
         if (level < minLevel_) {
             return;
@@ -63,4 +63,9 @@ namespace SerikaGL {
         fflush(stderr);
     }
 
+    void printStackTrace() {
+    }
+
+    void protectedCall(void *context, int level, const char *file, int line, const char *message) {
+    }
 }

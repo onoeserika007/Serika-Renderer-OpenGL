@@ -1,7 +1,7 @@
 #pragma once
 #include "FrameBuffer.h"
 #include <glad/glad.h>
-#include "Utils/Logger.h"
+#include "Utils/SRKLogger.h"
 #include "EnumsOpenGL.h"
 
 

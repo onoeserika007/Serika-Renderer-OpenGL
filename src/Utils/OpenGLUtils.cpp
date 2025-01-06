@@ -1,5 +1,5 @@
 #include "Utils/OpenGLUtils.h"
-#include "Utils/Logger.h"
+#include "Utils/SRKLogger.h"
 #include <glad/glad.h>
 
 void checkGLError_(const char* stmt, const char* file, int line) {

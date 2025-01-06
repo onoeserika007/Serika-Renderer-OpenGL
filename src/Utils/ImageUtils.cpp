@@ -5,7 +5,7 @@
 #include <stb/stb_image.h>
 #include <stb/stb_image_write.h>
 #include "Utils/ImageUtils.h"
-#include "Utils/Logger.h"
+#include "Utils/SRKLogger.h"
 
 
 std::shared_ptr<Buffer<RGBA>> ImageUtils::readImageRGBA(const std::string& path, bool flipY) {

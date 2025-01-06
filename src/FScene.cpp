@@ -93,7 +93,7 @@ std::shared_ptr<FScene> FScene::generateRaytracingStanfordBunnyScene(const std::
     auto&& config = Config::getInstance();
     glm::vec3 focus {};
 
-    glm::vec3 lightColor = 15.6f * glm::vec3(0.740f+0.287f,0.740f+0.160f,0.740f);
+    glm::vec3 lightColor = 1.6f * glm::vec3(0.740f+0.287f,0.740f+0.160f,0.740f);
     // point light
     {
         auto pointLightMesh = MeshMakers::loadCubeMesh();

@@ -1,5 +1,5 @@
 #include "../include/OpenGL/FrameBufferOpenGL.h"
-#include "Utils/Logger.h"
+#include "Utils/SRKLogger.h"
 #include "Utils/OpenGLUtils.h"
 
 FrameBufferOpenGL::FrameBufferOpenGL(bool offscreen) : FrameBuffer(offscreen) {

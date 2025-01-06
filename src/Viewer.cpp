@@ -12,7 +12,7 @@
 #include "RenderPass/RenderPassForwardShading.h"
 #include "FCamera.h"
 #include "ULight.h"
-#include "Utils/Logger.h"
+#include "Utils/SRKLogger.h"
 #include "Renderer.h"
 #include "FScene.h"
 #include "ConfigPanel.h"

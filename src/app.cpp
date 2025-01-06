@@ -133,6 +133,7 @@ void App::setupWindow() {
 }
 
 void App::framebuffer_size_callback(GLFWwindow* window, int width, int height) {
+    if (width == 0 || height == 0) return;
     App& app = getInstance();
     if (app.viewer_) {
         app.viewer_->setViewPort(0, 0, width, height);
