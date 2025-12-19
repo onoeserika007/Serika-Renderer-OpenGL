@@ -59,7 +59,7 @@ Config & Config::getInstance() {
         // prevent from loaded twice, already loaded other thread
         if (!config.loaded_) {
             config.deserialize(defaultConfigPath);
-            std::cout << "Rendering RenderPipeline: " << static_cast<int>(config.RenderPipeline) << std::endl;;
+            std::cout << "Rendering RenderPipeline: " << static_cast<int>(config.RenderPipeline) << std::endl;
             config.loaded_ = true;
         }
     }

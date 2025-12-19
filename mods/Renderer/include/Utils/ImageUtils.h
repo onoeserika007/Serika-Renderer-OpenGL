@@ -1,7 +1,9 @@
 #ifndef SERIKA_RENDERER_INCLUDE_UTILS_IMAGEUTILS_H
 #define SERIKA_RENDERER_INCLUDE_UTILS_IMAGEUTILS_H
 #include "Buffer.h"
+
 #include <memory>
+#include <string>
 
 #include "Base/Globals.h"
 

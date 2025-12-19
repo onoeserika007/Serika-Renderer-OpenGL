@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 3.5...${CMAKE_VERSION})
 if (CMAKE_VERSION VERSION_LESS "3")
   project(json11 CXX)
 else()
@@ -29,7 +29,7 @@ target_compile_options(json11
 
 # Set warning flags, which may vary per platform
 include(CheckCXXCompilerFlag)
-set(_possible_warnings_flags /W4 /WX -Wextra -Werror)
+
 foreach(_warning_flag ${_possible_warnings_flags})
   unset(_flag_supported)
   CHECK_CXX_COMPILER_FLAG(${_warning_flag} _flag_supported)

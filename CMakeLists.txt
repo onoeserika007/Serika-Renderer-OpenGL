@@ -26,13 +26,6 @@ set(THIRD_PARTY_DIR ${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty)
 # set(CMAKE_CXX_FLAGS "${CAMKE_CXX_FLAGS} -O3 -fopenmp")
 
 
-file(GLOB IMGUI_SOURCES
-        ${THIRD_PARTY_DIR}/imgui/*.cpp
-        ${THIRD_PARTY_DIR}/imgui/backends/imgui_impl_opengl3.cpp
-        ${THIRD_PARTY_DIR}/imgui/backends/imgui_impl_glfw.cpp
-)
-
-
 # glslang
 # set(SKIP_GLSLANG_INSTALL ON)
 # set(ENABLE_OPT OFF)
@@ -45,16 +38,15 @@ file(GLOB IMGUI_SOURCES
 # add_subdirectory(${THIRD_PARTY_DIR}/glslang)
 
 # 启用AddressSanitizer
-if (MSVC)
-        add_compile_options(/fsanitize=address)
-        add_link_options(/fsanitize=address)
-else()
-        add_compile_options(-fsanitize=address)
-        add_link_options(-fsanitize=address)
-endif()
+#if (MSVC)
+#        add_compile_options(/fsanitize=address)
+#        add_link_options(/fsanitize=address)
+#else()
+#        add_compile_options(-fsanitize=address)
+#        add_link_options(-fsanitize=address)
+#endif()
 
 #target_compile_options(${TARGET_NAME} PRIVATE -Werror=return-type)
-
 
 # TODO: 如有需要，请添加测试并安装目标。
 # SET(CMAKE_PREFIX_PATH "C:/SRC/SDK/GLFW")
@@ -69,21 +61,12 @@ endif()
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
         message(STATUS "Building in Debug mode")
-
-# Add debug-specific settings here
-# set(EXECUTABLE_OUTPUT_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake-build-debug)
 elseif(CMAKE_BUILD_TYPE STREQUAL "Release")
         message(STATUS "Building in Release mode")
-
-# Add release-specific settings here
 elseif(CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
         message(STATUS "Building in RelWithDebInfo mode")
-
-# Add RelWithDebInfo-specific settings here
 elseif(CMAKE_BUILD_TYPE STREQUAL "MinSizeRel")
         message(STATUS "Building in MinSizeRel mode")
-
-# Add MinSizeRel-specific settings here
 else()
         message(STATUS "Building in unknown mode")
 endif()

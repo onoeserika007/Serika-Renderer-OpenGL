@@ -1,4 +1,7 @@
 ﻿#include "Application.h"
+
+#include <iostream>
+
 #include "Base/Config.h"
 #include "Utils/SRKLogger.h"
 
