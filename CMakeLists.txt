@@ -9,6 +9,9 @@ set(CMAKE_CXX_STANDARD 20)
 # set(CMAKE_BUILD_TYPE "RelWithDebInfo")
 # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address")
 
+# 启用编译命令导出，以便使用代码分析工具
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 # 启用OpenMP支持
 find_package(OpenMP REQUIRED)
 
@@ -19,37 +22,9 @@ endif()
 # 用于配置项目中源文件的查找目录
 # include_directories(${PROJECT_SOURCE_DIR}/include)
 set(THIRD_PARTY_DIR ${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty)
-include_directories(
-        ${PROJECT_SOURCE_DIR}/include
-        ${THIRD_PARTY_DIR}
-        ${THIRD_PARTY_DIR}/glad/include
-        ${THIRD_PARTY_DIR}/glfw/include
-        ${THIRD_PARTY_DIR}/glm
-        ${THIRD_PARTY_DIR}/stb
-        ${THIRD_PARTY_DIR}/assimp/include
-        ${THIRD_PARTY_DIR}/assimp/contrib
-        ${THIRD_PARTY_DIR}/nlohmann
-        ${THIRD_PARTY_DIR}/json11
-        ${THIRD_PARTY_DIR}/imgui
-
-        # ${THIRD_PARTY_DIR}/glsl
-)
 
 # set(CMAKE_CXX_FLAGS "${CAMKE_CXX_FLAGS} -O3 -fopenmp")
 
-# 将源代码添加到此项目的可执行文件。
-file(GLOB_RECURSE SOURCES
-        "${PROJECT_SOURCE_DIR}/src/*.cpp"
-        "${PROJECT_SOURCE_DIR}/src/*.c"
-        "${PROJECT_SOURCE_DIR}/include/*.h"
-        "${PROJECT_SOURCE_DIR}/include/*.hpp")
-
-# resources dependencies
-file(GLOB_RECURSE RESOURCE_FILES
-        ${CMAKE_CURRENT_SOURCE_DIR}/assets/*.vert
-        ${CMAKE_CURRENT_SOURCE_DIR}/assets/*.frag
-        ${CMAKE_CURRENT_SOURCE_DIR}/configs/*.json
-)
 
 file(GLOB IMGUI_SOURCES
         ${THIRD_PARTY_DIR}/imgui/*.cpp
@@ -57,22 +32,6 @@ file(GLOB IMGUI_SOURCES
         ${THIRD_PARTY_DIR}/imgui/backends/imgui_impl_glfw.cpp
 )
 
-# assimp
-set(BUILD_SHARED_LIBS OFF)
-set(ASSIMP_NO_EXPORT ON)
-set(ASSIMP_BUILD_TESTS OFF)
-set(ASSIMP_INSTALL OFF)
-set(ASSIMP_BUILD_ASSIMP_TOOLS OFF)
-set(ASSIMP_BUILD_ZLIB ON)
-
-# set(BUILD_SHARED_LIBS ON)
-set(ASSIMP_BUILD_ALL_IMPORTERS_BY_DEFAULT FALSE)
-set(ASSIMP_BUILD_OBJ_IMPORTER TRUE)
-set(ASSIMP_BUILD_GLTF_IMPORTER TRUE)
-add_subdirectory(${THIRD_PARTY_DIR}/assimp)
-
-# glfw
-add_subdirectory(${THIRD_PARTY_DIR}/glfw)
 
 # glslang
 # set(SKIP_GLSLANG_INSTALL ON)
@@ -85,18 +44,6 @@ add_subdirectory(${THIRD_PARTY_DIR}/glfw)
 # set(USE_CCACHE ON)
 # add_subdirectory(${THIRD_PARTY_DIR}/glslang)
 
-# ####################################
-# #          EXECUTABLES        ######
-# ####################################
-add_executable(
-        ${TARGET_NAME}
-        ${SOURCES}
-        ${THIRD_PARTY_DIR}/json11/json11.cpp
-        ${THIRD_PARTY_DIR}/glad/src/glad.c
-        ${RESOURCE_FILES}
-        ${IMGUI_SOURCES}
-)
-
 # 启用AddressSanitizer
 if (MSVC)
         add_compile_options(/fsanitize=address)
@@ -108,30 +55,6 @@ endif()
 
 #target_compile_options(${TARGET_NAME} PRIVATE -Werror=return-type)
 
-add_executable(
-        TestMain
-        ${PROJECT_SOURCE_DIR}/Test/TestMain.cpp
-        ${PROJECT_SOURCE_DIR}/src/Base/ThreadPool.cpp
-)
-
-add_executable(
-        TestCubeShadow
-        ${PROJECT_SOURCE_DIR}/Test/CubeShadowTest.cpp
-        ${THIRD_PARTY_DIR}/glad/src/glad.c
-)
-
-# add_executable(
-# FeatureTestMain
-# ${PROJECT_SOURCE_DIR}/Test/FeatureTestMain.cpp
-# ${PROJECT_SOURCE_DIR}/src/Utils/ImageUtils.cpp
-# ${PROJECT_SOURCE_DIR}/src/Utils/Logger.cpp
-# )
-# ####################################
-# #          EXECUTABLES        ######
-# ####################################
-if(CMAKE_VERSION VERSION_GREATER 3.12)
-        set_property(TARGET ${TARGET_NAME} PROPERTY CXX_STANDARD 20)
-endif()
 
 # TODO: 如有需要，请添加测试并安装目标。
 # SET(CMAKE_PREFIX_PATH "C:/SRC/SDK/GLFW")
@@ -143,9 +66,6 @@ endif()
 # find_package(glfw3 REQUIRED)
 # find_package(assimp REQUIRED)
 # message(WARNING ${ASSIMP_LIBRARIES})
-set(LINK_LIBS
-        assimp
-        glfw)
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
         message(STATUS "Building in Debug mode")
@@ -171,19 +91,42 @@ endif()
 # output dir
 set(EXECUTABLE_OUTPUT_PATH ${CMAKE_CURRENT_SOURCE_DIR}/bin)
 
-# message(WARNING ${CMAKE_BINARY_DIR})
-# message(WARNING ${EXECUTABLE_OUTPUT_PATH})
+########################################################
+##############  Third-Party Libraries  #################
+########################################################
 
-# add_dependencies(${TARGET_NAME} ResourceTargets)
-target_link_libraries(${TARGET_NAME} PRIVATE ${LINK_LIBS})
-target_link_libraries(TestCubeShadow PRIVATE ${LINK_LIBS})
+# assimp
+set(BUILD_SHARED_LIBS OFF)
+set(ASSIMP_NO_EXPORT ON)
+set(ASSIMP_BUILD_TESTS OFF)
+set(ASSIMP_INSTALL OFF)
+set(ASSIMP_BUILD_ASSIMP_TOOLS OFF)
+set(ASSIMP_BUILD_ZLIB ON)
+# set(BUILD_SHARED_LIBS ON)
+set(ASSIMP_BUILD_ALL_IMPORTERS_BY_DEFAULT FALSE)
+set(ASSIMP_BUILD_OBJ_IMPORTER TRUE)
+set(ASSIMP_BUILD_GLTF_IMPORTER TRUE)
+add_subdirectory(${THIRD_PARTY_DIR}/assimp)
 
-# message(WARNING ${PROJECT_NAME})
+# json11
+add_subdirectory(${THIRD_PARTY_DIR}/json11)
 
-# copy assets
-add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_directory
-        ${CMAKE_CURRENT_SOURCE_DIR}/assets $<TARGET_FILE_DIR:${TARGET_NAME}>/assets
-        COMMAND ${CMAKE_COMMAND} -E copy_directory
-        ${CMAKE_CURRENT_SOURCE_DIR}/configs $<TARGET_FILE_DIR:${TARGET_NAME}>/configs
-)
+# glfw
+add_subdirectory(${THIRD_PARTY_DIR}/glfw)
+
+# glad
+add_subdirectory(${THIRD_PARTY_DIR}/glad)
+
+# imgui
+add_subdirectory(${THIRD_PARTY_DIR}/imgui)
+
+########################################################
+#################  Main Projects  ######################
+########################################################
+add_subdirectory(${PROJECT_SOURCE_DIR}/mods/Renderer)
+
+########################################################
+####################     Tests      ####################
+########################################################
+
+add_subdirectory(${PROJECT_SOURCE_DIR}/Test/Renderer)

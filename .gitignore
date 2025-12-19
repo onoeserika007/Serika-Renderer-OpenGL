@@ -7,3 +7,5 @@ build/
 test_build/
 cmake-build-*/
 CMakeSettings.json
+
+.cache/
