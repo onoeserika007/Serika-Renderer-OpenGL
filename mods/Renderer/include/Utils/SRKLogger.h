@@ -15,8 +15,8 @@ namespace SerikaGL {
 	typedef void (*LogFunc)(void* context, int level, const char* msg);
 
 	enum LogLevel {
-		LOG_INFO,
 		LOG_DEBUG,
+		LOG_INFO,
 		LOG_WARNING,
 		LOG_ERROR,
 	};

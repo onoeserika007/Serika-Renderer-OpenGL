@@ -80,7 +80,7 @@ void ConfigPanel::drawSettings() {
     ImGui::InputFloat("Exposue", &config.Exposure, 0.1f, 1.0f, "%.2f");
 
     ImGui::Separator();
-    const char* renderModes[] = { "Forward", "Deffered", "Test" };
+    const char* renderModes[] = { "Forward", "Deffered", "Test", "TestOnScreen", "PathTracing" };
     int currentPipeline = config.RenderPipeline;
     if (ImGui::Combo("Pipeline Type", &currentPipeline, renderModes, IM_ARRAYSIZE(renderModes))) {
         config.RenderPipeline = static_cast<ERenderPipeline>(currentPipeline);

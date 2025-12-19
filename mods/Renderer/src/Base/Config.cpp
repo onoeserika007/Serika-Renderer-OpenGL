@@ -92,7 +92,8 @@ json Config::to_json() const {
         {"bUseSSAO", json(bUseSSAO)},
         {"SceneType", json(SceneType)},
         {"ShadingModelForDeferredRendering", json(ShadingModelForDeferredRendering)},
-        {"bUseMipmaps", json(bUseMipmaps)}
+        {"bUseMipmaps", json(bUseMipmaps)},
+        {"bDrawDebugBVH", json(bDrawDebugBVH)}
     };;
 }
 
@@ -122,6 +123,7 @@ Config & Config::from_json(const json &j) {
     SceneType = static_cast<ESceneType>(j["SceneType"].int_value());
     ShadingModelForDeferredRendering = static_cast<EShadingModel>(j["ShadingModelForDeferredRendering"].int_value());
     bUseMipmaps = j["bUseMipmaps"].bool_value();
+    bDrawDebugBVH = j["bDrawDebugBVH"].bool_value();
     return *this;
 }
 

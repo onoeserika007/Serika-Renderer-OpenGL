@@ -31,7 +31,7 @@ BVHAccel::BVHAccel(const std::vector<std::shared_ptr<Intersectable>>& primitives
 
 Intersection BVHAccel::Intersect(const Ray &ray) const {
     if (!root_) return {};
-    return IntersectImpl(root_, ray);;;
+    return IntersectImpl(root_, ray);
 }
 
 Intersection BVHAccel::IntersectImpl(const std::shared_ptr<BVHNode> &node, const Ray &ray) const {

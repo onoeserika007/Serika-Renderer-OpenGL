@@ -172,19 +172,19 @@ void Viewer::DrawFrame() {
 
 		// post drawing
 		// 最后画debug bbox
-		// if (scene_) {
-		// 	auto&& renderStates = renderer_->renderStates_;
-		// 	renderStates.blend = false;
-		// 	renderStates.depthMask = false;
-		// 	renderStates.depthTest = false;
-		// 	renderStates.cullFace = false;
-		// 	renderer_->updateRenderStates(renderStates);
-		//
-		// 	// auto&& BVH2 = scene->bvh_accel_;
-		// 	auto&& BVH = scene_->getBVH();
-		// 	auto&& root = BVH->getRoot();
-		// 	renderer_->drawDebugBBoxes(root, 0, {});
-		// }
+		if (config.bDrawDebugBVH && scene_) {
+			auto&& renderStates = renderer_->renderStates_;
+			renderStates.blend = false;
+			renderStates.depthMask = false;
+			renderStates.depthTest = false;
+			renderStates.cullFace = false;
+			renderer_->updateRenderStates(renderStates);
+
+			// auto&& BVH2 = scene->bvh_accel_;
+			auto&& BVH = scene_->getBVH();
+			auto&& root = BVH->getRoot();
+			renderer_->drawDebugBBoxes(root, 0, {});
+		}
 		renderer_->drawWorldAxis({});
 		renderer_->handleDebugs();
 		// renderer_->endRenderPass();
@@ -367,10 +367,16 @@ void Viewer::drawScene_PathTracing_CPU(const std::shared_ptr<FScene> &scene) con
 
 
 		glm::vec4& pixel = framebuffer->getPixelRef(i, j);
+		// LOGI("Tracing a ray at mouseX:%d, mouseY:%d, with screen size:[%d:%d]", i, j, width, height);
 		for (int k = 0; k < spp; k++){
 			// generate primary ray direction
-			auto&& ray = screenToWorldRay(i, j, height, width, cameraMain_, false, 0.5f, p * spp + k);
-			pixel += glm::vec4(scene->castRay(ray, 0, p * spp + k, 0.8f) * 255.f, 255.f) / float(spp);
+			auto&& ray = screenToWorldRay(i, j, width, height, cameraMain_, false, 0.5f, p * spp + k);
+			pixel += glm::vec4(scene->castRay(ray, 0, p * spp + k, 0.8f) * 255.f, 255.f) / 1.0f;
+			// auto inters = scene_->intersect(ray);
+			// if (inters.bHit) {
+			// 	// LOGI("Inter hit, calc albedo");
+			// 	pixel += glm::vec4(scene->castRay(ray, 0, p * spp + k, 0.8f) * 255.f, 255.f) / float(spp);
+			// }
 		}
 
 		// progress = progress + i * j / float(hxw);
@@ -378,7 +384,7 @@ void Viewer::drawScene_PathTracing_CPU(const std::shared_ptr<FScene> &scene) con
 
 	for (int i = 0; i < width; i++) {
 		for (int j = 0; j < height; j++) {
-			auto&& pixel = framebuffer->getPixelRef(i, j);
+			auto& pixel = framebuffer->getPixelRef(i, j);
 			pixel = glm::clamp(pixel, glm::vec4(0.f, 0.f, 0.f, 255.f), glm::vec4(255.f, 255.f, 255.f, 255.f));
 		}
 	}
@@ -425,6 +431,7 @@ void Viewer::drawCursorHitDebugLine(int mouseX, int mouseY, int screenWidth, int
 
 void Viewer::drawUnderCursorTraceDebugTriangle(int mouseX, int mouseY, int screenWidth, int screenHeight) {
 	auto&& ray = screenToWorldRay(mouseX, mouseY, screenWidth, screenHeight, cameraMain_);
+	LOGI("Tracing a ray at mouseX:%d, mouseY:%d, with screen size:[%d:%d]", mouseX, mouseY, screenWidth, screenHeight);
 	auto inters = scene_->intersect(ray);
 	if (inters.bHit) {
 		auto && prim = inters.primitive.lock();

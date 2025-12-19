@@ -60,7 +60,6 @@ std::shared_ptr<Renderer> Application::getRenderer() {
 
 void Application::init() {
     setupWindow();
-    setupScene();
     // printMaxVertexAttributeNum();
 }
 
@@ -72,9 +71,9 @@ void Application::mainLoop() {
         float currentFrameTime = glfwGetTime();
         deltaTime_ = currentFrameTime - lastFrameTime;
         lastFrameTime = currentFrameTime;
-        if (counter % 1000 == 55) {
-            LOGI(("FPS: " + std::to_string(1.0f / deltaTime_)).c_str());
-        }
+        // if (counter % 1000 == 55) {
+        //     LOGI(("FPS: " + std::to_string(1.0f / deltaTime_)).c_str());
+        // }
         processInput();;
 
         viewer_->DrawFrame();
@@ -231,23 +230,6 @@ void Application::mouse_click_callback(GLFWwindow *window, int button, int actio
         app.viewer_->setCameraMode(CameraMode_None);;
     }
 
-}
-
-void Application::setupScene()
-{
-    // if (auto&& camera = viewer_->getViewCamera()) {
-    //     // default camera pos
-    //     camera->setPosition(2, 2, 2);;
-    //     // scene_ = FScene::generateDeaultScene(camera);
-    //     // scene_ = FScene::generateRaytracingStanfordBunnyScene(camera);
-    //     // scene_ = FScene::generateRaytracingCornellBoxScene(camera_);
-    //     scene_ = FScene::generatePBRScene(camera);
-    //     scene_->setupScene();
-    //     if (scene_) {
-    //         camera->lookAt(scene_->getFocus());
-    //     }
-    //     viewer_->setScene(scene_);
-    // }
 }
 
 void Application::printMaxVertexAttributeNum() {

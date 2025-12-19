@@ -65,6 +65,7 @@ struct Config {
 
 	// Ray Tracing
 	int SPP;
+	bool bDrawDebugBVH;
 
 	// HDR
 	bool bUseHDR = true;

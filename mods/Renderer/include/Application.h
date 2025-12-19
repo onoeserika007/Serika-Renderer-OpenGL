@@ -32,7 +32,7 @@ public:
     // setups
     void init();
     void setupWindow();
-    void setupScene();
+
     void mainLoop();
     void terminate();
 

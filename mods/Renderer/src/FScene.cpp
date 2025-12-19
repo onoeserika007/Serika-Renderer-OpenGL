@@ -97,7 +97,7 @@ std::shared_ptr<FScene> FScene::generateRaytracingStanfordBunnyScene(const std::
     // point light
     {
         auto pointLightMesh = MeshMakers::loadCubeMesh();
-        pointLightMesh->setEmission(GREEN_COLOR);
+        pointLightMesh->setEmission(lightColor);
         auto pointLight = ULight::makeLight();
         pointLight->setMesh(pointLightMesh);
         pointLight->setAsPointLight(glm::vec3(0, 0, 0), glm::vec3(0.f), glm::vec3(0.5f, 0.5f, 0.5f), glm::vec3(0.5f), 1.0, 0.045, 0.0075);
@@ -121,6 +121,7 @@ std::shared_ptr<FScene> FScene::generateRaytracingStanfordBunnyScene(const std::
     if (auto bunnyMesh = loader.loadMesh("assets/models/bunny/bunny.obj", false)) {
         bunnyMesh->setShadingMode(EShadingModel::Shading_BlinnPhong);
         bunnyMesh->enableCastShadow(true);
+        bunnyMesh->setDiffuse(WHITE_COLOR);
         auto bunny = UObject::makeObject();
         bunny->setMesh(bunnyMesh);
         bunny->setScale(10.f, 10.f, 10.f);
@@ -138,6 +139,7 @@ std::shared_ptr<FScene> FScene::generateRaytracingStanfordBunnyScene(const std::
         floorMesh->setShadingMode(EShadingModel::Shading_BlinnPhong);
         floorMesh->enableCastShadow(true);
         floorMesh->enableFaceCull(false);
+        floorMesh->setDiffuse(WHITE_COLOR);
 
         auto floor = UObject::makeObject();
         floor->setMesh(floorMesh);
@@ -147,6 +149,7 @@ std::shared_ptr<FScene> FScene::generateRaytracingStanfordBunnyScene(const std::
     }
 
     scene->setFocus(focus);
+    scene->setupScene();
     return scene;
 }
 
@@ -346,7 +349,7 @@ void FScene::sampleLight(Intersection &outIsct, float &pdf) const {
         if (sampled_area_sum >= split) {
             // do sample
             light->Sample(outIsct, pdf);
-            break;;
+            break;
         }
     }
     // if (emit_area_sum > 0.f) pdf = 1.f / emit_area_sum;
@@ -384,6 +387,7 @@ glm::vec3 FScene::castRay(const Ray &ray, int depth, int SobolIndex, float Russi
     {
         float dis2 = glm::dot(LightDir, LightDir);
         L_dir = LightPos.getEmission() * f_r * glm::dot(LightDirNormal, intersToScene.normal) * glm::dot(-LightDirNormal, LightPos.normal) / dis2 / lightpdf;
+        // LOGI("L_dir:%f", glm::length(L_dir));
     }
 
     // RR exit
