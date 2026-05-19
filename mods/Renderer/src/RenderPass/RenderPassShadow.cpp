@@ -3,7 +3,7 @@
 #include "OpenGL/FrameBufferOpenGL.h"
 #include "ULight.h"
 #include "FScene.h"
-#include "Base/Config.h"
+#include "Base/ProjectConfig.h"
 
 RenderPassShadow::RenderPassShadow(const std::shared_ptr<Renderer>& renderer) : RenderPass(renderer) {
 	shaderPass_ = ShaderPass::Shader_Shadow_Pass;
@@ -13,7 +13,7 @@ RenderPassShadow::~RenderPassShadow() {
 }
 
 void RenderPassShadow::render(FScene &scene) {
-	auto&& config = Config::getInstance();
+	auto&& config = ProjectConfig::getInstance();
 	renderer_->setRenderViewPort(0, 0, config.Resolution_ShadowMap, config.Resolution_ShadowMap);
 	setupBuffers();
 

@@ -9,7 +9,7 @@
 std::shared_ptr<FScene> FScene::generateDeaultScene(const std::shared_ptr<FCamera> &camera) {
 	auto scene = std::make_shared<FScene>();
     auto&& loader = ResourceLoader::getInstance();
-    auto&& config = Config::getInstance();
+    auto&& config = ProjectConfig::getInstance();
     glm::vec3 focus {};
 
     // nanosuit
@@ -90,7 +90,7 @@ std::shared_ptr<FScene> FScene::generateDeaultScene(const std::shared_ptr<FCamer
 std::shared_ptr<FScene> FScene::generateRaytracingStanfordBunnyScene(const std::shared_ptr<FCamera> &camera) {
     auto scene = std::make_shared<FScene>();
     auto&& loader = ResourceLoader::getInstance();
-    auto&& config = Config::getInstance();
+    auto&& config = ProjectConfig::getInstance();
     glm::vec3 focus {};
 
     glm::vec3 lightColor = 1.6f * glm::vec3(0.740f+0.287f,0.740f+0.160f,0.740f);
@@ -157,7 +157,7 @@ std::shared_ptr<FScene> FScene::generatePBRScene(const std::shared_ptr<FCamera> 
     camera->setPosition({-2, 2, 1});
     auto scene = std::make_shared<FScene>();
     auto&& loader = ResourceLoader::getInstance();
-    auto&& config = Config::getInstance();
+    auto&& config = ProjectConfig::getInstance();
     glm::vec3 focus {};
 
     auto material = std::make_shared<FMaterial>();
@@ -207,7 +207,7 @@ std::shared_ptr<FScene> FScene::generatePBRScene(const std::shared_ptr<FCamera> 
 std::shared_ptr<FScene> FScene::generateRaytracingCornellBoxScene(const std::shared_ptr<FCamera> &camera) {
     auto scene = std::make_shared<FScene>();
     auto&& loader = ResourceLoader::getInstance();
-    auto&& config = Config::getInstance();
+    auto&& config = ProjectConfig::getInstance();
     glm::vec3 focus {};
 
     if (auto&& floor = loader.loadMesh("assets/models/cornellbox/floor.obj")) {

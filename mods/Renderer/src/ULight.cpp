@@ -2,7 +2,7 @@
 #include "Material/Shader.h"
 #include "FCamera.h"
 #include "Renderer.h"
-#include "Base/Config.h"
+#include "Base/ProjectConfig.h"
 
 ULight::ULight() {
     lightData_.uLightType = LightType_PointLight;
@@ -94,7 +94,7 @@ std::shared_ptr<ULight> ULight::generateDefaultSpotLight() {
 
 std::shared_ptr<FCamera> ULight::getLightCamera() const {
     if (!camera_) {
-        auto &&config = Config::getInstance();
+        auto &&config = ProjectConfig::getInstance();
         if (lightData_.uLightType == LightType_DirectionalLight) {
             float radius = config.CaptureRadius_ShadowMap;
             camera_ = std::make_shared<OrthographicCamera>(-radius, radius, -radius, radius, config.CameraNear,
@@ -113,7 +113,7 @@ std::shared_ptr<FCamera> ULight::getLightCamera() const {
 
 std::shared_ptr<Texture> ULight::getShadowMap(const Renderer &renderer) const {
     if (!shadowMap_) {
-        const Config &config = Config::getInstance();
+        const ProjectConfig &config = ProjectConfig::getInstance();
         renderer.setupShadowMapBuffer(
             shadowMap_, config.Resolution_ShadowMap, config.Resolution_ShadowMap,
             false,

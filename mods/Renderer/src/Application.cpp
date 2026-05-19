@@ -5,7 +5,7 @@
 #include <iostream>
 #include "Geometry/Object.h"
 #include "ULight.h"
-#include "Base/Config.h"
+#include "Base/ProjectConfig.h"
 #include "Viewer.h"
 
 using namespace std;
@@ -85,7 +85,7 @@ void Application::mainLoop() {
 
 void Application::setupWindow() {
     // render config
-    Config& config = Config::getInstance();
+    ProjectConfig& config = ProjectConfig::getInstance();
     // config.deserialize(defaultConfigPath);
     std::cout << "Rendering Mode: " << static_cast<int>(config.RenderPipeline) << std::endl;
     glfwInit();

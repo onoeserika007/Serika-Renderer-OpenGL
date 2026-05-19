@@ -257,7 +257,7 @@ void RendererOpenGL::setupMaterial(FMaterial& material) const {
 		material.setSamplerReady(false);
 		for (auto& [type, textureData] : material.getTextureData()) {
 			const bool bIsCubeMap = textureData.loadedTextureType == TEXTURE_TYPE_CUBE;
-			const bool bUseMipmap = Config::getInstance().bUseMipmaps;
+			const bool bUseMipmap = ProjectConfig::getInstance().bUseMipmaps;
 			TextureInfo texInfo{};
 			texInfo.width = textureData.unitDataArray[0]->width();
 			texInfo.height = textureData.unitDataArray[0]->height();
@@ -332,7 +332,7 @@ void RendererOpenGL::drawMesh(const std::shared_ptr<UMesh> &mesh, const ShaderPa
 {
 	if (!mesh) return; // null check
 
-	auto&& config = Config::getInstance();;
+	auto&& config = ProjectConfig::getInstance();;
 
 	// draw mesh
 	if (mesh->drawable()) {
@@ -376,7 +376,7 @@ void RendererOpenGL::drawMesh(const std::shared_ptr<UMesh> &mesh, const ShaderPa
 void RendererOpenGL::drawDebugBBoxes(const std::shared_ptr<BVHNode> &node, int depth, const std::shared_ptr<UObject> &rootObject) {
 
 	if (!node || depth > 10) return;
-	auto&& config = Config::getInstance();;
+	auto&& config = ProjectConfig::getInstance();;
 	if (config.bUseBVH) {
 		if (node->primitive) {
 			if (auto&& obj = std::dynamic_pointer_cast<UObject>(node->primitive)) {
@@ -909,7 +909,7 @@ void RendererOpenGL::dump(const
 		program->bindHoldingResources(); // where really 'use()'
 		if (!targetFrameBuffer) { // do tone mapping lastly
 			if (auto&& glslShader = std::dynamic_pointer_cast<ShaderGLSL>(program)) {
-				auto&& config = Config::getInstance();
+				auto&& config = ProjectConfig::getInstance();
 				glslShader->setFloat("uExposure", config.Exposure);
 				glslShader->setBool("uUseToneMapping", config.bUseHDR);
 			}

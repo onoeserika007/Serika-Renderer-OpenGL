@@ -2,7 +2,7 @@
 
 #include <imgui.h>
 
-#include "Base/Config.h"
+#include "Base/ProjectConfig.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
 
@@ -59,7 +59,7 @@ void ConfigPanel::update() {
 }
 
 void ConfigPanel::drawSettings() {
-    auto&& config = Config::getInstance();
+    auto&& config = ProjectConfig::getInstance();
     // fps
     ImGui::Separator();
     ImGui::Text("fps: %.1f (%.2f ms/frame)", ImGui::GetIO().Framerate, 1000.0f / ImGui::GetIO().Framerate);

@@ -240,7 +240,7 @@ void Renderer::loadGlobalUniforms(const Shader &program) const {
 }
 
 void Renderer::updateMainUniformBlock(const std::shared_ptr<UMesh> &mesh, const std::shared_ptr<FCamera> &camera, const std::shared_ptr<ULight> &shadowLight) {
-	auto&& config = Config::getInstance();
+	auto&& config = ProjectConfig::getInstance();
 
 	// Model Uniform Block
 	ModelUniformBlock modelBlock{};
@@ -305,7 +305,7 @@ void Renderer::updateMainUniformBlock(const std::shared_ptr<UMesh> &mesh, const 
 };;
 
 void Renderer::updateShadowCubeUniformBlock(const std::shared_ptr<ULight> &shadowLight) const {
-	auto&& config = Config::getInstance();
+	auto&& config = ProjectConfig::getInstance();
 	if (!config.bShadowMap) return;
 
 	ShadowCubeUniformBlock block {};

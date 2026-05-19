@@ -7,7 +7,7 @@
 #include "Base/Globals.h"
 #include "Texture.h"
 #include "Uniform.h"
-#include "Base/Config.h"
+#include "Base/ProjectConfig.h"
 
 class ShaderResources;
 
@@ -49,7 +49,7 @@ struct MaterialResource {
 	bool texturesReady_ = false; // have textures been loaded to piepleine?
 	bool loadMipmap = false;
 	void checkMipmapSetting() {
-		auto&& config = Config::getInstance();
+		auto&& config = ProjectConfig::getInstance();
 		if (config.bUseMipmaps != loadMipmap) {
 			texturesReady_ = false;
 			loadMipmap = config.bUseMipmaps;

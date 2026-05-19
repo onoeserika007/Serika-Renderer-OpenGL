@@ -14,7 +14,7 @@ RenderPassLight::RenderPassLight(const std::shared_ptr<Renderer>& renderer): Ren
 }
 
 void RenderPassLight::render(FScene & scene) {
-    auto&& config = Config::getInstance();
+    auto&& config = ProjectConfig::getInstance();
     setupBuffers();
     fboMain_->bind();;;
     if (auto&& geometryPass = geometryPass_.lock()) {

@@ -6,7 +6,7 @@
 #include "OpenGL/ShaderGLSL.h"
 #include "Base/RenderStates.h"
 #include "Material/Texture.h"
-#include "Base/Config.h"
+#include "Base/ProjectConfig.h"
 #include "Geometry/BVHAccel.h"
 #include "Geometry/Triangle.h"
 

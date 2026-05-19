@@ -1,6 +1,6 @@
 #include "Viewer.h"
 
-#include <Base/Config.h>
+#include <Base/ProjectConfig.h>
 #include <omp.h>
 #include <thread>
 
@@ -28,7 +28,7 @@ void Viewer::init(void *window, int width, int height, int outTexId, Application
 	glfwWindow_ = static_cast<GLFWwindow*>(window);
 	app_ = app;
 
-	auto && config = Config::getInstance();
+	auto && config = ProjectConfig::getInstance();
 
 	if (!configPanel_) {
 		configPanel_ = std::make_shared<ConfigPanel>();
@@ -101,7 +101,7 @@ void Viewer::cleanup()
 }
 
 void Viewer::reloadScene() {
-	auto&& config = Config::getInstance();
+	auto&& config = ProjectConfig::getInstance();
 	if (scene_ && scene_->sceneType_ == config.SceneType) return;
 
 	switch (config.SceneType) {
@@ -130,7 +130,7 @@ void Viewer::DrawFrame() {
 	cleanup();
 	if (scene_) {
 		// pre setup
-		auto&& config = Config::getInstance();
+		auto&& config = ProjectConfig::getInstance();
 		if (renderer_->render_mode_ != config.RenderPipeline || scene_->sceneType_ != config.SceneType) {
 			// switch render mode, clear all debug primitives
 			renderer_->remove_all_debug_primitives_safe();
@@ -208,7 +208,7 @@ std::shared_ptr<FCamera> Viewer::createCamera(CameraType type)
 std::shared_ptr<FCamera> Viewer::getViewCamera() const {return cameraMain_; }
 
 std::shared_ptr<Renderer> Viewer::createRenderer() {
-	auto&& config = Config::getInstance();
+	auto&& config = ProjectConfig::getInstance();
 	ERendererType rendererType = config.RendererType;
 
 	switch (rendererType) {
@@ -247,7 +247,7 @@ void Viewer::drawScene_ForwardRendering(const std::shared_ptr<FScene> &scene) co
 	/*
 	 * ShadowPass
 	 */
-	if (Config::getInstance().bShadowMap)
+	if (ProjectConfig::getInstance().bShadowMap)
 	{
 		ClearStates ClearStatsShadowPass;
 		ClearStatsShadowPass.clearColor = clearColor;
@@ -346,7 +346,7 @@ void Viewer::drawScene_PathTracing_CPU(const std::shared_ptr<FScene> &scene) con
 
 	int width = renderer_->width(), height = renderer_->height();
 	auto&& framebuffer = Buffer<glm::vec4>::makeBuffer(width, height, glm::vec4(0.f));
-	auto&& config = Config::getInstance();
+	auto&& config = ProjectConfig::getInstance();
 	int spp = config.SPP;;
 
 	std::cout << "SPP: " << spp << "\n";

@@ -220,7 +220,7 @@ void UObject::updateLocalMatrix() {
  */
 void UObject::buildBVH() {
 	bShowDebugBBox_ = true;
-	if (Config::getInstance().bUseBVH == false) return;
+	if (ProjectConfig::getInstance().bUseBVH == false) return;
 
 	intersectables_.clear(); // clear old bvhs
 

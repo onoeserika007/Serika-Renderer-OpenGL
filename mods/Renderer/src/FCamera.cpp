@@ -1,10 +1,10 @@
 #include "FCamera.h"
 
-#include "Base/Config.h"
+#include "Base/ProjectConfig.h"
 
 FCamera::FCamera(glm::vec3 position, glm::vec3 up)
 : Front(glm::vec3(0.0f, 0.0f, -1.0f)) {
-    auto&& config = Config::getInstance();
+    auto&& config = ProjectConfig::getInstance();
     Position = position;
     WorldUp = up;
     Yaw = config.CameraYaw;

@@ -70,7 +70,7 @@ const std::vector<std::shared_ptr<Texture>> & RenderPassGeometry::getGBuffers() 
 }
 
 void RenderPassGeometry::render(FScene & scene) {
-	auto&& config = Config::getInstance();
+	auto&& config = ProjectConfig::getInstance();
 	setupBuffers();
 	fboGbuffer_->bind();
 	fboGbuffer_->clearDepthBuffer();

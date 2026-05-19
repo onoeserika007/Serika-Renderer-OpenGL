@@ -5,7 +5,7 @@
 
 #include "FrameBuffer.h"
 #include "Renderer.h"
-#include "Base/Config.h"
+#include "Base/ProjectConfig.h"
 
 RenderPassForwardShading::RenderPassForwardShading(const std::shared_ptr<Renderer>& renderer): RenderPass(renderer)
 {
@@ -20,7 +20,7 @@ RenderPassForwardShading::~RenderPassForwardShading() {
 
 void RenderPassForwardShading::render(FScene & scene)
 {
-	auto&& config = Config::getInstance();
+	auto&& config = ProjectConfig::getInstance();
 	// 更新新Buffer后还要记得重新绑定到fbo
 	// 为何这里的texture没有被回收？？ 懂了！！Frambuffer中的Attachment还保存有一份引用
 	setupBuffers();

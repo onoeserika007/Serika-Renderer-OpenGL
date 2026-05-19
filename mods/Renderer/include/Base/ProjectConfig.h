@@ -28,7 +28,7 @@ struct ConfigWriteGuard;
 
 
 // 修改这里前要删掉config，不然会崩溃
-struct Config {
+struct ProjectConfig {
 
 	static const std::string defaultConfigPath;
 	// viewer
@@ -82,14 +82,14 @@ struct Config {
 
 	void serialize(const std::string& path);
 	void deserialize(const std::string& path);
-	static Config& getInstance();
+	static ProjectConfig& getInstance();
 	NO_DISCARD json11::Json to_json() const;
-	Config& from_json(const json11::Json & j);
+	ProjectConfig& from_json(const json11::Json & j);
 
-	Config(const Config&) = delete;
-	Config& operator=(const Config&) = delete;
+	ProjectConfig(const ProjectConfig&) = delete;
+	ProjectConfig& operator=(const ProjectConfig&) = delete;
 private:
-	Config() = default;
+	ProjectConfig() = default;
 
 	bool loaded_ = false;
 	std::mutex load_lock_;
@@ -101,8 +101,8 @@ struct ConfigReadGuard {
 
 struct ConfigWriteGuard {
 
-	explicit ConfigWriteGuard(Config& config): config_((config)) {}
-	Config& config_;
+	explicit ConfigWriteGuard(ProjectConfig& config): config_((config)) {}
+	ProjectConfig& config_;
 };
 
 #endif // SERIKA_RENDERER_INCLUDE_BASE_CONFIG_H

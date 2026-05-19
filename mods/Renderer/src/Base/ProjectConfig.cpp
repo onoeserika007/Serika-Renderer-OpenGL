@@ -1,4 +1,4 @@
-#include "Base/Config.h"
+#include "Base/ProjectConfig.h"
 
 #include <fstream>
 #include <iostream>
@@ -8,9 +8,9 @@
 
 using json = json11::Json;;
 
-const std::string Config::defaultConfigPath = "./configs/renderConfig.json";
+const std::string ProjectConfig::defaultConfigPath = "./configs/renderConfig.json";
 
-void Config::serialize(const std::string &path) {
+void ProjectConfig::serialize(const std::string &path) {
     json j = *this;
     std::ofstream ofs(path);
     try {
@@ -27,7 +27,7 @@ void Config::serialize(const std::string &path) {
     }
 }
 
-void Config::deserialize(const std::string &path) {
+void ProjectConfig::deserialize(const std::string &path) {
     std::ifstream ifs(path);
     try {
         if (!ifs) {
@@ -51,8 +51,8 @@ void Config::deserialize(const std::string &path) {
     }
 }
 
-Config & Config::getInstance() {
-    static Config config;
+ProjectConfig & ProjectConfig::getInstance() {
+    static ProjectConfig config;
     if (!config.loaded_) {
 
         std::lock_guard<std::mutex> guard(config.load_lock_);
@@ -66,7 +66,7 @@ Config & Config::getInstance() {
     return config;
 }
 
-json Config::to_json() const {
+json ProjectConfig::to_json() const {
     return json::object {
         {"bShadowMap", json(bShadowMap) },
         {"RenderPipeline", json(static_cast<int>(RenderPipeline))},
@@ -97,7 +97,7 @@ json Config::to_json() const {
     };;
 }
 
-Config & Config::from_json(const json &j) {
+ProjectConfig & ProjectConfig::from_json(const json &j) {
     bShadowMap = j["bShadowMap"].bool_value();
     RenderPipeline = static_cast<ERenderPipeline>(j["RenderPipeline"].int_value());
     CameraYaw = j["CameraYaw"].number_value();

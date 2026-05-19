@@ -57,7 +57,7 @@ std::shared_ptr<UMesh> ResourceLoader::loadMesh(const std::string &path, bool bU
 		return {};
 	}
 
-	*scene->mRootNode; // ??? deref here can fix load mistake
+	// *scene->mRootNode; // ??? deref here can fix load mistake
 
 	loadingDirectory = path.substr(0, path.find_last_of('/'));
 
