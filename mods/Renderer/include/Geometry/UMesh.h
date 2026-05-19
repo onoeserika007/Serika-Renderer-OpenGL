@@ -33,7 +33,7 @@ public:
     bool castShadow() const { return bCastShadow; }
     EShadingModel getShadingMode() const { return shadingMode_; }
 
-    std::unique_ptr<Triangle> fetchTriangle(unsigned k) const;
+    std::unique_ptr<Triangle> fetchTriangle(size_t k) const;
 
     // setters
     void setGeometry(const std::shared_ptr<FGeometry>& geo);

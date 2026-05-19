@@ -15,7 +15,7 @@ bool Sphere::intersect(const Ray &ray) {
     float b = 2 * glm::dot(ray.direction, L);
     float c = glm::dot(L, L) - radius2;
     float t0, t1;
-    float area = 4. * M_PI_DEFINED * radius2;
+    float area = 4.f * M_PI_DEFINED * radius2;
     if (!MathUtils::solveQuadratic(a, b, c, t0, t1)) return false;
     if (t0 < 0) t0 = t1;
     if (t0 < 0) return false;
@@ -48,7 +48,7 @@ BoundingBox Sphere::getBounds() const {
 }
 
 void Sphere::Sample(Intersection &intersection, float &pdf) {
-    float theta = 2.0 * M_PI_DEFINED * MathUtils::get_random_float();
+    float theta = 2.0f * M_PI_DEFINED * MathUtils::get_random_float();
     float phi = M_PI_DEFINED * MathUtils::get_random_float();
     glm::vec3 dir(std::cos(phi), std::sin(phi)*std::cos(theta), std::sin(phi)*std::sin(theta));
     intersection.impactPoint = center_ + radius * dir;

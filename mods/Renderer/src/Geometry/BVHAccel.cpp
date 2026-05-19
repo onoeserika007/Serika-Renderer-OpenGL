@@ -83,7 +83,7 @@ std::shared_ptr<BVHNode> BVHAccel::recursiveBuild(const std::vector<std::shared_
 
     // Compute bounds of all primitives in BVH node
     BoundingBox bounds;
-    for (int i = 0; i < prim_cpoy.size(); ++i)
+    for (size_t i = 0; i < prim_cpoy.size(); ++i)
         bounds.merge(prim_cpoy[i]->getBounds());
 
     if (prim_cpoy.size() == 1) {
@@ -104,7 +104,7 @@ std::shared_ptr<BVHNode> BVHAccel::recursiveBuild(const std::vector<std::shared_
     }
     else {
         BoundingBox centroidBounds;
-        for (int i = 0; i < prim_cpoy.size(); ++i)
+        for (size_t i = 0; i < prim_cpoy.size(); ++i)
             centroidBounds.merge(prim_cpoy[i]->getBounds().Centroid());
 
         int dim = centroidBounds.maxExtentAxis();

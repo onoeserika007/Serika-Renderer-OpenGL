@@ -12,9 +12,9 @@ using RGBA = glm::u8vec4;
 #define DEBUG
 // #undef DEBUG
 
-constexpr float M_PI_DEFINED = 3.14159265358979323846;
-constexpr float M_EPSILON_BIGGER = 1e-2;
-constexpr float M_EPSILON = 1e-6;
+constexpr float M_PI_DEFINED = 3.14159265358979323846f;
+constexpr float M_EPSILON_BIGGER = 1e-2f;
+constexpr float M_EPSILON = 1e-6f;
 constexpr float FLOAT_MAX = std::numeric_limits<float>::max();
 // constexpr float FLOAT_MIN = std::numeric_limits<float>::min(); // 对这个理解错误了，这不是最小的值，这是最小的norm值
 constexpr float FLOAT_MIN = -std::numeric_limits<float>::max();

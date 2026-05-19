@@ -141,7 +141,7 @@ void TextureOpenGLCube::setupPipeline() {
 		// for point light shadow map case
 		for (int i = 0; i < 6; i++) {
 			GL_CHECK(glTexImage2D(
-					GL_TEXTURE_CUBE_MAP_POSITIVE_X + i,
+					static_cast<GLenum>(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i),
 					0,
 					openglTextureInfo.internalformat,
 					textureInfo.width, textureInfo.height,
@@ -150,9 +150,9 @@ void TextureOpenGLCube::setupPipeline() {
 		}
 	}
 	else {
-		for (int i = 0; i < textureData_.unitDataArray.size(); i++) {
+		for (size_t i = 0; i < textureData_.unitDataArray.size(); i++) {
 			GL_CHECK(glTexImage2D(
-					GL_TEXTURE_CUBE_MAP_POSITIVE_X + i,
+					static_cast<GLenum>(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i),
 					0,
 					openglTextureInfo.internalformat,
 					textureInfo.width, textureInfo.height,

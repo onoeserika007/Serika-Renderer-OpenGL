@@ -34,18 +34,18 @@ void FGeometry::setIndex(const std::vector<unsigned> &indices) {
     indices_.assign(indices.begin(), indices.end());
 };
 
-unsigned FGeometry::getVeticesNum() const {
+size_t FGeometry::getVeticesNum() const {
     if (data_map_.contains(EBA_Position)) return data_map_.at(EBA_Position).size();
     return 0;
 }
 
-unsigned FGeometry::getTriangleNum() const {
+size_t FGeometry::getTriangleNum() const {
     if (isMesh()) return getVeticesNum() / 3;
     if (isMeshIndexed()) return getIndicesNum() / 3;
     return 0;
 }
 
-std::unique_ptr<Triangle> FGeometry::fetchTriangle(unsigned k) const {
+std::unique_ptr<Triangle> FGeometry::fetchTriangle(size_t k) const {
     if (isMeshIndexed() && data_map_.contains(EBA_Position)) {
         unsigned idx0 = indices_[k * 3];
         unsigned idx1 = indices_[k * 3 + 1];

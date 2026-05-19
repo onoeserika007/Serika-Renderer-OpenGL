@@ -83,7 +83,7 @@ void ImageUtils::convertFloatImage(RGBA* dst, float* src, uint32_t width, uint32
 
     float depthMin = FLT_MAX;
     float depthMax = FLT_MIN;
-    for (int i = 0; i < width * height; i++) {
+    for (size_t i = 0; i < width * height; i++) {
         float depth = *srcPixel;
         depthMin = std::min(depthMin, depth);
         depthMax = std::max(depthMax, depth);
@@ -92,7 +92,7 @@ void ImageUtils::convertFloatImage(RGBA* dst, float* src, uint32_t width, uint32
 
     srcPixel = src;
     RGBA* dstPixel = dst;
-    for (int i = 0; i < width * height; i++) {
+    for (size_t i = 0; i < width * height; i++) {
         float depth = *srcPixel;
         depth = (depth - depthMin) / (depthMax - depthMin);
         dstPixel->r = glm::clamp((int)(depth * 255.f), 0, 255);

@@ -69,7 +69,7 @@ std::shared_ptr<FScene> FScene::generateDeaultScene(const std::shared_ptr<FCamer
 	    // dirLight->setMesh(MeshMakers::loadCubeMesh());
      //    glm::vec3 dirLightPos {6, 10, -6};
      //    dirLight->setAsDirectionalLight(focus - dirLightPos, glm::vec3(0.1f), glm::vec3(0.5f), glm::vec3(0.5f));
-     //    dirLight->setScale({ 0.2, 0.2, 0.2 });
+     //    dirLight->setScale({ 0.2f, 0.2f, 0.2f });
      //    dirLight->setPosition(dirLightPos);
      //    scene->addLight(dirLight);;
     }
@@ -77,8 +77,8 @@ std::shared_ptr<FScene> FScene::generateDeaultScene(const std::shared_ptr<FCamer
     {
         auto pointLight = ULight::makeLight();
 	    pointLight->setMesh(MeshMakers::loadCubeMesh());
-        pointLight->setAsPointLight(glm::vec3(0, 0, 0), glm::vec3(0.f), glm::vec3(0.5f, 0.5f, 0.5f), glm::vec3(0.5f), 1.0, 0.045, 0.0075);
-        pointLight->setScale({ 0.2, 0.2, 0.2 });
+        pointLight->setAsPointLight(glm::vec3(0, 0, 0), glm::vec3(0.f), glm::vec3(0.5f, 0.5f, 0.5f), glm::vec3(0.5f), 1.0f, 0.045f, 0.0075f);
+        pointLight->setScale({ 0.2f, 0.2f, 0.2f });
         pointLight->setPosition({-3, 5, -3});
         scene->addLight(pointLight);
     }
@@ -100,8 +100,8 @@ std::shared_ptr<FScene> FScene::generateRaytracingStanfordBunnyScene(const std::
         pointLightMesh->setEmission(lightColor);
         auto pointLight = ULight::makeLight();
         pointLight->setMesh(pointLightMesh);
-        pointLight->setAsPointLight(glm::vec3(0, 0, 0), glm::vec3(0.f), glm::vec3(0.5f, 0.5f, 0.5f), glm::vec3(0.5f), 1.0, 0.045, 0.0075);
-        pointLight->setScale({ 0.2, 0.2, 0.2 });
+        pointLight->setAsPointLight(glm::vec3(0, 0, 0), glm::vec3(0.f), glm::vec3(0.5f, 0.5f, 0.5f), glm::vec3(0.5f), 1.0f, 0.045f, 0.0075f);
+        pointLight->setScale({ 0.2f, 0.2f, 0.2f });
         pointLight->setLightDiffuse(lightColor);
         pointLight->setPosition({-2, 2, -5});
         scene->addLight(pointLight);;
@@ -112,7 +112,7 @@ std::shared_ptr<FScene> FScene::generateRaytracingStanfordBunnyScene(const std::
     // dirLight->setMesh(MeshMakers::loadCubeMesh());
     // glm::vec3 dirLightPos {6, 10, -6};
     // dirLight->setAsDirectionalLight(focus - dirLightPos, glm::vec3(0.1f), glm::vec3(0.5f), glm::vec3(0.5f));
-    // dirLight->setScale({ 0.2, 0.2, 0.2 });
+    // dirLight->setScale({ 0.2f, 0.2f, 0.2f });
     // dirLight->setPosition(dirLightPos);
     // scene->addLight(dirLight);
     // }
@@ -193,8 +193,8 @@ std::shared_ptr<FScene> FScene::generatePBRScene(const std::shared_ptr<FCamera> 
         pointLightMesh->setEmission(GREEN_COLOR);
         auto pointLight = ULight::makeLight();
         pointLight->setMesh(pointLightMesh);
-        pointLight->setAsPointLight(glm::vec3(0, 0, 0), glm::vec3(0.f), glm::vec3(0.5f, 0.5f, 0.5f), glm::vec3(0.5f), 1.0, 0.045, 0.0075);
-        pointLight->setScale({ 0.2, 0.2, 0.2 });
+        pointLight->setAsPointLight(glm::vec3(0, 0, 0), glm::vec3(0.f), glm::vec3(0.5f, 0.5f, 0.5f), glm::vec3(0.5f), 1.0f, 0.045f, 0.0075f);
+        pointLight->setScale({ 0.2f, 0.2f, 0.2f });
         pointLight->setLightDiffuse({1.f, 1.f, 1.f});
         pointLight->setPosition({-2, 2, -5});
         scene->addLight(pointLight);;
@@ -265,7 +265,7 @@ std::shared_ptr<FScene> FScene::generateRaytracingCornellBoxScene(const std::sha
     {
         // auto pointLight = ULight::makeLight();
         // pointLight->setMesh(MeshMakers::loadCubeMesh());
-        // pointLight->setAsPointLight(glm::vec3(0, 0, 0), glm::vec3(0.f), glm::vec3(1.f, 1.f, 1.f), glm::vec3(0.5f), 0.05, 0, 0);
+        // pointLight->setAsPointLight(glm::vec3(0, 0, 0), glm::vec3(0.f), glm::vec3(1.f, 1.f, 1.f), glm::vec3(0.5f), 0.05f, 0.f, 0.f);
         // pointLight->setPosition({278, 278, 0});
         // scene->addLight(pointLight);
     }

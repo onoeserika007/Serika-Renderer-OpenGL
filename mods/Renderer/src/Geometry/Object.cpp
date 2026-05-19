@@ -242,7 +242,7 @@ void UObject::buildBVH() {
 	// triangles
 	for (auto&& submesh: subMeshes) {
 		if (auto&& pgeom = submesh->getGeometry()) {
-			for(int i = 0; i < pgeom->getTriangleNum(); i++) {
+			for(size_t i = 0; i < pgeom->getTriangleNum(); i++) {
 				auto&& tri = submesh->fetchTriangle(i);
 				// apply model matrix before generate BVH!!
 				tri->transform(getWorldMatrix());

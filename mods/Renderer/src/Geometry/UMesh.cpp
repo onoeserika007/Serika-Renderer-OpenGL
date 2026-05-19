@@ -75,7 +75,7 @@ std::shared_ptr<UniformSampler> UMesh::tryGetSkyboxSampler(Renderer &renderer) {
 }
 
 
-std::unique_ptr<Triangle> UMesh::fetchTriangle(unsigned k) const {
+std::unique_ptr<Triangle> UMesh::fetchTriangle(size_t k) const {
     if (pgeometry_) {
         auto tri = pgeometry_->fetchTriangle(k);
         tri->material_ = pmaterial_;

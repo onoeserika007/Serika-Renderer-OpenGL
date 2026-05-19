@@ -43,11 +43,11 @@ public:
     bool isMesh() const { return mesh_type_ == Mesh; }
     bool isMeshIndexed() const { return mesh_type_ == Mesh_Indexed; }
     bool isPipelineReady() const { return bReady_; }
-    unsigned getVeticesNum() const;
-    unsigned getIndicesNum() const { return indices_.size(); }
-    unsigned getTriangleNum() const;
+    size_t getVeticesNum() const;
+    size_t getIndicesNum() const { return indices_.size(); }
+    size_t getTriangleNum() const;
 
-    std::unique_ptr<Triangle> fetchTriangle(unsigned k) const;
+    std::unique_ptr<Triangle> fetchTriangle(size_t k) const;
     const unsigned *getIndicesRawData() const;
     unsigned getEBO() const { return EBO; }
 };

@@ -85,8 +85,8 @@ Intersection Triangle::getIntersection(const Ray &ray) {
 BoundingBox Triangle::getBounds() const { return BoundingBox(v0_, v1_).merge(v2_); }
 
 void Triangle::Sample(Intersection &pos, float &pdf) {
-    float x = std::sqrt(MathUtils::SobolGlobalIndex(0)); // \sqrt(r1)
-    float y = MathUtils::SobolGlobalIndex(0);    // r2
+    float x = static_cast<float>(std::sqrt(MathUtils::SobolGlobalIndex(0)));
+    float y = static_cast<float>(MathUtils::SobolGlobalIndex(0));
     pos.impactPoint = v0_ * (1.0f - x) + v1_ * (x * (1.0f - y)) + v2_ * (x * y);
     pos.texCoords = t0_ * (1.f - x) + t1_ * (x * (1.f - y)) + t2_ * (x * y);
     pos.normal = this->normal_;

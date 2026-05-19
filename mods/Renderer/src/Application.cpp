@@ -68,7 +68,7 @@ void Application::mainLoop() {
     int counter = 0;
     while (!glfwWindowShouldClose(window))
     {
-        float currentFrameTime = glfwGetTime();
+        float currentFrameTime = static_cast<float>(glfwGetTime());
         deltaTime_ = currentFrameTime - lastFrameTime;
         lastFrameTime = currentFrameTime;
         // if (counter % 1000 == 55) {
@@ -157,15 +157,15 @@ void Application::mouse_move_callback(GLFWwindow* window, double xpos, double yp
     if (!app.viewer_ || app.viewer_->wantCaptureMouse()) return;
     if (app.firstMouse) // 这个bool变量初始时是设定为true的
     {
-        app.lastX = xpos;
-        app.lastY = ypos;
+        app.lastX = static_cast<float>(xpos);
+        app.lastY = static_cast<float>(ypos);
         app.firstMouse = false;
     }
 
-    float xoffset = xpos - app.lastX;
-    float yoffset = app.lastY - ypos; // 注意这里是相反的，因为y坐标是从底部往顶部依次增大的
-    app.lastX = xpos;
-    app.lastY = ypos;
+    float xoffset = static_cast<float>(xpos) - app.lastX;
+    float yoffset = app.lastY - static_cast<float>(ypos);
+    app.lastX = static_cast<float>(xpos);
+    app.lastY = static_cast<float>(ypos);
 
     const bool bUseFPS = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS;
     const bool bUseOrbit = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_MIDDLE) == GLFW_PRESS;
@@ -196,7 +196,7 @@ void Application::scroll_callback(GLFWwindow* window, double xoffset, double yof
     Application& app = getInstance();
     if (!app.viewer_ || app.viewer_->wantCaptureMouse()) return;
     if (auto&& camera = app.viewer_->getViewCamera()) {
-        camera->ProcessMouseScroll(yoffset);;
+        camera->ProcessMouseScroll(static_cast<float>(yoffset));;
     }
 }
 
@@ -213,8 +213,8 @@ void Application::mouse_click_callback(GLFWwindow *window, int button, int actio
         int width, height;
         glfwGetWindowSize(window, &width, &height);
 
-        const int shootX = xpos;
-        const int shootY = ypos;
+        const int shootX = static_cast<int>(xpos);
+        const int shootY = static_cast<int>(ypos);
 
         app.viewer_->drawCursorHitDebugLine(shootX, shootY, width, height);
         app.viewer_->drawUnderCursorTraceDebugTriangle(shootX, shootY, width, height);

@@ -46,7 +46,7 @@ private:
     std::shared_ptr<FScene> scene_;
     GLFWwindow* window = nullptr;
     float lastFrameTime = 0.0;
-    float deltaTime_ = 0.01;
+    float deltaTime_ = 0.01f;
 
     float lastX = 0.f;
     float lastY = 0.f;

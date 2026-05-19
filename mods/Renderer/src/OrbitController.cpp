@@ -45,7 +45,7 @@ void OrbitController::recalculateCenter() {
 }
 
 void OrbitController::panByPixels(double dx, double dy) {
-    glm::vec3 world_offset = camera_.getWorldPositionFromView(glm::vec3(dx, dy, 0));
+    glm::vec3 world_offset = camera_.getWorldPositionFromView(glm::vec3(static_cast<float>(dx), static_cast<float>(dy), 0.f));
     glm::vec3 world_origin = camera_.getWorldPositionFromView(glm::vec3(0));
 
     glm::vec3 delta = (world_origin - world_offset) * armLength_ * panSensitivity_;

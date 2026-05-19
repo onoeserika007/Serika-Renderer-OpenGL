@@ -294,14 +294,14 @@ void Renderer::updateMainUniformBlock(const std::shared_ptr<UMesh> &mesh, const 
 	else {
 		modelBlock.uUseEnvmap = false;
 	}
-	modelUniformBlock_->setData(&modelBlock, sizeof(ModelUniformBlock));
+	modelUniformBlock_->setData(&modelBlock, static_cast<int>(sizeof(ModelUniformBlock)));
 
 	// Scene Uniform Block
 	SceneUniformBlock sceneBlock{};
 	sceneBlock.uScreenWidth = width();
 	sceneBlock.uScreenHeight = height();
 	sceneBlock.uUseSSAO = config.bUseSSAO;
-	sceneUniformBlock_->setData(&sceneBlock, sizeof(SceneUniformBlock));
+	sceneUniformBlock_->setData(&sceneBlock, static_cast<int>(sizeof(SceneUniformBlock)));
 };;
 
 void Renderer::updateShadowCubeUniformBlock(const std::shared_ptr<ULight> &shadowLight) const {
@@ -323,7 +323,7 @@ void Renderer::updateShadowCubeUniformBlock(const std::shared_ptr<ULight> &shado
 		// far plane
 		block.uFarPlaneCubeShadow = lightCamera->getFarPlane();
 	}
-	shadowUniformBlock_->setData(&block, sizeof(ShadowCubeUniformBlock));
+	shadowUniformBlock_->setData(&block, static_cast<int>(sizeof(ShadowCubeUniformBlock)));
 }
 
 void Renderer::updateLightUniformBlock(const std::shared_ptr<ULight>& light) const {
@@ -335,7 +335,7 @@ void Renderer::updateLightUniformBlock(const std::shared_ptr<ULight>& light) con
 	else {
 		tmp.uLightType = LightType_NoLight;;
 	}
-	lightUniformBlock_->setData(&tmp, sizeof(LightDataUniformBlock));
+	lightUniformBlock_->setData(&tmp, static_cast<int>(sizeof(LightDataUniformBlock)));
 }
 
 void Renderer::setViewPort(int x, int y, int width, int height) {

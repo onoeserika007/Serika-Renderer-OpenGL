@@ -84,7 +84,7 @@ void Utils::UpdateProgress(float progress) {
     int barWidth = 70;
 
     std::cout << "[";
-    int pos = barWidth * progress;
+    int pos = static_cast<int>(barWidth * progress);
     for (int i = 0; i < barWidth; ++i) {
         if (i < pos) std::cout << "=";
         else if (i == pos) std::cout << ">";
@@ -118,8 +118,8 @@ void MathUtils::UniformHemisphereSample(glm::vec3 &outWo, float &outPdf, const g
         x_1 = get_random_float(), x_2 = get_random_float();
     }
     else {
-        x_1 = Sobol(depth * 2, SobolIndex);
-        x_2 = Sobol(depth * 2 + 1, SobolIndex);
+        x_1 = static_cast<float>(Sobol(depth * 2, SobolIndex));
+        x_2 = static_cast<float>(Sobol(depth * 2 + 1, SobolIndex));
     }
 
     // float x_1 = MathUtils::SobolGlobalIndex(0), x_2 = MathUtils::SobolGlobalIndex(1);
@@ -140,9 +140,9 @@ void MathUtils::UniformHemisphereSampleByVolume(glm::vec3 &outWo, float &outPdf,
         x_1 = get_random_float(), x_2 = get_random_float(), x_3 = get_random_float();
     }
     else {
-        x_1 = Sobol(depth * 3, SobolIndex);
-        x_2 = Sobol(depth * 3 + 1, SobolIndex);
-        x_3 = Sobol(depth * 3 + 2, SobolIndex);
+        x_1 = static_cast<float>(Sobol(depth * 3, SobolIndex));
+        x_2 = static_cast<float>(Sobol(depth * 3 + 1, SobolIndex));
+        x_3 = static_cast<float>(Sobol(depth * 3 + 2, SobolIndex));
     }
 
     // float x_1 = MathUtils::SobolGlobalIndex(0), x_2 = MathUtils::SobolGlobalIndex(1);
@@ -170,11 +170,11 @@ float MathUtils::get_random_float(float lowerBound, float upperBound) {
 bool MathUtils::solveQuadratic(const float &a, const float &b, const float &c, float &smallerRoot, float &greaterRoot) {
     float discr = b * b - 4 * a * c;
     if (discr < 0) return false;
-    else if (discr == 0) smallerRoot = greaterRoot = - 0.5 * b / a;
+    else if (discr == 0) smallerRoot = greaterRoot = -0.5f * b / a;
     else {
         float q = (b > 0) ?
-                  -0.5 * (b + sqrt(discr)) :
-                  -0.5 * (b - sqrt(discr));
+                  -0.5f * (b + sqrt(discr)) :
+                  -0.5f * (b - sqrt(discr));
         smallerRoot = q / a;
         greaterRoot = c / q;
     }
@@ -245,7 +245,7 @@ float MathUtils::Schick_GGXSmith_G(const glm::vec3 &N, const glm::vec3 &V, const
 }
 
 float MathUtils::Schick_Fresnel_F(float cosTheta, float F0) {
-    return F0 + (1.0 - F0) * std::pow(1.0 - cosTheta,5.0f);
+    return F0 + (1.0f - F0) * std::pow(1.0f - cosTheta,5.0f);
 }
 
 float MathUtils::IntegerRadicalInverse(int Base, int i) {
@@ -305,7 +305,7 @@ std::vector<int> MathUtils::generate_coprimes(int n) {
         coprimes.clear();
         int estimated_limit = 10 * n; // 估计的质数数量上限
         std::vector<int> primes = sieve_of_eratosthenes(estimated_limit);
-        for (int i = 0; i < primes.size() && coprimes.size() < n; i++) {
+        for (size_t i = 0; i < primes.size() && coprimes.size() < n; i++) {
             coprimes.push_back(primes[i]);
         }
     }

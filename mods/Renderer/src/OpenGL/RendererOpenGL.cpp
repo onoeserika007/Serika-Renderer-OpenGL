@@ -45,10 +45,10 @@ RendererOpenGL::RendererOpenGL(const std::shared_ptr<FCamera>& camera): Renderer
 void RendererOpenGL::init()
 {
 	// The name in shader
-	modelUniformBlock_ = createUniformBlock("Model", sizeof(ModelUniformBlock));
-	shadowUniformBlock_ = createUniformBlock("ShadowCube", sizeof(ShadowCubeUniformBlock));
-	lightUniformBlock_ = createUniformBlock("Light", sizeof(LightDataUniformBlock));
-	sceneUniformBlock_ = createUniformBlock("Scene", sizeof(SceneUniformBlock));
+	modelUniformBlock_ = createUniformBlock("Model", static_cast<int>(sizeof(ModelUniformBlock)));
+	shadowUniformBlock_ = createUniformBlock("ShadowCube", static_cast<int>(sizeof(ShadowCubeUniformBlock)));
+	lightUniformBlock_ = createUniformBlock("Light", static_cast<int>(sizeof(LightDataUniformBlock)));
+	sceneUniformBlock_ = createUniformBlock("Scene", static_cast<int>(sizeof(SceneUniformBlock)));
 
 	// place holder
 	setupColorBuffer(envCubeMapPlaceholder_, 1, 1, false, true, TextureTarget_TEXTURE_CUBE_MAP, TextureFormat_RGBA8, TEXTURE_TYPE_CUBE);
@@ -184,7 +184,7 @@ void RendererOpenGL::setupGeometry(FGeometry& geometry) const {
 		// 指定顶点属性的解释方式（如何解释VBO中的数据）
 		// 1. glVertexAttribPointer
 		// attri的Location(layout location = 0) | item_size | 数据类型 | 是否Normalize to 0-1 | stride | 从Buffer起始位置开始的偏移
-		GL_CHECK(glVertexAttribPointer(attr, data.elem_size(), GL_FLOAT, GL_FALSE, data.elem_size() * sizeof(float), (void*)0));
+		GL_CHECK(glVertexAttribPointer(attr, static_cast<GLint>(data.elem_size()), GL_FLOAT, GL_FALSE, static_cast<GLsizei>(data.elem_size() * sizeof(float)), (void*)0));
 		// 以顶点属性位置值作为参数，启用顶点属性；顶点属性默认是禁用的
 		GL_CHECK(glEnableVertexAttribArray(attr));
 	}
@@ -357,11 +357,11 @@ void RendererOpenGL::drawMesh(const std::shared_ptr<UMesh> &mesh, const ShaderPa
 		GL_CHECK(glBindVertexArray(VAO));
 		if (pgeometry->isMesh()) {
 			// primitive | 顶点数组起始索引 | 绘制indices数量
-			GL_CHECK(glDrawArrays(GL_TRIANGLES, 0, pgeometry->getVeticesNum()));
+			GL_CHECK(glDrawArrays(GL_TRIANGLES, 0, static_cast<GLsizei>(pgeometry->getVeticesNum())));
 		}
 		else {
 			// primitive | nums | 索引类型 | 最后一个参数里我们可以指定EBO中的偏移量（或者传递一个索引数组，但是这是当你不在使用EBO的时候），但是我们会在这里填写0。
-			GL_CHECK(glDrawElements(GL_TRIANGLES, pgeometry->getIndicesNum(), GL_UNSIGNED_INT, nullptr));
+			GL_CHECK(glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(pgeometry->getIndicesNum()), GL_UNSIGNED_INT, nullptr));
 		}
 		GL_CHECK(glBindVertexArray(0));
 	}
@@ -448,7 +448,7 @@ void RendererOpenGL::drawDebugBBox(const BoundingBox &bbox, const std::shared_pt
 		updateMainUniformBlock({}, mainCamera_, {});
 		loadGlobalUniforms(*debugShader);
 		debugShader->bindHoldingResources();
-		debugShader->setFloat("uLayerDepth", depth);
+		debugShader->setFloat("uLayerDepth", static_cast<float>(depth));
 
 		auto parentUUID = 0;
 		if (holdingObject) {
@@ -1114,7 +1114,7 @@ std::shared_ptr<ShaderGLSL> RendererOpenGL::getDefferedShadingProgram(const std:
 	}
 
 	// bind gbuffers
-	for(int i = 0; i < gBuffers.size(); i++) {
+	for(size_t i = 0; i < gBuffers.size(); i++) {
 		const auto& gbuffer = gBuffers[i];
 		auto&& sampler = gbuffer->getUniformSampler(*this);
 		sampler->setName(RenderPassGeometry::GBUFFER_NAMES[i]);
@@ -1141,7 +1141,7 @@ getSSAOProgram(const std::vector<std::shared_ptr<Texture>> &gBuffers) const {
 	}
 
 	// bind gbuffers
-	for(int i = 0; i < gBuffers.size(); i++) {
+	for(size_t i = 0; i < gBuffers.size(); i++) {
 		const auto& gbuffer = gBuffers[i];
 		auto&& sampler = gbuffer->getUniformSampler(*this);
 		sampler->setName(RenderPassGeometry::GBUFFER_NAMES[i]);

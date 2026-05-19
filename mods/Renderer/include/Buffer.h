@@ -54,7 +54,7 @@ public:
     T sample2D(float u, float v, FilterMode filter_mode = Filter_NEAREST) {
         float x = u * width_, y = v * height_;
         if (filter_mode == Filter_NEAREST) {
-            return getPixel(x, y);
+            return getPixel(static_cast<int>(x), static_cast<int>(y));
         }
 
         if (filter_mode == Filter_LINEAR) {

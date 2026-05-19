@@ -165,11 +165,11 @@ void FMaterial::use(ShaderPass pass) {
         if (!materialInfoUniformBlock_) {
             auto&& app = Application::getInstance();
             if (auto&& renderer = app.getRenderer()) {
-                materialInfoUniformBlock_ = renderer->createUniformBlock("MaterialInfo", sizeof(MaterialInfoBlock));
+                materialInfoUniformBlock_ = renderer->createUniformBlock("MaterialInfo", static_cast<int>(sizeof(MaterialInfoBlock)));
             }
         }
         if (materialInfoUniformBlock_) {
-            materialInfoUniformBlock_->setData(&material_info_, sizeof(MaterialInfoBlock));
+            materialInfoUniformBlock_->setData(&material_info_, static_cast<int>(sizeof(MaterialInfoBlock)));
             // 注意，当shader在material管制下时，是不持有resource的，所以应该向material里添加
             // shaders_[pass]->setUniformBlock(materialInfoUniformBlock_->name(), materialInfoUniformBlock_);
             this->setUniformBlock(materialInfoUniformBlock_->name(), materialInfoUniformBlock_);

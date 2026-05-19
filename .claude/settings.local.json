@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cmake -S . -B build)",
+      "Bash(cmake --build build --parallel 30)",
+      "Bash(Select-String -Pattern \"C4267|C4244|C4305|C4018\")",
+      "Bash(Select-Object -First 30)",
+      "PowerShell(New-Item *)"
+    ]
+  }
+}

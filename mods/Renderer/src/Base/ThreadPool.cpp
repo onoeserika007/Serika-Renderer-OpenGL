@@ -1,7 +1,7 @@
 #include "Base/ThreadPool.h"
 
 FThreadPool::FThreadPool(const size_t threadCount): threadCnt_(threadCount) {
-    for (int i = 0; i < threadCnt_; i++) {
+    for (size_t i = 0; i < threadCnt_; i++) {
         threads_.emplace_back(&FThreadPool::worker, this, i);
     }
 }

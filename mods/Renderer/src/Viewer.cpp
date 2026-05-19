@@ -355,7 +355,7 @@ void Viewer::drawScene_PathTracing_CPU(const std::shared_ptr<FScene> &scene) con
 	std::cout<<"Cpu Num :" <<cpuNum<<std::endl;
 
 	omp_set_num_threads(cpuNum);
-	int hxw= framebuffer->size();
+	int hxw = static_cast<int>(framebuffer->size());
 
 	// std::atomic<float> progress = 0.f;
 	glm::mat4 cameraToWorld = glm::transpose(cameraMain_->GetViewMatrix());
@@ -402,15 +402,15 @@ Ray Viewer::screenToWorldRay(int mouseX, int mouseY, int screenWidth, int screen
 	glm::vec3 eye = cameraMain_->position();
 	glm::mat4 cameraToWorld = glm::inverse(cameraMain_->GetViewMatrix());
 
-	float tanHalfFOV = tan(glm::radians(cameraMain_->getFOV() * 0.5));
+	float tanHalfFOV = tanf(glm::radians(cameraMain_->getFOV() * 0.5f));
 	float aspect = cameraMain_->getAspect();
 
 	float x_offset, y_offset;
 	if (bUseDisturb) {
 		// x_offset = MathUtils::get_random_float(0.5f - disturbRadius, 0.5f + disturbRadius);
 		// y_offset = MathUtils::get_random_float(0.5f - disturbRadius, 0.5f + disturbRadius);
-		x_offset = 0.5f + (MathUtils::Sobol(0, SobolIndex) * 2.f - 1.f) * disturbRadius;
-		y_offset = 0.5f + (MathUtils::Sobol(1, SobolIndex) * 2.f - 1.f) * disturbRadius;
+		x_offset = 0.5f + static_cast<float>(MathUtils::Sobol(0, SobolIndex) * 2.f - 1.f) * disturbRadius;
+		y_offset = 0.5f + static_cast<float>(MathUtils::Sobol(1, SobolIndex) * 2.f - 1.f) * disturbRadius;
 	}
 	else {
 		x_offset = y_offset = 0.5f;
