@@ -91,8 +91,8 @@ set(ASSIMP_BUILD_OBJ_IMPORTER TRUE)
 set(ASSIMP_BUILD_GLTF_IMPORTER TRUE)
 add_subdirectory(${THIRD_PARTY_DIR}/assimp)
 
-# json11
-add_subdirectory(${THIRD_PARTY_DIR}/json11)
+# nlohmann/json
+add_subdirectory(${THIRD_PARTY_DIR}/nlohmann)
 
 # glfw
 add_subdirectory(${THIRD_PARTY_DIR}/glfw)

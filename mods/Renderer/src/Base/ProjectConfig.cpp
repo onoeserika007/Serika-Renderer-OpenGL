@@ -3,24 +3,23 @@
 #include <fstream>
 #include <iostream>
 
-#include "json11.hpp"
+#include <nlohmann/json.hpp>
+
 #include "Utils/SRKLogger.h"
 
-using json = json11::Json;;
+using json = nlohmann::json;
 
 const std::string ProjectConfig::defaultConfigPath = "./configs/renderConfig.json";
 
 void ProjectConfig::serialize(const std::string &path) {
-    json j = *this;
+    json j = to_json();
     std::ofstream ofs(path);
     try {
         if (!ofs) {
             throw std::ios_base::failure("Failed to open file for writing");
         }
-        else {
-            ofs << j.dump();// Pretty print with 4 spaces indentation
-            ofs.close();
-        }
+        ofs << j.dump(4);
+        ofs.close();
     }
     catch (const std::system_error& e) {
         LOGE(e.what());
@@ -33,30 +32,22 @@ void ProjectConfig::deserialize(const std::string &path) {
         if (!ifs) {
             throw std::ios_base::failure("Failed to open file for reading");
         }
-        else {
-            const std::string str((std::istreambuf_iterator<char>(ifs)), std::istreambuf_iterator<char>());
-            ifs.close();;
-
-            std::string err;
-            json j = json::parse(str, err);
-            if (!err.empty()) {
-                std::cerr << "Error parsing JSON: " << err << std::endl;
-            }
-
-            from_json(j);
-        }
+        json j = json::parse(ifs);
+        ifs.close();
+        from_json(j);
+    }
+    catch (const json::parse_error& e) {
+        LOGE(e.what());
     }
     catch (const std::system_error& e) {
-        LOGI("No default config, creating default one...");
+        LOGI("No default config, using defaults...");
     }
 }
 
 ProjectConfig & ProjectConfig::getInstance() {
     static ProjectConfig config;
     if (!config.loaded_) {
-
         std::lock_guard<std::mutex> guard(config.load_lock_);
-        // prevent from loaded twice, already loaded other thread
         if (!config.loaded_) {
             config.deserialize(defaultConfigPath);
             std::cout << "Rendering RenderPipeline: " << static_cast<int>(config.RenderPipeline) << std::endl;
@@ -67,63 +58,62 @@ ProjectConfig & ProjectConfig::getInstance() {
 }
 
 json ProjectConfig::to_json() const {
-    return json::object {
-        {"bShadowMap", json(bShadowMap) },
-        {"RenderPipeline", json(static_cast<int>(RenderPipeline))},
-        {"CameraYaw", json(CameraYaw)},
-        {"CameraPitch", json(CameraPitch)},
-        {"CameraSpeed", json(CameraSpeed)},
-        {"MouseSensitivity", json(MouseSensitivity)},
-        {"CameraZoom", json(CameraZoom)},
-        {"CameraNear", json(CameraNear)},
-        {"CameraFar", json(CameraFar)},
-        {"Resolution_ShadowMap", json(Resolution_ShadowMap)},
-        {"CaptureRadius_ShadowMap", json(CaptureRadius_ShadowMap)},
-        {"CameraAspect", json(CameraAspect)},
-        {"CameraFOV", json(CameraFOV)},
-        {"WindowWidth", json(WindowWidth)},
-        {"WindowHeight", json(WindowHeight)},
-        {"bSkybox", json(bSkybox)},
-        {"bUseBVH", json(bUseBVH)},
-        {"SPP", json(SPP)},
-        {"Exposure", json(Exposure)},
-        {"bUseHDR", json(bUseHDR)},
-        {"bUseBloom", json(bUseBloom)},
-        {"bUseSSAO", json(bUseSSAO)},
-        {"SceneType", json(SceneType)},
-        {"ShadingModelForDeferredRendering", json(ShadingModelForDeferredRendering)},
-        {"bUseMipmaps", json(bUseMipmaps)},
-        {"bDrawDebugBVH", json(bDrawDebugBVH)}
-    };;
+    return {
+        {"bShadowMap", bShadowMap},
+        {"RenderPipeline", static_cast<int>(RenderPipeline)},
+        {"CameraYaw", CameraYaw},
+        {"CameraPitch", CameraPitch},
+        {"CameraSpeed", CameraSpeed},
+        {"MouseSensitivity", MouseSensitivity},
+        {"CameraZoom", CameraZoom},
+        {"CameraNear", CameraNear},
+        {"CameraFar", CameraFar},
+        {"Resolution_ShadowMap", Resolution_ShadowMap},
+        {"CaptureRadius_ShadowMap", CaptureRadius_ShadowMap},
+        {"CameraAspect", CameraAspect},
+        {"CameraFOV", CameraFOV},
+        {"WindowWidth", WindowWidth},
+        {"WindowHeight", WindowHeight},
+        {"bSkybox", bSkybox},
+        {"bUseBVH", bUseBVH},
+        {"SPP", SPP},
+        {"Exposure", Exposure},
+        {"bUseHDR", bUseHDR},
+        {"bUseBloom", bUseBloom},
+        {"bUseSSAO", bUseSSAO},
+        {"SceneType", static_cast<int>(SceneType)},
+        {"ShadingModelForDeferredRendering", static_cast<int>(ShadingModelForDeferredRendering)},
+        {"bUseMipmaps", bUseMipmaps},
+        {"bDrawDebugBVH", bDrawDebugBVH}
+    };
 }
 
 ProjectConfig & ProjectConfig::from_json(const json &j) {
-    bShadowMap = j["bShadowMap"].bool_value();
-    RenderPipeline = static_cast<ERenderPipeline>(j["RenderPipeline"].int_value());
-    CameraYaw = static_cast<float>(j["CameraYaw"].number_value());
-    CameraPitch = static_cast<float>(j["CameraPitch"].number_value());
-    CameraSpeed = static_cast<float>(j["CameraSpeed"].number_value());
-    MouseSensitivity = static_cast<float>(j["MouseSensitivity"].number_value());
-    CameraZoom = static_cast<float>(j["CameraZoom"].number_value());;
-    CameraNear = static_cast<float>(j["CameraNear"].number_value());
-    CameraFar = static_cast<float>(j["CameraFar"].number_value());
-    Resolution_ShadowMap = j["Resolution_ShadowMap"].int_value();
-    CaptureRadius_ShadowMap = static_cast<float>(j["CaptureRadius_ShadowMap"].number_value());;
-    CameraAspect = static_cast<float>(j["CameraAspect"].number_value());
-    CameraFOV = static_cast<float>(j["CameraFOV"].number_value());
-    WindowWidth = j["WindowWidth"].int_value();
-    WindowHeight = j["WindowHeight"].int_value();
-    bSkybox = j["bSkybox"].bool_value();
-    bUseBVH = j["bUseBVH"].bool_value();
-    SPP = j["SPP"].int_value();
-    bUseHDR = j["bUseHDR"].bool_value();
-    Exposure = static_cast<float>(j["Exposure"].number_value());
-    bUseBloom = j["bUseBloom"].bool_value();
-    bUseSSAO = j["bUseSSAO"].bool_value();
-    SceneType = static_cast<ESceneType>(j["SceneType"].int_value());
-    ShadingModelForDeferredRendering = static_cast<EShadingModel>(j["ShadingModelForDeferredRendering"].int_value());
-    bUseMipmaps = j["bUseMipmaps"].bool_value();
-    bDrawDebugBVH = j["bDrawDebugBVH"].bool_value();
+    bShadowMap = j["bShadowMap"].get<bool>();
+    RenderPipeline = static_cast<ERenderPipeline>(j["RenderPipeline"].get<int>());
+    CameraYaw = j["CameraYaw"].get<float>();
+    CameraPitch = j["CameraPitch"].get<float>();
+    CameraSpeed = j["CameraSpeed"].get<float>();
+    MouseSensitivity = j["MouseSensitivity"].get<float>();
+    CameraZoom = j["CameraZoom"].get<float>();
+    CameraNear = j["CameraNear"].get<float>();
+    CameraFar = j["CameraFar"].get<float>();
+    Resolution_ShadowMap = j["Resolution_ShadowMap"].get<int>();
+    CaptureRadius_ShadowMap = j["CaptureRadius_ShadowMap"].get<float>();
+    CameraAspect = j["CameraAspect"].get<float>();
+    CameraFOV = j["CameraFOV"].get<float>();
+    WindowWidth = j["WindowWidth"].get<int>();
+    WindowHeight = j["WindowHeight"].get<int>();
+    bSkybox = j["bSkybox"].get<bool>();
+    bUseBVH = j["bUseBVH"].get<bool>();
+    SPP = j["SPP"].get<int>();
+    bUseHDR = j["bUseHDR"].get<bool>();
+    Exposure = j["Exposure"].get<float>();
+    bUseBloom = j["bUseBloom"].get<bool>();
+    bUseSSAO = j["bUseSSAO"].get<bool>();
+    SceneType = static_cast<ESceneType>(j["SceneType"].get<int>());
+    ShadingModelForDeferredRendering = static_cast<EShadingModel>(j["ShadingModelForDeferredRendering"].get<int>());
+    bUseMipmaps = j["bUseMipmaps"].get<bool>();
+    bDrawDebugBVH = j["bDrawDebugBVH"].get<bool>();
     return *this;
 }
-

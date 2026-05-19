@@ -5,9 +5,7 @@
 
 #include "Globals.h"
 
-namespace json11 {
-	class Json;
-}
+#include <nlohmann/json_fwd.hpp>
 
 enum ERendererType {
 	RendererType_SOFT,
@@ -83,8 +81,8 @@ struct ProjectConfig {
 	void serialize(const std::string& path);
 	void deserialize(const std::string& path);
 	static ProjectConfig& getInstance();
-	NO_DISCARD json11::Json to_json() const;
-	ProjectConfig& from_json(const json11::Json & j);
+	NO_DISCARD nlohmann::json to_json() const;
+	ProjectConfig& from_json(const nlohmann::json & j);
 
 	ProjectConfig(const ProjectConfig&) = delete;
 	ProjectConfig& operator=(const ProjectConfig&) = delete;

@@ -9,7 +9,7 @@ file(GLOB_RECURSE RENDERER_SOURCES
 
 add_library(renderer_lib ${RENDERER_SOURCES})
 
-target_link_libraries(renderer_lib PUBLIC assimp::assimp json11 imgui)
+target_link_libraries(renderer_lib PUBLIC assimp::assimp nlohmann_json imgui)
 
 set(THIRD_PARTY_DIR ${PROJECT_SOURCE_DIR}/ThirdParty)
 
@@ -22,7 +22,5 @@ target_include_directories(renderer_lib PUBLIC
     ${THIRD_PARTY_DIR}/stb
     ${THIRD_PARTY_DIR}/assimp/include
     ${THIRD_PARTY_DIR}/assimp/contrib
-    ${THIRD_PARTY_DIR}/nlohmann
-    ${THIRD_PARTY_DIR}/json11
     ${THIRD_PARTY_DIR}/imgui
 )
