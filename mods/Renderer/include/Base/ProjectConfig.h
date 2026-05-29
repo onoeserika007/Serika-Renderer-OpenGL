@@ -4,8 +4,7 @@
 #include <string>
 
 #include "Globals.h"
-
-#include <nlohmann/json_fwd.hpp>
+#include "Base/Json.h"
 
 enum ERendererType {
 	RendererType_SOFT,
@@ -25,14 +24,11 @@ struct ConfigReadGuard;
 struct ConfigWriteGuard;
 
 
-// 修改这里前要删掉config，不然会崩溃
-struct ProjectConfig {
-
-	static const std::string defaultConfigPath;
+struct ProjectConfigData {
 	// viewer
 	int WindowWidth = 1920;
 	int WindowHeight = 1080;
-	bool bSkybox = false;;
+	bool bSkybox = false;
 	ERendererType RendererType = ERendererType::RendererType_OPENGL;
 	ERenderPipeline RenderPipeline = ERenderPipeline::RenderMode_ForwardRendering;
 	EShadingModel ShadingModelForDeferredRendering = EShadingModel::Shading_BlinnPhong;
@@ -62,8 +58,8 @@ struct ProjectConfig {
 	float CaptureRadius_ShadowMap = 60.f;
 
 	// Ray Tracing
-	int SPP;
-	bool bDrawDebugBVH;
+	int SPP = 16;
+	bool bDrawDebugBVH = false;
 
 	// HDR
 	bool bUseHDR = true;
@@ -77,12 +73,15 @@ struct ProjectConfig {
 
 	// Mipmaps
 	bool bUseMipmaps = false;
+};
+
+struct ProjectConfig : ProjectConfigData {
+
+	static const std::string defaultConfigPath;
 
 	void serialize(const std::string& path);
 	void deserialize(const std::string& path);
 	static ProjectConfig& getInstance();
-	NO_DISCARD nlohmann::json to_json() const;
-	ProjectConfig& from_json(const nlohmann::json & j);
 
 	ProjectConfig(const ProjectConfig&) = delete;
 	ProjectConfig& operator=(const ProjectConfig&) = delete;

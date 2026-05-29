@@ -94,6 +94,9 @@ add_subdirectory(${THIRD_PARTY_DIR}/assimp)
 # nlohmann/json
 add_subdirectory(${THIRD_PARTY_DIR}/nlohmann)
 
+# Boost.PFR
+add_subdirectory(${THIRD_PARTY_DIR}/pfr)
+
 # glfw
 add_subdirectory(${THIRD_PARTY_DIR}/glfw)
 

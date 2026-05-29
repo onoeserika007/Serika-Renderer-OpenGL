@@ -11,6 +11,7 @@
     "Exposure": 1.0,
     "MouseSensitivity": 0.10000000149011612,
     "RenderPipeline": 1,
+    "RendererType": 1,
     "Resolution_ShadowMap": 1024,
     "SPP": 16,
     "SceneType": 1,

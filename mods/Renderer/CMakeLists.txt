@@ -9,7 +9,7 @@ file(GLOB_RECURSE RENDERER_SOURCES
 
 add_library(renderer_lib ${RENDERER_SOURCES})
 
-target_link_libraries(renderer_lib PUBLIC assimp::assimp nlohmann_json imgui)
+target_link_libraries(renderer_lib PUBLIC assimp::assimp nlohmann_json Boost::pfr imgui)
 
 set(THIRD_PARTY_DIR ${PROJECT_SOURCE_DIR}/ThirdParty)
 
