@@ -91,7 +91,7 @@ class Shader;
 class UniformSampler;
 class Texture {
 protected:
-    unsigned textureId_;
+    unsigned textureId_ = 0;
     // name_ is trouble from a texture
     //std::string name_;
     bool pipelineReady_ = false;
@@ -109,7 +109,7 @@ public:
     static const char* samplerName(TextureType usage);
     virtual ~Texture();
 
-    //Texture();
+    Texture();
     Texture(TextureType type);
     Texture(const TextureInfo& info);
     Texture(const TextureInfo& texInfo, const SamplerInfo& smInfo, const TextureData& texData);
@@ -138,7 +138,7 @@ public:
     void setMultiSample(bool flag);
 
     virtual void copyDataTo(Texture& other);
-    virtual std::shared_ptr<UniformSampler> getUniformSampler(const Renderer &renderer) const = 0;
+    virtual std::shared_ptr<UniformSampler> getUniformSampler(const Renderer &renderer) const;
 };
 
 

@@ -4,6 +4,7 @@
 bin/
 out/
 build/
+build-ninja/
 test_build/
 cmake-build-*/
 CMakeSettings.json

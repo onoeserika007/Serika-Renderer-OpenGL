@@ -3,6 +3,7 @@
 #include "Base/Globals.h"
 #include "Base/ResourceLoader.h"
 #include "Renderer.h"
+#include "Utils/SRKLogger.h"
 
 const char* SamplerDefinesToTextureType[] = {
 	"NONE_MAP",
@@ -94,6 +95,10 @@ Texture::~Texture()
 {
 }
 
+Texture::Texture()
+{
+}
+
 Texture::Texture(TextureType type)
 {
 	textureInfo_.type = type;
@@ -114,6 +119,14 @@ Texture::Texture(const TextureInfo& texInfo, const SamplerInfo& smInfo, const Te
 void Texture::loadTextureData(const std::string& picture)
 {
 	auto bufferData = ResourceLoader::getInstance().loadTexture(picture);
+	if (bufferData == nullptr) {
+		LOGE("Texture::loadTextureData failed to load texture file: %s", picture.c_str());
+		TextureData texData;
+		texData.path = picture;
+		loadTextureData(texData);
+		return;
+	}
+
 	TextureData texData;
 	texData.unitDataArray = { bufferData };
 	texData.path = picture;
@@ -123,8 +136,19 @@ void Texture::loadTextureData(const std::string& picture)
 void Texture::loadTextureData(TextureData data)
 {
 	textureData_ = data;
-	textureInfo_.width = data.unitDataArray[0]->width();
-	textureInfo_.height = data.unitDataArray[0]->height();
+	if (textureData_.unitDataArray.empty()) {
+		LOGW("Texture::loadTextureData received empty texture data: %s", textureData_.path.c_str());
+		return;
+	}
+
+	const std::shared_ptr<Buffer<RGBA>> &buffer = textureData_.unitDataArray[0];
+	if (buffer == nullptr) {
+		LOGW("Texture::loadTextureData received null texture buffer: %s", textureData_.path.c_str());
+		return;
+	}
+
+	textureInfo_.width = buffer->width();
+	textureInfo_.height = buffer->height();
 }
 
 //void Texture::setName(const std::string& name)
@@ -220,4 +244,9 @@ void Texture::copyDataTo(Texture &other) {
 		tmp.unitDataArray.emplace_back(Buffer<RGBA>::makeBuffer(*elem));
 	}
 	other.textureData_ = std::move(tmp);
+}
+
+std::shared_ptr<UniformSampler> Texture::getUniformSampler(const Renderer &) const
+{
+	return nullptr;
 }

@@ -1,4 +1,4 @@
-﻿cmake_minimum_required(VERSION 3.8)
+﻿cmake_minimum_required(VERSION 3.16)
 
 set(TARGET_NAME LearnOpenGL-Personal)
 project(${TARGET_NAME})
@@ -97,6 +97,12 @@ add_subdirectory(${THIRD_PARTY_DIR}/nlohmann)
 # Boost.PFR
 add_subdirectory(${THIRD_PARTY_DIR}/pfr)
 
+# GoogleTest
+set(BUILD_GMOCK OFF CACHE BOOL "" FORCE)
+set(INSTALL_GTEST OFF CACHE BOOL "" FORCE)
+set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+add_subdirectory(${THIRD_PARTY_DIR}/googletest)
+
 # glfw
 add_subdirectory(${THIRD_PARTY_DIR}/glfw)
 
@@ -115,4 +121,6 @@ add_subdirectory(${PROJECT_SOURCE_DIR}/mods/Renderer)
 ####################     Tests      ####################
 ########################################################
 
+enable_testing()
+add_subdirectory(${PROJECT_SOURCE_DIR}/Test/Unit)
 add_subdirectory(${PROJECT_SOURCE_DIR}/Test/Renderer)

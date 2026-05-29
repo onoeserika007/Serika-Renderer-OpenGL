@@ -24,6 +24,6 @@
     "bUseBVH": true,
     "bUseBloom": false,
     "bUseHDR": true,
-    "bUseMipmaps": false,
+    "bUseMipmaps": true,
     "bUseSSAO": false
 }
